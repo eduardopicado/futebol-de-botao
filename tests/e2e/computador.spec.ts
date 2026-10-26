@@ -38,6 +38,7 @@ test.describe('Against the computer', () => {
     const watch = watchPage(page);
     await page.goto('/');
     await page.getByRole('link', { name: '🤖 1 player' }).click();
+    await page.getByRole('button', { name: '▶ Kick off' }).click();
     await expect(game(page)).toHaveAttribute('data-phase', 'kickoff', { timeout: 6000 });
     if ((await game(page).getAttribute('data-turn')) === 'a') {
       /* your kick-off: the midfielder beside the ball sends it out of the circle, then a defender steps back */

@@ -4,9 +4,9 @@
  * come with their flag. Clubs come as their kit colours and nothing more — a
  * club crest is someone's trademark and the app never comes with one, but a
  * green shirt is Palmeiras to anyone who follows them, and that is all a
- * player needs to know who they are playing. You can add a crest
- * from their own iPad's pictures, kept on that iPad (src/lib/crests.ts), and
- * every shirt and button of that team wears it.
+ * player needs to know who they are playing. You can add a crest from your
+ * own device's pictures, kept on that device (src/lib/crests.ts), and every
+ * shirt and button of that team wears it.
  *
  * Two sides are made up rather than real: You, and the Rivals, for a
  * favourite opponent you give a crest to — a friend's team, or the club
@@ -83,13 +83,16 @@ export const teamById = (id: string | null | undefined): Team | undefined => TEA
 /** a country or a club, rather than one of the made-up sides */
 export const real = (t: Team): boolean => t.kind === 'country' || t.kind === 'club';
 
-/** the side you play for, chosen in the settings */
-export const ourTeam = (): Team => teamById(read<string>('team', YOU.id)) ?? YOU;
-export const setOurTeam = (id: string): void => write('team', id);
+/** the team picked for the side at the bottom (you, against the computer),
+    as picked before the last match */
+export const ourTeam = (): Team => teamById(read<string>('team-a', YOU.id)) ?? YOU;
 
-/** the opponent chosen in the settings, or 'any' */
-export const rivalChoice = (): string => read<string>('rival', 'any');
-export const setRival = (id: string): void => write('rival', id);
+/** the team picked for the side at the top (the computer, or the second
+    player), or 'any' for a different one each time */
+export const rivalChoice = (): string => read<string>('team-b', 'any');
+
+/** keep a side's pick for next time */
+export const setPick = (side: 'a' | 'b', id: string): void => write(`team-${side}`, id);
 
 /** who you play: the opponent chosen, unless that is your own side, or else
     any real team but yours and the one just played */

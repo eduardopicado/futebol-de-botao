@@ -27,7 +27,6 @@ import { lifetime } from '../lib/life';
 import { pick } from '../lib/random';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
-import { say } from '../lib/speech';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
@@ -35,7 +34,7 @@ import {
   type Event, type Match, type Side,
 } from '../content/match';
 import { makeBoard, type Benched, type Keepers } from './board';
-import { computerLevel, goalsToWin } from './choices';
+import { computerLevel, goalsToWin, speak } from './choices';
 import { narrate } from './narration';
 import { label, ourTeam, rivalFor, type Team } from './teams';
 
@@ -202,7 +201,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
       case 'uncalled': {
         sfx.whistle();
         const why = event.couldCall ? 'No goal: the shot was not called. Call "A gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
-        say(why);
+        speak(why);
         render(`${why} Goal kick to ${name(other(event.side))}.`);
         await wait(2200);
         return;
@@ -210,7 +209,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
       case 'foul': {
         sfx.whistle();
         const why = event.penalty ? `Foul in the area! Penalty to ${name(event.side)}.` : `Foul! Free kick to ${name(event.side)}.`;
-        say(why);
+        speak(why);
         render(event.penalty ? 'Foul in the area!' : why);
         await wait(1800);
         return;
@@ -320,7 +319,8 @@ function match(root: HTMLElement, computer: boolean): () => void {
     const first: Side = pick(['a', 'b'] as const);
     overlay.replaceChildren(el('div', { class: 'toss' },
       el('span', { class: 'coin', 'aria-hidden': 'true', text: '🪙' }),
-      el('p', { text: `Kick-off: ${name(first)}!` })));
+      el('p', { text: `Kick-off: ${name(first)}!` }),
+      el('p', { class: 'toss-to', text: `First to ${goalsToWin()} goals` })));
     overlay.removeAttribute('hidden');
     node.dataset.phase = 'toss';
     tell('Coin toss…', 'a');
@@ -328,7 +328,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
     await wait(1800);
     overlay.setAttribute('hidden', '');
     m = newMatch(goalsToWin(), first);
-    say(`Kick-off: ${teams[first].name}!`);
+    speak(`Kick-off: ${teams[first].name}!`);
     busy = false;
     render('');
   }
@@ -349,20 +349,20 @@ function match(root: HTMLElement, computer: boolean): () => void {
       delete node.dataset.winner;
       void toss();
     });
-    const home = el('button', { class: 'btn ghost', type: 'button', text: 'Home' });
-    home.addEventListener('click', () => go('home'));
+    const change = el('button', { class: 'btn ghost', type: 'button', text: 'Change teams' });
+    change.addEventListener('click', () => go(cpu ? 'teams-1' : 'teams-2'));
     overlay.replaceChildren(el('div', { class: 'win', role: 'dialog', 'aria-label': 'Full time' },
       el('p', { class: 'win-shout', text: 'É campeão!' }),
       el('p', { class: 'win-team', text: label(teams[side]) }),
       el('p', { class: 'win-score', text: `${label(teams.a, true)} ${m.score.a} – ${m.score.b} ${label(teams.b, true)}` }),
-      el('div', { class: 'row' }, again, home)));
+      el('div', { class: 'row' }, again, change)));
     overlay.removeAttribute('hidden');
     const colours = [teams[side].colours[0], teams[side].colours[1], '#F3B229', '#FFF6E7'];
     node.append(el('div', { class: 'confetti', 'aria-hidden': 'true' },
       ...Array.from({ length: 48 }, (_, i) => el('i', { vars: { '--x': `${(i * 37) % 100}%`, '--d': `${(i % 7) * 0.18}s`, '--c': colours[i % colours.length], '--r': `${(i * 53) % 360}deg` } }))));
   }
 
-  /* a test (or a grown-up debugging) can put a match on the device to start from */
+  /* a test (or someone debugging) can put a match on the device to start from */
   const setup = read<Partial<Match> | null>('match-setup', null);
   if (setup && typeof setup === 'object') {
     write('match-setup', null);

@@ -58,7 +58,7 @@ const FACE = R * 0.72;
 
 /** a button, raised off the felt: its shadow, its side showing below it,
     the rim in a team's second colour with a bevel, the face in its first
-    with a shine, and on top the crest a grown-up added for the team
+    with a shine, and on top the crest added for the team
     (src/lib/crests.ts), or its flag. Its top is where the physics has it */
 export function button(team: Team, cls: string): SVGGElement {
   const crest = crestOf(team.id);

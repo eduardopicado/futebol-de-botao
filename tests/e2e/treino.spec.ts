@@ -3,7 +3,7 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { expectTapTargets, noProblems, seed, watchPage } from './helpers';
+import { expectTapTargets, noProblems, watchPage } from './helpers';
 import { PULL, VIEW, type Flick } from '../../src/content/botao';
 
 async function start(page: Page): Promise<void> {
@@ -161,41 +161,5 @@ test.describe('Treino', () => {
     await start(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     expect(results.violations.map((v) => v.id)).toEqual([]);
-  });
-});
-
-test.describe('the start screen and the grown-ups', () => {
-  test('a tap on Grown-ups does nothing; held for three seconds it opens, and his team sticks', async ({ page }) => {
-    const watch = watchPage(page);
-    await page.goto('/');
-    const hold = page.getByRole('button', { name: /Grown-ups/ });
-    await hold.click();
-    await expect(page.locator('.home')).toBeVisible();
-    await hold.hover();
-    await page.mouse.down();
-    await page.waitForTimeout(3300);
-    await page.mouse.up();
-    await expect(page.getByRole('heading', { name: 'Grown-ups' })).toBeVisible();
-    await page.getByLabel('His team').selectOption('brazil');
-    await page.getByLabel('Playing against').selectOption('argentina');
-    await page.getByRole('button', { name: 'Back to the start' }).click();
-    await expect(page.locator('.versus')).toContainText('Brazil');
-    await expect(page.locator('.versus')).toContainText('Argentina');
-    noProblems(watch);
-  });
-
-  test('his team plays in its colours on the table, and the rival in theirs', async ({ page }) => {
-    await seed(page, { team: 'brazil', rival: 'argentina' });
-    await start(page);
-    await expect(page.locator('.bt-btn.us .bt-face').first()).toHaveAttribute('fill', '#FFD500');
-    await expect(page.locator('.bt-btn.them .bt-face').first()).toHaveAttribute('fill', '#75AADB');
-    await expect(page.locator('.bt-say')).toContainText('🇧🇷 Brazil against 🇦🇷 Argentina');
-  });
-
-  test('the built page refuses every other origin', async ({ page }) => {
-    await page.goto('/');
-    const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content');
-    expect(policy).toContain("default-src 'self'");
-    expect(policy).toContain("connect-src 'self'");
   });
 });

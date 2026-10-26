@@ -1,6 +1,8 @@
-/* What has been chosen in the settings, read where a game needs it. Each
-   falls back to its default for anything saved that it does not know. */
+/* What has been chosen in the settings (src/game/settings.ts), read where a
+   game needs it. Each falls back to its default for anything saved that it
+   does not know. */
 
+import { say } from '../lib/speech';
 import { read } from '../lib/storage';
 import { LEVELS, type Level } from '../content/computer';
 import { GOALS } from '../content/match';
@@ -16,3 +18,12 @@ export const computerLevel = (): Level => {
   const l = read<string>('level', 'medium');
   return (LEVELS as readonly string[]).includes(l) ? (l as Level) : 'medium';
 };
+
+/** are the words above the table read aloud? */
+export const readAloud = (): boolean => read<boolean>('read-aloud', true);
+
+/** the words, said aloud, if that is chosen */
+export const speak = (words: string): void => { if (readAloud()) say(words); };
+
+/** are the sound effects on? */
+export const soundsOn = (): boolean => read<boolean>('sounds', true);

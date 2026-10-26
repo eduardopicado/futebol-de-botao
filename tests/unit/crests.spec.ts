@@ -1,6 +1,6 @@
 /* Team crests: the square cut from a picture, and keeping them on this
  * device, only ever as pictures the app made. And the Rivals, the made-up
- * opponent a crest is often for, who play only when he picks them.
+ * opponent a crest is often for, who play only when picked.
  *
  *   npm run test:unit */
 
@@ -75,8 +75,8 @@ describe('the opponent', () => {
     return import('../../src/game/teams');
   }
 
-  it('is a real team at random: never one of his own sides, his team, or the last one', async () => {
-    const { RIVALS, YOU, ourTeam, real, rivalFor, teamById } = await teams({ 'team': 'brazil' });
+  it('is a real team at random: never one of the made-up sides, your team, or the last one', async () => {
+    const { RIVALS, YOU, ourTeam, real, rivalFor, teamById } = await teams({ 'team-a': 'brazil' });
     const us = ourTeam();
     expect(us.id).toBe('brazil');
     const last = teamById('flamengo')!;
@@ -87,13 +87,13 @@ describe('the opponent', () => {
     }
   });
 
-  it('is the one he picked, the Rivals included, every time', async () => {
-    const { RIVALS, ourTeam, rivalFor } = await teams({ 'rival': 'rivals' });
+  it('is the one picked, the Rivals included, every time', async () => {
+    const { RIVALS, ourTeam, rivalFor } = await teams({ 'team-b': 'rivals' });
     for (let i = 0; i < 20; i += 1) expect(rivalFor(ourTeam())).toBe(RIVALS);
   });
 
-  it('is never his own side, even when he picked it', async () => {
-    const { ourTeam, rivalFor } = await teams({ 'team': 'palmeiras', 'rival': 'palmeiras' });
+  it('is never your own side, even when picked', async () => {
+    const { ourTeam, rivalFor } = await teams({ 'team-a': 'palmeiras', 'team-b': 'palmeiras' });
     for (let i = 0; i < 50; i += 1) expect(rivalFor(ourTeam()).id).not.toBe('palmeiras');
   });
 });

@@ -52,7 +52,7 @@ function leave(): void {
  * What he sees when a screen will not open — a game that throws as it
  * starts, or one whose file could not be fetched — instead of a blank page
  * with no way back. The error still goes to the console, so a test or a
- * grown-up looking at the console sees it.
+ * person looking at the console sees it.
  */
 function broken(path: string, error: unknown): void {
   console.error(`Could not open #/${path}:`, error);
@@ -63,11 +63,11 @@ function broken(path: string, error: unknown): void {
   title.textContent = 'Oops!';
   const what = document.createElement('p');
   what.className = 'tag';
-  what.textContent = 'That game would not open. Try another one, and tell a grown-up.';
+  what.textContent = 'That screen would not open. Try another one, or open the app again.';
   const back = document.createElement('button');
   back.className = 'btn';
   back.type = 'button';
-  back.textContent = 'Back to the games';
+  back.textContent = 'Back to the start';
   back.addEventListener('click', () => go('home'));
   box.append(title, what, back);
   host.append(box);
