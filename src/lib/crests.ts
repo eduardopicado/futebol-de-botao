@@ -1,8 +1,8 @@
-/* Team crests, added by a grown-up from the iPad's own pictures.
+/* Team crests, added from the device's own pictures.
  *
  * The app never ships a club's crest: it is the club's trademark, so clubs
- * come as their colours (src/games/teams.ts). A grown-up can put one on this
- * iPad for the family's own use. The picture is cut to the biggest square in
+ * come as their colours (src/game/teams.ts). A player can put one on their
+ * own device, for their own use. The picture is cut to the biggest square in
  * its middle, made small, and kept in localStorage with the other settings,
  * so nothing leaves the device. A game shows it cut to a circle, like the
  * sticker on a real botão. */
@@ -28,7 +28,7 @@ function all(): Record<string, string> {
   return Object.fromEntries(Object.entries(saved).filter((e): e is [string, string] => isCrest(e[1])));
 }
 
-/** the crest a grown-up added for this team, or null */
+/** the crest added for this team, or null */
 export const crestOf = (team: string): string | null => all()[team] ?? null;
 
 /** keep a crest for this team; false when it is not a crest or this device

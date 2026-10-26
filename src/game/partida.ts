@@ -362,7 +362,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
       ...Array.from({ length: 48 }, (_, i) => el('i', { vars: { '--x': `${(i * 37) % 100}%`, '--d': `${(i % 7) * 0.18}s`, '--c': colours[i % colours.length], '--r': `${(i * 53) % 360}deg` } }))));
   }
 
-  /* a test (or a grown-up debugging) can put a match on the device to start from */
+  /* a test (or someone debugging) can put a match on the device to start from */
   const setup = read<Partial<Match> | null>('match-setup', null);
   if (setup && typeof setup === 'object') {
     write('match-setup', null);
