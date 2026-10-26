@@ -53,6 +53,15 @@ function wayOf(t: Table, f: Flick, all: boolean): { ball: Point[]; mine: Point[]
   return { ball, mine: mine.slice(0, hit ? hit.frame + 1 : mine.length) };
 }
 
+/** Treino's two drills, side by side at the top: attacking, and in goal */
+export function modeSwitch(active: 'treino' | 'goleiro'): HTMLElement {
+  const link = (path: 'treino' | 'goleiro', text: string): HTMLElement =>
+    el('a', { class: 'kind-btn', href: `#/${path}`, text, ...(path === active ? { 'aria-current': 'page' } : {}) });
+  return el('nav', { class: 'kind-switch', 'aria-label': 'Treino' },
+    el('h1', { class: 'sr-only', text: active === 'treino' ? 'Treino: attack' : 'Treino: goleiro' }),
+    link('treino', '⚽ Attack'), link('goleiro', '🧤 Goleiro'));
+}
+
 export function mount(root: HTMLElement): () => void {
   const life = lifetime();
   const wait = (ms: number): Promise<void> => new Promise((done) => { life.later(done, ms); });
@@ -63,7 +72,7 @@ export function mount(root: HTMLElement): () => void {
   const score = el('p', { class: 'score', 'aria-live': 'polite' }, el('span', { class: 'lbl', text: 'Goals' }), goalsEl);
   const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Back to the start', text: '←' });
   back.addEventListener('click', () => go('home'));
-  const title = el('div', { class: 'titles' }, el('h1', {}, 'Treino'));
+  const title = el('div', { class: 'titles' }, modeSwitch('treino'));
   const sayEl = el('p', { class: 'bt-say', 'aria-live': 'polite' });
   const pips = el('span', { class: 'bt-pips', role: 'img' });
   const touchesEl = el('p', { class: 'bt-touches' }, el('span', { text: 'Touches' }), pips);

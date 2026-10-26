@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Futebol de botão, the Brazilian table-football game, for players of all ages:
-two on one iPad (and next, one against the computer). It is played on an iPad from the
+one against the computer, or two on one iPad. It is played on an iPad from the
 home screen (Safari, added as an app), and on phones. It grew out of the
 Futebol de Botão angles game in `eduardopicado/sounds-of-reading`, which stays
 there as a lesson; the first brief was `docs/HANDOVER.md`, and the match's
@@ -74,14 +74,19 @@ src/content/botao.ts      the table, the physics of a flick, the three-touch rul
 src/content/match.ts      a match: turns (three free touches), "A gol!" and the
                           goleiro, fouls and penalties, kick-off, buttons in a
                           net, winning
+src/content/computer.ts   the computer: its moves, when it calls "A gol!", where it
+                          stands its goleiro, and how far off it is at each level
 src/content/treino.ts     Treino's set-ups, each with a way to score from it
 src/content/commentary.ts what the commentator shouts, both languages
 src/game/table.ts         the table drawn: tray, felt, lines, goals, buttons
 src/game/board.ts         the table on the screen, shared: both sides, both
                           goleiros, a flick played out, the finger
-src/game/partida.ts       a match on the screen: the toss, the note that turns to
-                          face whoever has to act, "A gol!" and Pronto, full time
+src/game/partida.ts       a match on the screen, two players or one against the
+                          computer: the toss, the note that turns to face whoever
+                          has to act, "A gol!" and Pronto, full time
 src/game/treino.ts        Treino: three touches, free shooting, Show me
+src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
+src/game/choices.ts       what the settings chose: goals to win, computer level
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
 src/game/home.ts          the start screen
 src/game/grown-ups.ts     settings: your team, the opponent, commentator, sounds,
@@ -92,7 +97,7 @@ src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
                           storage, crests, life, router, dom, update (the
                           "new version, tap to update" button)
 src/assets/tray.webp      the wooden tray, cut from the design handoff
-tests/unit/               physics, planner, the match's rules, set-ups, teams,
+tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
                           storage, sfx, speech, crests
 tests/e2e/                Playwright, real finger drags through the table's viewBox
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)

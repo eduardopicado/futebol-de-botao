@@ -47,9 +47,10 @@ const side = (team: Team | null, name: string): HTMLElement =>
 export function mount(root: HTMLElement): () => void {
   const us = ourTeam();
   const rival = teamById(rivalChoice());
+  const one = el('a', { class: 'btn big', href: '#/computador', text: '🤖 1 player' });
   const play = el('a', { class: 'btn big', href: '#/partida', text: '👥 2 players' });
   const practice = el('a', { class: 'btn big ghost', href: '#/treino', text: '⚽ Treino' });
-  for (const link of [play, practice]) link.addEventListener('click', () => sfx.tap());
+  for (const link of [one, play, practice]) link.addEventListener('click', () => sfx.tap());
   const grownUps = holdButton('⚙ Grown-ups', () => { sfx.tap(); go('grown-ups'); });
   root.append(el('div', { class: 'home' },
     el('h1', {}, 'Futebol de ', el('span', { class: 'swash', text: 'Botão' })),
@@ -57,7 +58,7 @@ export function mount(root: HTMLElement): () => void {
       side(us, `${us.flag ? `${us.flag} ` : ''}${us.short}`),
       el('span', { text: 'v' }),
       side(rival && rival !== us ? rival : null, rival && rival !== us ? `${rival.flag ? `${rival.flag} ` : ''}${rival.short}` : 'Anyone')),
-    el('div', { class: 'modes' }, play, practice),
+    el('div', { class: 'modes' }, one, play, practice),
     grownUps.node));
   return () => grownUps.stop();
 }
