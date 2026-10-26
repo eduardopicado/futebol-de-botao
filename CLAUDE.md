@@ -1,10 +1,12 @@
 # CLAUDE.md
 
-Futebol de botão, the Brazilian table-football game, for a 6-year-old in
-Australia whose family is Brazilian. He plays on an iPad from the home screen
-(Safari, added as an app), and sometimes on a phone. It grew out of the
+Futebol de botão, the Brazilian table-football game, for players of all ages:
+two on one iPad (and next, one against the computer). It is played on an iPad from the
+home screen (Safari, added as an app), and on phones. It grew out of the
 Futebol de Botão angles game in `eduardopicado/sounds-of-reading`, which stays
-there as a lesson; the brief for this one is `docs/HANDOVER.md`.
+there as a lesson; the first brief was `docs/HANDOVER.md`, and the match's
+rules are the simple ones agreed from the CBFM 3 Toques rulebook
+(`src/content/match.ts` lists them).
 
 ## Rules
 
@@ -24,19 +26,24 @@ there as a lesson; the brief for this one is `docs/HANDOVER.md`.
   drag, and a finger still down when a shot starts is no flick.
 - Nothing guide-like stays on the table when no button is held. Say what
   happened in words, above the table, or animate it and then clear it.
+- The rules of a match live in `src/content/match.ts` and nowhere else, pure
+  and unit-tested; a screen asks it what a flick led to. Side a plays up the
+  table from the bottom, side b down it; the physics always sees the side
+  playing attacking the top, so side b's table is turned round for it.
 - The game screen fits the screen with no scrolling: the table has
   `touch-action: none`, so on a phone a swipe that starts on a button is a
   flick, not a scroll.
 - No filters in the SVG: shading is gradients only, so it stays at 60 fps on
   an iPad. Motion stops under Reduce Motion.
 - The app never ships a club's crest (a trademark). Clubs come as kit colours,
-  countries with their flag; a grown-up can add a crest from the device's own
+  countries with their flag; a player can add a crest from the device's own
   photos (`src/lib/crests.ts`).
-- Keep single-storey a/g letterforms (Andika) for anything he reads.
+- Andika for anything a player reads (its single-storey a and g read well at
+  any age); Baloo 2 for the big titles.
 - Speech: every call wrapped in try/catch; unlocked on the first tap for iOS.
   The commentator is Portuguese by default, English or off by choice.
 - A screen schedules its timers through `lifetime()` (`src/lib/life.ts`) and
-  ends it on unmount, so nothing it planned happens after he has left. The
+  ends it on unmount, so nothing it planned happens after it has been left. The
   router also cancels speech and stops sound effects on the way out.
 - Test at iPad Safari sizes (820×1180 both ways) and 375px wide. Zero console
   errors.
@@ -46,7 +53,7 @@ there as a lesson; the brief for this one is `docs/HANDOVER.md`.
 ```
 npm run dev        # local dev server
 npm run build      # typecheck, then build to dist/
-npm run test:unit  # physics, planner, set-ups, and the shared code
+npm run test:unit  # physics, planner, the match's rules, set-ups, shared code
 npm test           # unit tests, then the Playwright suite
 ```
 
@@ -64,12 +71,20 @@ In a cloud session whose Playwright browser does not match the installed
 src/content/botao.ts      the table, the physics of a flick, the three-touch rule,
                           the goleiro, and the planner (aimAt, oneTouch, passPlan,
                           robust) that finds a way to score
+src/content/match.ts      a match: turns (three free touches), "A gol!" and the
+                          goleiro, fouls and penalties, kick-off, buttons in a
+                          net, winning
 src/content/treino.ts     Treino's set-ups, each with a way to score from it
 src/content/commentary.ts what the commentator shouts, both languages
 src/game/table.ts         the table drawn: tray, felt, lines, goals, buttons
-src/game/treino.ts        Treino: the finger, the flick, three touches, Show me
+src/game/board.ts         the table on the screen, shared: both sides, both
+                          goleiros, a flick played out, the finger
+src/game/partida.ts       a match on the screen: the toss, the note that turns to
+                          face whoever has to act, "A gol!" and Pronto, full time
+src/game/treino.ts        Treino: three touches, free shooting, Show me
+src/game/scene.ts         the desk round the table (the pictures in src/assets/)
 src/game/home.ts          the start screen
-src/game/grown-ups.ts     settings: his team, the opponent, commentator, sounds,
+src/game/grown-ups.ts     settings: your team, the opponent, commentator, sounds,
                           crests (held for three seconds on the start screen)
 src/game/teams.ts         the teams, their flags and kits; rivalFor picks the opponent
 src/game/narration.ts     the commentator ("Goooool do Brasil!")
@@ -77,7 +92,8 @@ src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
                           storage, crests, life, router, dom, update (the
                           "new version, tap to update" button)
 src/assets/tray.webp      the wooden tray, cut from the design handoff
-tests/unit/               physics, planner, set-ups, storage, sfx, speech, crests
+tests/unit/               physics, planner, the match's rules, set-ups, teams,
+                          storage, sfx, speech, crests
 tests/e2e/                Playwright, real finger drags through the table's viewBox
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```

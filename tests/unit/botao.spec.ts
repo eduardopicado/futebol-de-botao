@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BALL, KEEPER_W, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
-  angles, flickFor, keeperFor, mayFlick, oneTouch, passPlan, robust, shownBounce, simulate, slant,
+  angles, flickFor, keeperFor, oneTouch, passPlan, robust, shownBounce, simulate, slant,
   type Point, type Table,
 } from '../../src/content/botao';
 
@@ -190,16 +190,7 @@ describe('the table', () => {
   });
 });
 
-describe('the rules', () => {
-  it('three touches, and before the third the ball goes to another button', () => {
-    expect(mayFlick([], 0)).toBe(true);
-    expect(mayFlick([0], 0)).toBe(true);
-    expect(mayFlick([0, 0], 0)).toBe(false);
-    expect(mayFlick([0, 0], 1)).toBe(true);
-    expect(mayFlick([0, 1], 0)).toBe(true);
-    expect(mayFlick([1, 0], 0)).toBe(true);
-  });
-
+describe('the goleiro', () => {
   it('puts the goleiro on the near post, or in the middle of the way to goal', () => {
     expect(keeperFor('none', { x: 10, y: 30 })).toBeNull();
     expect(keeperFor('side', { x: 10, y: 30 })!).toBeLessThan(MID);

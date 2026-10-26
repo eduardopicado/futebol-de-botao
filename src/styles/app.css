@@ -215,8 +215,8 @@ select {
    a flick. So the game screen is exactly the screen's height, and the table
    is as big as the room left for it (container units: the stage is the
    container). svh where there is one, so an iPhone's toolbar is counted. */
-body[data-route="treino"] { overflow: hidden; }
-body[data-route="treino"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+body[data-route="treino"], body[data-route="partida"] { overflow: hidden; }
+body[data-route="treino"] .app, body[data-route="partida"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
 .game {
   height: 100%; max-width: 720px; margin: 0 auto;
   display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 6px;
@@ -252,7 +252,40 @@ body[data-route="treino"] .app { height: 100vh; height: 100svh; min-height: 0; p
 .bt-say::before { right: 100%; margin-right: 4px; }
 .bt-say::after { left: 100%; margin-left: 4px; transform: scaleX(-1); }
 @media (max-width: 700px) { .bt-say::before, .bt-say::after { display: none; } }
-.bt-stage { container-type: size; display: grid; place-items: center; min-height: 0; }
+.bt-stage { container-type: size; display: grid; place-items: center; min-height: 0; position: relative; }
+/* the note's buttons ("A gol!", Pronto) beside its words; the whole note
+   turns round to face the player at the top when it is talking to them */
+.bt-say .say-actions { display: inline-flex; gap: 8px; margin-left: 10px; vertical-align: middle; }
+.bt-say .say-actions:empty { display: none; }
+.bt-say .say-actions .btn { min-height: var(--tap); }
+.bt-say.flip { transform: rotate(179.4deg); }
+.match-score { font-size: 20px; white-space: nowrap; }
+.whose { font-family: var(--reading); }
+/* over the table: the coin toss, and full time */
+.bt-overlay { position: absolute; inset: 0; display: grid; place-items: center; z-index: 2; pointer-events: none; }
+.bt-overlay[hidden] { display: none; }
+.toss, .win {
+  pointer-events: auto; display: grid; justify-items: center; gap: 10px; text-align: center;
+  padding: 22px 26px; border-radius: var(--radius); max-width: min(92%, 440px);
+  background: rgba(8, 32, 28, .92); border: 2px solid rgba(243, 178, 41, .7); box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+}
+.toss p, .win p { margin: 0; }
+.toss p { font: 800 24px var(--display); }
+.coin { font-size: 64px; line-height: 1; display: inline-block; animation: bt-coin .3s linear 5; }
+@keyframes bt-coin { 0% { transform: scaleX(1); } 50% { transform: scaleX(.1); } 100% { transform: scaleX(1); } }
+.win-shout { font: 800 clamp(34px, 9vw, 52px) / 1 var(--display); color: var(--mustard); }
+.win-team { font: 800 26px var(--display); }
+.win-score { font: 700 20px var(--reading); }
+.win .row { justify-content: center; margin-top: 6px; }
+/* confetti in the winners' colours, falling once */
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
+.confetti i {
+  position: absolute; top: -20px; left: var(--x); width: 10px; height: 16px; border-radius: 2px;
+  background: var(--c); transform: rotate(var(--r)); animation: bt-fall 2.8s ease-in var(--d) forwards;
+}
+@keyframes bt-fall { to { transform: translateY(110vh) rotate(calc(var(--r) + 540deg)); } }
+.home .modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.btn.big.ghost { box-shadow: none; }
 .bt-foot {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   justify-self: center; width: min(100%, 620px); padding: 4px 4px 4px 16px; border-radius: 99px;
@@ -314,7 +347,10 @@ body[data-route="treino"] .app { height: 100vh; height: 100svh; min-height: 0; p
 .bt-shadow { fill: rgba(0, 0, 0, .32); }
 .bt-keeper-block { stroke: #111; stroke-width: .4; }
 .bt-keeper-shine { fill: url(#bt-blockshade); }
-.bt-keeper.moving { transition: transform .4s ease; }
+.keeper-moving .bt-keeper { transition: transform .4s ease; }
+/* the goleiro being placed after "A gol!": it glows, and slides with the finger */
+.bt-keeper.placing .bt-keeper-block { stroke: var(--mustard); stroke-width: .9; }
+.bt-keeper.placing { cursor: ew-resize; }
 .bt-btn .bt-rim { stroke: rgba(0, 0, 0, .55); stroke-width: .5; }
 /* a button's side, in its rim's colour in shade */
 .bt-side { stroke: rgba(0, 0, 0, .6); stroke-width: .4; }
@@ -323,7 +359,10 @@ body[data-route="treino"] .app { height: 100vh; height: 100svh; min-height: 0; p
 .bt-face { stroke: rgba(0, 0, 0, .35); stroke-width: .3; }
 .bt-shine { fill: url(#bt-shine); }
 .bt-btn.us { cursor: grab; }
-.bt-btn.tired { opacity: .4; }
+.bt-btn.out { opacity: .45; }
+/* the side to play: a gold ring round each of its buttons */
+.bt-table.turn-a .bt-btn.us:not(.out) .bt-rim, .bt-table.turn-b .bt-btn.them:not(.out) .bt-rim { stroke: var(--mustard); stroke-width: 1; }
+.bt-table.turn-b .bt-btn.them:not(.out) { cursor: grab; }
 .bt-flag { pointer-events: none; }
 .bt-ball-face { fill: url(#bt-ballshade); stroke: #222; stroke-width: .3; }
 @media (prefers-reduced-motion: reduce) {

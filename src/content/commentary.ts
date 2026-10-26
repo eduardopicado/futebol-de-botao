@@ -7,12 +7,18 @@
 /** a save, in Portuguese */
 export const PT_SAVES = ['Defendeu o goleiro!', 'Que defesa!', 'Pegou o goleiro!'];
 
-/** a goal, in Portuguese: for a team said with its article ("do Brasil"), or for his own */
+/** a goal, in Portuguese: for a team said with its article ("do Brasil"), or for a made-up side */
 export const ptGoals = (team?: string): string[] =>
   team ? [`Goooool ${team}!`, `É gol ${team}!`, `Golaço ${team}!`] : ['Goooool!', 'Golaço!', 'É gol!'];
 
 /** a save, in English */
 export const EN_SAVES = ['What a save!', 'Saved by the keeper!'];
 
-/** a goal, in English: for a team by name, or for his own */
+/** a goal, in English: for a team by name, or for one of the made-up sides */
 export const enGoal = (team?: string): string => (team ? `Goooal for ${team}!` : 'Goooal!');
+
+/** the match won, in Portuguese */
+export const PT_CHAMPIONS = ['É campeão!', 'É campeão! É campeão!'];
+
+/** the match won, in English */
+export const enChampion = (team?: string): string => (team ? `${team} are the champions!` : 'Champions!');

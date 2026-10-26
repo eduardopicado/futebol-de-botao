@@ -1,8 +1,8 @@
 # Futebol de Botão
 
-The Brazilian table-football game, for the iPad. Put a finger on one of your
-buttons, pull back, let go: three touches to score, and before the third the
-ball has to go to another button (the regra carioca).
+The Brazilian table-football game, for the iPad and phones, for all ages. Put
+a finger on one of your buttons, pull back, let go: three touches a turn, and
+call "A gol!" before you shoot.
 
 No accounts, no tracking, no network requests. It works offline once added
 to the home screen.
@@ -17,14 +17,21 @@ shows a **New version! Tap to update** button.
 
 ## What is here so far
 
-- **Treino:** practice against three defenders and a goleiro. Every set-up
-  comes with a way to score, and **Show me** plays it.
+- **2 players:** a match on one iPad, five buttons and a goleiro a side,
+  first to 3 goals. A coin toss picks who kicks off. Each turn is up to three
+  flicks with any of your buttons; to shoot, call **A gol!** (in a turn that
+  started in the other half), and the other player slides their goleiro along
+  the line and taps **Pronto**. Fouls give free kicks, or a penalty in the
+  area. The note above the table turns to face whoever has to act.
+- **Treino:** practice against three defenders and a goleiro, shooting
+  freely. Every set-up comes with a way to score, and **Show me** plays it.
 - **Grown-ups:** hold the button on the start screen for three seconds to
-  choose his team, the opponent, the commentator (Português, English or none),
-  the sound effects, and a crest for each team from the iPad's own photos.
+  choose your team, the opponent, the commentator (Português, English or
+  none), the sound effects, and a crest for each team from your own photos.
+  (This becomes a plain settings menu soon.)
 
-The full match is next; the open questions are at the end of
-[`docs/HANDOVER.md`](docs/HANDOVER.md).
+The rules are a simple version of the CBFM's 3 Toques (the regra carioca);
+[`src/content/match.ts`](src/content/match.ts) lists them.
 
 ## Develop
 

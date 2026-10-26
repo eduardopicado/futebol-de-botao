@@ -1,8 +1,8 @@
-/* The start: who he is playing for, who against, and the way onto the table.
+/* The start: who you play for, who against, and the way onto the table.
  *
  * The settings live on their own page (src/game/grown-ups.ts), behind a
  * button that has to be held for three seconds, so a tap about cannot change
- * his team. */
+ * your team. */
 
 import { el } from '../lib/dom';
 import { go } from '../lib/router';
@@ -47,8 +47,9 @@ const side = (team: Team | null, name: string): HTMLElement =>
 export function mount(root: HTMLElement): () => void {
   const us = ourTeam();
   const rival = teamById(rivalChoice());
-  const play = el('a', { class: 'btn big', href: '#/treino', text: '⚽ Treino' });
-  play.addEventListener('click', () => sfx.tap());
+  const play = el('a', { class: 'btn big', href: '#/partida', text: '👥 2 players' });
+  const practice = el('a', { class: 'btn big ghost', href: '#/treino', text: '⚽ Treino' });
+  for (const link of [play, practice]) link.addEventListener('click', () => sfx.tap());
   const grownUps = holdButton('⚙ Grown-ups', () => { sfx.tap(); go('grown-ups'); });
   root.append(el('div', { class: 'home' },
     el('h1', {}, 'Futebol de ', el('span', { class: 'swash', text: 'Botão' })),
@@ -56,7 +57,7 @@ export function mount(root: HTMLElement): () => void {
       side(us, `${us.flag ? `${us.flag} ` : ''}${us.short}`),
       el('span', { text: 'v' }),
       side(rival && rival !== us ? rival : null, rival && rival !== us ? `${rival.flag ? `${rival.flag} ` : ''}${rival.short}` : 'Anyone')),
-    play,
+    el('div', { class: 'modes' }, play, practice),
     grownUps.node));
   return () => grownUps.stop();
 }

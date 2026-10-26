@@ -1,0 +1,312 @@
+/* Partida — a match for two players on one iPad, first to 3 goals (or 5, or 10).
+ *
+ * The iPad lies flat between the two players. Side a sits at the bottom and
+ * attacks the goal at the top; side b sits at the top and attacks the
+ * bottom. The table never turns: the side to play glows, and the paper note
+ * above the table turns to face whoever has to do something, the defender
+ * too when they have to place their goleiro.
+ *
+ * A coin toss picks who kicks off. Then each turn is up to three flicks with
+ * any buttons; a shot has to be called with "A gol!", in a turn that started
+ * in the attacking half, and the defender slides their goleiro along the
+ * line and taps Pronto before it is taken. Fouls give free kicks, or a
+ * penalty in the area. When the turn passes, the note says whose it is and
+ * nothing can be flicked for a moment, so nobody flicks by mistake in the
+ * handover. All the rules are in src/content/match.ts; the table on the
+ * screen is board.ts. */
+
+import { el } from '../lib/dom';
+import { lifetime } from '../lib/life';
+import { pick } from '../lib/random';
+import { go } from '../lib/router';
+import { sfx } from '../lib/sfx';
+import { say } from '../lib/speech';
+import { read, write } from '../lib/storage';
+import {
+  GOALS, KICKOFF_TOUCHES, TOUCHES, call, clampKeeper, flick, mayCall, mayFlick, newMatch, other, pronto,
+  type Event, type Match, type Side,
+} from '../content/match';
+import { makeBoard, type Benched, type Keepers } from './board';
+import { narrate } from './narration';
+import { label, ourTeam, rivalFor, type Team } from './teams';
+
+/** a moment between turns when nothing can be flicked */
+const HANDOVER = 1000;
+
+/** how many goals win, as chosen in the settings */
+export const goalsToWin = (): number => {
+  const n = read<number>('goals', GOALS[0]);
+  return (GOALS as readonly number[]).includes(n) ? n : GOALS[0];
+};
+
+export function mount(root: HTMLElement): () => void {
+  const life = lifetime();
+  const wait = (ms: number): Promise<void> => new Promise((done) => { life.later(done, ms); });
+  const a = ourTeam();
+  const teams: Record<Side, Team> = { a, b: rivalFor(a) };
+  const name = (s: Side): string => label(teams[s], true);
+
+  const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Back to the start', text: '←' });
+  back.addEventListener('click', () => go('home'));
+  const scoreEl = el('p', { class: 'score match-score', 'aria-live': 'polite' });
+  const words = el('span', { class: 'say-words' });
+  const actions = el('span', { class: 'say-actions' });
+  const sayEl = el('div', { class: 'bt-say', 'aria-live': 'polite' }, words, actions);
+  const whose = el('span', { class: 'whose' });
+  const pips = el('span', { class: 'bt-pips', role: 'img' });
+  const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name} at the top`);
+  const stage = el('div', { class: 'bt-stage' }, board.node);
+  const node = el('div', { class: 'game' },
+    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, 'Partida')), scoreEl),
+    sayEl, stage, el('div', { class: 'bt-foot' }, el('p', { class: 'bt-touches' }, whose, pips)));
+  root.append(node);
+
+  const callBtn = el('button', { class: 'btn small call', type: 'button', text: '📣 A gol!' });
+  const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
+
+  let m: Match = newMatch(goalsToWin(), 'a');
+  /* a flick, a pause or the toss is under way: no finger does anything */
+  let busy = true;
+  /* the goleiro being placed, where the finger has slid it so far */
+  let sliding = 0;
+  /* what just happened, said before what to do next */
+  let news = '';
+
+  const keepersOf = (x: Match): Keepers => ({ top: x.keepers.b, bottom: x.keepers.a });
+  const benchedOf = (x: Match): Benched[] => x.out.map(({ side, index, net }) => ({ side, index, net }));
+  const defender = (): Side => other(m.turn);
+  const keeperLine = (s: Side): 'top' | 'bottom' => (s === 'a' ? 'bottom' : 'top');
+
+  const showScore = (): void => {
+    scoreEl.replaceChildren(`${teams.a.flag ?? ''} ${m.score.a} – ${m.score.b} ${teams.b.flag ?? ''}`.trim());
+    scoreEl.setAttribute('aria-label', `${teams.a.name} ${m.score.a}, ${teams.b.name} ${m.score.b}`);
+    node.dataset.score = `${m.score.a}-${m.score.b}`;
+  };
+
+  /** the note: what to do, said to whoever has to do it, facing them */
+  const tell = (text: string, facing: Side, ...buttons: HTMLElement[]): void => {
+    words.textContent = text;
+    actions.replaceChildren(...buttons);
+    sayEl.classList.toggle('flip', facing === 'b');
+  };
+
+  /** everything as it is now, and what the side to play may do, after the
+      news if there is some (given, or kept from the last time) */
+  function render(said?: string): void {
+    if (said !== undefined) news = said;
+    const lead = news ? `${news} ` : '';
+    board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
+    showScore();
+    node.dataset.turn = m.turn;
+    node.dataset.phase = m.phase;
+    node.dataset.touches = String(m.touches);
+    const most = m.phase === 'kickoff' ? KICKOFF_TOUCHES : m.phase === 'penalty' || m.phase === 'shot' ? 1 : TOUCHES;
+    const used = m.phase === 'penalty' || m.phase === 'shot' ? 0 : m.touches;
+    pips.replaceChildren(...Array.from({ length: most }, (_, i) => el('span', { class: `bt-pip${i < used ? ' used' : ''}` })));
+    pips.setAttribute('aria-label', `${used} of ${most} touches used`);
+    whose.textContent = m.phase === 'placing' ? `${name(defender())}: goleiro` : name(m.turn);
+    const placing = m.phase === 'placing';
+    board.glow(busy || placing || m.phase === 'over' ? null : m.turn);
+    board.placing(placing ? keeperLine(defender()) : null, (x) => {
+      sliding = clampKeeper(x);
+      m = { ...m, keepers: { ...m.keepers, [defender()]: sliding } };
+      board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
+    });
+    if (placing) sliding = m.keepers[defender()];
+    const t = name(m.turn);
+    switch (m.phase) {
+      case 'kickoff':
+        tell(`${lead}Kick-off: ${t}. Two flicks, by two different buttons, and the ball has to leave the circle.`, m.turn);
+        break;
+      case 'play': {
+        const left = TOUCHES - m.touches;
+        const count = m.touches === 0 ? `${t} to play: three touches.` : `${t}: ${left} ${left === 1 ? 'touch' : 'touches'} left.`;
+        tell(`${lead}${count}${mayCall(m) ? ' Shooting? Call it first!' : ''}`, m.turn, ...(mayCall(m) && !busy ? [callBtn] : []));
+        break;
+      }
+      case 'placing':
+        tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'A gol! '}${name(defender())}: slide your goleiro along the line, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
+        break;
+      case 'shot':
+        tell(`${lead}${t}: take your shot!`, m.turn);
+        break;
+      case 'penalty':
+        tell(`${lead}${t}: take the penalty! One flick.`, m.turn);
+        break;
+      case 'over':
+        break;
+    }
+  }
+
+  callBtn.addEventListener('click', () => {
+    if (busy || !mayCall(m)) return;
+    sfx.whistle();
+    m = call(m);
+    render('');
+  });
+  prontoBtn.addEventListener('click', () => {
+    if (busy || m.phase !== 'placing') return;
+    sfx.tap();
+    m = pronto(m, sliding);
+    render('');
+  });
+
+  /* ── what a flick led to ────────────────────────────────────────────── */
+
+  const WHY: Record<Extract<Event, { kind: 'turn' }>['why'], string> = {
+    touches: 'Three touches.',
+    still: 'The ball did not move.',
+    theirs: 'Their touch.',
+    kickoff: '',
+    penalty: '',
+  };
+
+  async function after(event: Event, called: boolean, saved: boolean): Promise<void> {
+    switch (event.kind) {
+      case 'goal': {
+        sfx.cheer();
+        narrate('goal', teams[event.side], () => undefined, life.later);
+        node.dataset.goal = event.side;
+        showScore();
+        words.textContent = `${event.own ? 'Own goal! ' : ''}GOL! ${name(event.side)}! ${m.score.a} – ${m.score.b}`;
+        actions.replaceChildren();
+        sayEl.classList.remove('flip');
+        await wait(2600);
+        delete node.dataset.goal;
+        render('');
+        return;
+      }
+      case 'champion':
+        champion(event.side);
+        return;
+      case 'uncalled': {
+        sfx.whistle();
+        const why = event.couldCall ? 'No goal: the shot was not called. Call "A gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
+        say(why);
+        render(`${why} Goal kick to ${name(other(event.side))}.`);
+        await wait(2200);
+        return;
+      }
+      case 'foul': {
+        sfx.whistle();
+        const why = event.penalty ? `Foul in the area! Penalty to ${name(event.side)}.` : `Foul! Free kick to ${name(event.side)}.`;
+        say(why);
+        render(event.penalty ? 'Foul in the area!' : why);
+        await wait(1800);
+        return;
+      }
+      case 'retake':
+        sfx.whistle();
+        render('The ball has to leave the circle: kick off again.');
+        await wait(1600);
+        return;
+      case 'turn': {
+        const shotWords = event.why === 'penalty' ? (saved ? 'Saved!' : 'Missed!') : called ? (saved ? 'Saved!' : 'No goal.') : WHY[event.why];
+        render(shotWords);
+        /* the handover: nothing can be flicked for a moment */
+        await wait(HANDOVER);
+        return;
+      }
+      case 'on':
+        render(called ? (saved ? 'Saved! Play on.' : 'No goal. Play on.') : '');
+        return;
+    }
+  }
+
+  async function shoot(side: Side, index: number, vx: number, vy: number): Promise<void> {
+    if (busy || side !== m.turn || !mayFlick(m, index)) return;
+    busy = true;
+    board.drop();
+    board.glow(null);
+    actions.replaceChildren();
+    const called = m.phase === 'shot' || m.phase === 'penalty';
+    const before = m;
+    const play = flick(m, index, vx, vy);
+    await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before));
+    m = play.next;
+    node.dataset.event = play.event.kind;
+    const saved = play.bumps.some((b) => b.what === 'keeper');
+    if (saved && called) narrate('save', teams[other(before.turn)], () => undefined, life.later);
+    await after(play.event, called, saved);
+    if (m.phase === 'over') return;
+    busy = false;
+    render();
+  }
+
+  board.listen({
+    side: () => (busy || m.phase === 'placing' || m.phase === 'over' ? null : m.turn),
+    may: (_side, index) => {
+      if (mayFlick(m, index)) return true;
+      sfx.wrong();
+      words.textContent = 'At the kick-off, the second flick is by another button.';
+      return false;
+    },
+    flick: (side, index, f) => { void shoot(side, index, f.vx, f.vy); },
+  });
+
+  /* ── the toss, and the end ──────────────────────────────────────────── */
+
+  const overlay = el('div', { class: 'bt-overlay', hidden: '' });
+  stage.append(overlay);
+
+  async function toss(): Promise<void> {
+    const first: Side = pick(['a', 'b'] as const);
+    overlay.replaceChildren(el('div', { class: 'toss' },
+      el('span', { class: 'coin', 'aria-hidden': 'true', text: '🪙' }),
+      el('p', { text: `Kick-off: ${name(first)}!` })));
+    overlay.removeAttribute('hidden');
+    node.dataset.phase = 'toss';
+    tell('Coin toss…', 'a');
+    sfx.whistle();
+    await wait(1800);
+    overlay.setAttribute('hidden', '');
+    m = newMatch(goalsToWin(), first);
+    say(`Kick-off: ${teams[first].name}!`);
+    busy = false;
+    render('');
+  }
+
+  function champion(side: Side): void {
+    sfx.cheer();
+    narrate('champion', teams[side], () => undefined, life.later);
+    showScore();
+    node.dataset.phase = 'over';
+    node.dataset.winner = side;
+    board.glow(null);
+    words.textContent = `${name(side)} win!`;
+    actions.replaceChildren();
+    const again = el('button', { class: 'btn', type: 'button', text: '🔁 Play again' });
+    again.addEventListener('click', () => {
+      overlay.setAttribute('hidden', '');
+      node.querySelector('.confetti')?.remove();
+      delete node.dataset.winner;
+      void toss();
+    });
+    const home = el('button', { class: 'btn ghost', type: 'button', text: 'Home' });
+    home.addEventListener('click', () => go('home'));
+    overlay.replaceChildren(el('div', { class: 'win', role: 'dialog', 'aria-label': 'Full time' },
+      el('p', { class: 'win-shout', text: 'É campeão!' }),
+      el('p', { class: 'win-team', text: label(teams[side]) }),
+      el('p', { class: 'win-score', text: `${label(teams.a, true)} ${m.score.a} – ${m.score.b} ${label(teams.b, true)}` }),
+      el('div', { class: 'row' }, again, home)));
+    overlay.removeAttribute('hidden');
+    const colours = [teams[side].colours[0], teams[side].colours[1], '#F3B229', '#FFF6E7'];
+    node.append(el('div', { class: 'confetti', 'aria-hidden': 'true' },
+      ...Array.from({ length: 48 }, (_, i) => el('i', { vars: { '--x': `${(i * 37) % 100}%`, '--d': `${(i % 7) * 0.18}s`, '--c': colours[i % colours.length], '--r': `${(i * 53) % 360}deg` } }))));
+  }
+
+  /* a test (or a grown-up debugging) can put a match on the device to start from */
+  const setup = read<Partial<Match> | null>('match-setup', null);
+  if (setup && typeof setup === 'object') {
+    write('match-setup', null);
+    m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a'), ...setup };
+    board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length });
+    busy = false;
+    render('');
+  } else {
+    board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length });
+    render();
+    void toss();
+  }
+  return () => life.end();
+}
