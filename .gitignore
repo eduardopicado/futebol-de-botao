@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dev-dist/
+test-results/
+playwright-report/
+*.local
+.DS_Store
+
+# a voice audition (tools/make-audio.ts --audition), listened to and thrown away
+audition/
