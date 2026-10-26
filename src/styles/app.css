@@ -82,25 +82,29 @@ body[data-route="grown-ups"] { --split: 100%; }
   background: url('../assets/wall.webp') 0 0 / 900px repeat #124A3E;
 }
 /* the light over everything, the props included: the sun on the wall and
-   across the desk, the wall's shadow on the desk, the room falling away */
+   across the desk (its patch on the desk through the leaves is a picture,
+   scene.ts), the wall's shadow on the desk, the room falling away */
 .scene::after {
   content: ""; position: absolute; inset: 0;
   background:
     radial-gradient(ellipse 90% 80% at 50% 50%, transparent 55%, rgba(10, 4, 0, .45) 100%),
-    radial-gradient(ellipse 55% 40% at 8% 88%, rgba(255, 214, 150, .28), transparent 70%),
     linear-gradient(128deg, transparent 0 32%, rgba(255, 210, 150, .1) 46%, transparent 64%),
     radial-gradient(ellipse 60% 45% at 0% 0%, rgba(255, 220, 160, .14), transparent 70%),
     linear-gradient(180deg, transparent var(--split), rgba(50, 22, 6, .55) var(--split), transparent calc(var(--split) + 5%));
 }
 .scene svg { position: absolute; display: block; }
 /* chalk on the wall, round the title */
-.scene .doodles { left: 50%; top: 0; width: min(100vw, 980px); height: auto; transform: translateX(-50%); }
+.scene .wall-marks {
+  position: absolute; left: 0; right: 0; top: 0; height: var(--split); overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent 97%); mask-image: linear-gradient(180deg, #000 80%, transparent 97%);
+}
+.scene .doodles { left: 50%; top: 4px; width: min(100vw, 1400px); height: auto; transform: translateX(-50%); opacity: .6; }
 /* the props peep out from behind the table; on the start screen they sit
    on the desk below the wall */
 .scene .clipboard { right: max(-90px, -12vw); top: calc(var(--split) + 4%); width: clamp(170px, 30vw, 340px); height: auto; transform: rotate(-7deg); }
 .scene .pouch { left: max(-90px, -12vw); top: calc(var(--split) + 14%); width: clamp(170px, 30vw, 330px); height: auto; transform: rotate(-12deg); }
-.scene .plant { right: 0; bottom: 0; width: clamp(200px, 34vw, 420px); height: auto; }
-.scene .leaves { left: 0; bottom: 0; width: clamp(260px, 50vw, 620px); height: auto; }
+.scene .plant { right: 0; bottom: 0; width: clamp(180px, 27vw, 330px); height: auto; }
+.scene .leaves { left: 0; bottom: 0; width: clamp(340px, 66vw, 900px); height: auto; opacity: .7; }
 body[data-route="home"] .scene .clipboard { top: calc(var(--split) + 2%); }
 body[data-route="home"] .scene .pouch { top: calc(var(--split) + 4%); }
 body[data-route="grown-ups"] .scene svg:not(.doodles) { display: none; }
