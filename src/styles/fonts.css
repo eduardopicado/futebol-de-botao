@@ -1,0 +1,26 @@
+/* Self-hosted Andika and Baloo 2, latin subset only (SIL Open Font License 1.1).
+   Andika is here for its single-storey a and g, the letterforms the school sheet uses.
+   The app makes no font request — or any other request — off the device. */
+
+@font-face {
+  font-family: 'Andika';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/andika-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Andika';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('./fonts/andika-700.woff2') format('woff2');
+}
+/* Baloo 2 ships as one variable file covering 400-800. */
+@font-face {
+  font-family: 'Baloo 2';
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: block;
+  src: url('./fonts/baloo-2-var.woff2') format('woff2-variations');
+}

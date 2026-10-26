@@ -1,0 +1,368 @@
+@import './fonts.css';
+
+/*  The look is the Sounds of Reading app's: deep green, cream paper, mustard
+    buttons with a solid drop shadow. Andika, with its single-storey a and g,
+    for anything he reads; Baloo 2 for the big titles. */
+
+:root {
+  --deep: #10403E;
+  --deep-2: #0B302F;
+  --deep-3: #072220;
+  --paper: #FFF6E7;
+  --ink: #14312F;
+  --mustard: #F3B229;
+  --mustard-dark: #C98F14;
+  --tomato: #E4572E;
+  --mint: #79D3B0;
+  --mint-dark: #4FAF8A;
+  --green: #1E8A5F;
+
+  --display: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
+  --reading: 'Andika', 'Comic Sans MS', 'Segoe UI', system-ui, sans-serif;
+
+  --radius: 18px;
+  --tap: 48px;
+  --gutter: 16px;
+
+  /* cream-on-deep text needs to stay above 4.5:1 */
+  --on-deep: #FFF6E7;
+  --on-deep-soft: rgba(255, 246, 231, .78);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  overscroll-behavior-y: none;
+}
+
+/* A tap is a tap. Two quick taps on the same spot are a double-tap zoom to
+   Safari, and the second of them never reaches the game: +1, +1 on the
+   number line was one jump. Pinching to zoom and scrolling still work.
+   Set on the page and again on everything tappable, so a scrolling box in
+   between cannot bring the zoom back; the drag areas keep their own
+   touch-action: none, which still wins. */
+html, button, a, input, select, label, summary, [role="button"] {
+  touch-action: manipulation;
+}
+
+body {
+  /* the scene (z-index -1) shows through */
+  background: transparent;
+  color: var(--on-deep);
+  font-family: var(--reading);
+  font-size: 17px;
+  line-height: 1.35;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ── the scene: a table on a desk by a window ───────────────────────────
+   As in the design picture: a dark green wall above a warm wooden desk, the
+   sun coming in from the top left, leaves' shadows on the wood, and around
+   the table a pouch of spare buttons, a coach's chalk clipboard and a plant
+   (src/game/scene.ts draws those). Gradients and shapes only, on one layer
+   that stays put (iOS ignores background-attachment: fixed), painted once,
+   so it costs nothing while the buttons move. --split is where the wall
+   meets the desk: the words and the score sit on the wall. */
+:root { --split: 36%; }
+body[data-route="home"] { --split: max(46%, 480px); }
+body[data-route="grown-ups"] { --split: 100%; }
+.scene {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background:
+    /* the room falling away at the edges */
+    radial-gradient(ellipse 90% 80% at 50% 50%, transparent 55%, rgba(10, 4, 0, .45) 100%),
+    /* the sun through the window, warm on the wood at the bottom left */
+    radial-gradient(ellipse 55% 40% at 8% 88%, rgba(255, 214, 150, .32), transparent 70%),
+    linear-gradient(128deg, transparent 0 32%, rgba(255, 210, 150, .12) 46%, transparent 64%),
+    /* the sun on the wall, and the wall, and its shadow on the desk */
+    radial-gradient(ellipse 60% 45% at 0% 0%, rgba(255, 220, 160, .16), transparent 70%),
+    linear-gradient(180deg, #0E3A32 0%, #124A3E calc(var(--split) - .2%), transparent var(--split)),
+    linear-gradient(180deg, transparent var(--split), rgba(50, 22, 6, .55) var(--split), transparent calc(var(--split) + 5%)),
+    /* the desk: planks, the grain curving through them, the wood */
+    repeating-linear-gradient(90deg, transparent 0 calc(25vw - 2px), rgba(55, 24, 6, .22) calc(25vw - 2px) calc(25vw - 1px), rgba(255, 220, 170, .08) calc(25vw - 1px) 25vw),
+    linear-gradient(90deg, rgba(255, 225, 185, .05) 0 25vw, rgba(60, 25, 5, .07) 25vw 50vw, rgba(255, 225, 185, .03) 50vw 75vw, rgba(60, 25, 5, .05) 75vw),
+    repeating-radial-gradient(ellipse 260% 42% at 22% 135%, rgba(95, 45, 12, .2) 0 2px, transparent 2px 11px, rgba(255, 220, 170, .07) 11px 13px, transparent 13px 23px),
+    repeating-radial-gradient(ellipse 300% 60% at 85% -40%, rgba(95, 45, 12, .12) 0 1.5px, transparent 1.5px 17px),
+    repeating-linear-gradient(90deg, rgba(80, 36, 10, .1) 0 1px, transparent 1px 5px, rgba(80, 36, 10, .05) 5px 6px, transparent 6px 11px),
+    linear-gradient(180deg, #9C5F33 0%, #B9784A 55%, #A3643A 100%);
+}
+.scene svg { position: absolute; display: block; }
+/* chalk on the wall, round the title */
+.scene .doodles { left: 50%; top: 0; width: min(100vw, 980px); height: auto; transform: translateX(-50%); }
+/* the props peep out from behind the table; on the start screen they sit
+   on the desk below the wall */
+.scene .clipboard { right: max(-90px, -12vw); top: calc(var(--split) + 4%); width: clamp(150px, 26vw, 300px); height: auto; transform: rotate(-7deg); }
+.scene .pouch { left: max(-70px, -9vw); top: calc(var(--split) + 14%); width: clamp(130px, 22vw, 250px); height: auto; transform: rotate(9deg); }
+.scene .plant { right: -2vw; bottom: -2vh; width: clamp(120px, 20vw, 240px); height: auto; }
+.scene .leaves { left: 0; bottom: 0; width: clamp(260px, 50vw, 620px); height: auto; }
+body[data-route="home"] .scene .clipboard { top: calc(var(--split) + 2%); }
+body[data-route="home"] .scene .pouch { top: calc(var(--split) + 4%); }
+body[data-route="grown-ups"] .scene svg:not(.doodles) { display: none; }
+html { background: #0E3A32; }
+
+/* launched from the home screen there is no browser chrome, so respect the
+   notch and home indicator ourselves */
+.app {
+  min-height: 100dvh;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + 12px)
+    calc(env(safe-area-inset-right, 0px) + var(--gutter))
+    calc(env(safe-area-inset-bottom, 0px) + 28px)
+    calc(env(safe-area-inset-left, 0px) + var(--gutter));
+}
+
+
+.wrap { max-width: 720px; margin: 0 auto; }
+.wrap.wide { max-width: 880px; }
+
+/* ── type ─────────────────────────────────────────────────────────────── */
+
+h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(26px, 6.4vw, 40px);
+  line-height: .98;
+  margin: 0;
+  letter-spacing: -.5px;
+}
+h1 .swash { color: var(--mustard); position: relative; display: inline-block; }
+h1 .swash::after {
+  content: ""; position: absolute; left: 2%; right: 2%; bottom: -2px;
+  height: 5px; border-radius: 99px; background: var(--tomato);
+}
+.tag { font-size: 14px; color: var(--on-deep-soft); margin: 6px 0 0; }
+.lbl {
+  font-family: var(--display); font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--on-deep-soft); width: 100%; margin: 0 0 6px;
+}
+
+/* ── header ───────────────────────────────────────────────────────────── */
+
+.topbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.topbar .titles { flex: 1; min-width: 0; text-align: center; }
+.icon-btn {
+  flex: none;
+  width: var(--tap); height: var(--tap);
+  display: grid; place-items: center;
+  font-size: 22px; line-height: 1;
+  border-radius: 16px; cursor: pointer;
+  /* gold-rimmed, on the dark of the wall */
+  background: rgba(8, 32, 28, .78);
+  border: 2px solid rgba(243, 178, 41, .85);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
+  color: var(--on-deep);
+}
+.icon-btn:active { transform: scale(.94); }
+.icon-btn[aria-pressed="true"] { background: var(--mustard); border-color: var(--mustard); color: var(--deep-2); }
+
+
+/* ── panels and controls ──────────────────────────────────────────────── */
+
+.panel {
+  background: rgba(8, 32, 28, .9);
+  border: 1px solid rgba(255, 246, 231, .16);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 12px 0;
+}
+.panel[hidden] { display: none; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row + .row { margin-top: 12px; }
+select {
+  font-family: var(--reading); font-size: 16px;
+  min-height: var(--tap); padding: 8px 12px; border-radius: 14px;
+  border: 2px solid rgba(255, 246, 231, .32);
+  background: var(--deep-2); color: var(--on-deep);
+}
+
+.btn {
+  font-family: var(--display); font-weight: 800; font-size: 17px;
+  min-height: var(--tap); padding: 10px 22px;
+  border-radius: 99px; border: none; cursor: pointer;
+  background: var(--mustard); color: var(--deep-2);
+  box-shadow: 0 4px 0 var(--mustard-dark);
+  transition: transform .08s, box-shadow .08s;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--mustard-dark); }
+.btn.ghost {
+  background: transparent; color: var(--on-deep);
+  border: 2px solid rgba(255, 246, 231, .32); box-shadow: none;
+}
+.btn.ghost:active { transform: scale(.97); box-shadow: none; }
+.btn.small { font-size: 15px; padding: 8px 16px; min-height: 40px; }
+.btn:disabled { opacity: .42; cursor: default; box-shadow: none; transform: none; }
+.btn.on-paper.ghost { color: var(--ink); border-color: rgba(20, 49, 47, .3); }
+
+:focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
+
+/* ── a screen that is a game: the whole of it fits, nothing scrolls ──────
+   The table takes touch-action: none, so a swipe on it can never scroll the
+   page; on a phone a swipe meant to scroll that starts on a button would be
+   a flick. So the game screen is exactly the screen's height, and the table
+   is as big as the room left for it (container units: the stage is the
+   container). svh where there is one, so an iPhone's toolbar is counted. */
+body[data-route="treino"] { overflow: hidden; }
+body[data-route="treino"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+.game {
+  height: 100%; max-width: 720px; margin: 0 auto;
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 6px;
+}
+.game .topbar { margin: 0; }
+.score {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  min-width: var(--tap); height: var(--tap); padding: 0 14px; border-radius: 16px;
+  background: rgba(8, 32, 28, .78); border: 2px solid rgba(243, 178, 41, .5);
+  font: 800 22px var(--display);
+}
+.score span:last-child { color: var(--mustard); }
+.score .lbl { width: auto; margin: 0; }
+/* what to do, and then what happened: always above the table (below it,
+   the words fell off the bottom of the screen) */
+.bt-say {
+  /* a note on a strip of paper, as in the design picture: dark ink on cream */
+  justify-self: center; width: min(100%, 620px); margin: 2px 0;
+  min-height: calc(2.5em + 14px); padding: 7px 18px;
+  display: grid; place-items: center; text-align: center;
+  font: 700 clamp(16px, 4vw, 22px) / 1.25 var(--reading);
+  color: var(--ink); background: linear-gradient(176deg, #FFF8EA, #F1E4CB);
+  border-radius: 5px 12px 6px 14px / 12px 5px 14px 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
+  transform: rotate(-.6deg);
+  position: relative;
+}
+/* gold strokes either side of the note, as if the words were shouted */
+.bt-say::before, .bt-say::after {
+  content: ""; position: absolute; top: 50%; width: 26px; height: 36px; margin-top: -18px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 36'%3E%3Cpath d='M24 4 L6 10 M24 18 L3 18 M24 32 L6 26' stroke='%23F3B229' stroke-width='3.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+.bt-say::before { right: 100%; margin-right: 4px; }
+.bt-say::after { left: 100%; margin-left: 4px; transform: scaleX(-1); }
+@media (max-width: 700px) { .bt-say::before, .bt-say::after { display: none; } }
+.bt-stage { container-type: size; display: grid; place-items: center; min-height: 0; }
+.bt-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  justify-self: center; width: min(100%, 620px); padding: 4px 4px 4px 16px; border-radius: 99px;
+  background: rgba(8, 32, 28, .85); box-shadow: 0 3px 10px rgba(0, 0, 0, .3);
+}
+
+.bt-touches { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--paper); font: 700 18px var(--display); }
+.bt-pips { display: inline-flex; gap: 6px; }
+.bt-pip { width: 18px; height: 18px; border: 3px solid var(--paper); border-radius: 50%; }
+.bt-pip.used { border-color: var(--mustard); background: var(--mustard); }
+/* the table's shape (--bt-shape, width over height) is VIEW in
+   src/content/botao.ts, set on .bt-wrap where it is made; as wide as the
+   stage allows, or as tall */
+.bt-wrap {
+  width: min(100%, calc((100svh - 240px) * var(--bt-shape)));
+  /* the tray's own corners, from its picture (38 of 699 across, of 987 down), and its shadow on the page */
+  border-radius: 5.4% / 3.9%;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .35);
+}
+@supports (width: 1cqh) {
+  .bt-wrap { width: min(100cqw, 100cqh * var(--bt-shape)); }
+}
+.bt-table { display: block; width: 100%; height: auto; aspect-ratio: var(--bt-shape); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* a picture, so a long press on it must not offer to save it */
+.bt-tray { pointer-events: none; }
+/* the table: the tray (the handoff's picture of it), the felt mown in
+   squares, lit in the middle, the rim's shadow along the top and the left
+   (the gradients are in shading(), src/game/table.ts), and the lines;
+   the colours are the handoff's pitch.svg */
+.bt-felt { fill: #369658; }
+.bt-stripe { fill: rgba(0, 0, 0, .12); }
+.bt-stripe.down { fill: rgba(0, 0, 0, .08); }
+.bt-line { fill: none; stroke: #E8EEE2; stroke-width: .43; }
+.bt-spot { fill: #E8EEE2; }
+/* the goal: the inside of the net darker towards the back, the frame
+   standing up from the line, its shadow on the felt; the net shakes on a goal */
+.bt-net-turf { fill: #2A7F48; }
+.bt-net-floor { fill: url(#bt-netdepth); }
+.bt-net-side { fill: rgba(255, 255, 255, .28); }
+.bt-net-edge { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: .3; stroke-linejoin: round; }
+.bt-net line { stroke: rgba(255, 255, 255, .55); stroke-width: .18; }
+.bt-net .bt-backbar { stroke: #BDBDBD; stroke-width: .6; stroke-linecap: round; }
+.bt-net { transform-box: fill-box; transform-origin: 50% 100%; }
+.bt-net.bulge { animation: bt-bulge .8s ease-out; }
+@keyframes bt-bulge {
+  0% { transform: scale(1, 1); }
+  20% { transform: scale(1.08, 1.4); }
+  45% { transform: scale(.98, .88); }
+  70% { transform: scale(1.02, 1.1); }
+  100% { transform: scale(1, 1); }
+}
+.bt-goal { pointer-events: none; }
+.bt-goal-shadow { stroke: rgba(0, 0, 0, .3); stroke-width: 1; stroke-linecap: round; }
+/* the uprights' width is the posts' (POST), set where they are drawn */
+.bt-upright { stroke: #E2E2E2; stroke-linecap: round; }
+.bt-crossbar { stroke: #CFCFCF; stroke-width: 1.15; stroke-linecap: round; }
+.bt-crossbar-shine { stroke: #fff; stroke-width: .45; stroke-linecap: round; }
+/* raised things: a shadow under each, a bevelled rim, a shine on the face */
+.bt-shadow { fill: rgba(0, 0, 0, .32); }
+.bt-keeper-block { stroke: #111; stroke-width: .4; }
+.bt-keeper-shine { fill: url(#bt-blockshade); }
+.bt-keeper.moving { transition: transform .4s ease; }
+.bt-btn .bt-rim { stroke: rgba(0, 0, 0, .55); stroke-width: .5; }
+/* a button's side, in its rim's colour in shade */
+.bt-side { stroke: rgba(0, 0, 0, .6); stroke-width: .4; }
+.bt-side-shade { fill: rgba(0, 0, 0, .45); }
+.bt-bevel { fill: url(#bt-bevel); }
+.bt-face { stroke: rgba(0, 0, 0, .35); stroke-width: .3; }
+.bt-shine { fill: url(#bt-shine); }
+.bt-btn.us { cursor: grab; }
+.bt-btn.tired { opacity: .4; }
+.bt-flag { pointer-events: none; }
+.bt-ball-face { fill: url(#bt-ballshade); stroke: #222; stroke-width: .3; }
+@media (prefers-reduced-motion: reduce) {
+  .bt-net.bulge { animation: none; }
+}
+.bt-trail { fill: none; stroke: rgba(255, 255, 255, .4); stroke-width: .5; stroke-dasharray: .6 1; }
+.bt-band { stroke: rgba(255, 255, 255, .55); stroke-width: .5; stroke-dasharray: 1 1; }
+.bt-arrow { fill: var(--mustard); stroke: var(--deep); stroke-width: .35; stroke-linejoin: round; }
+.bt-path { fill: none; stroke: #fff; stroke-width: .7; stroke-dasharray: 1.6 1.2; stroke-linecap: round; }
+.bt-ghost { fill: rgba(255, 255, 255, .18); stroke: #fff; stroke-width: .5; stroke-dasharray: 1.2 .8; }
+.bt-ghost[hidden], .bt-keeper[hidden] { display: none; }
+
+/* ── home ─────────────────────────────────────────────────────────────── */
+
+.home { display: grid; justify-items: center; gap: 22px; text-align: center; padding-top: 4vh; }
+.home h1 { font-size: clamp(38px, 10vw, 64px); }
+.versus { display: flex; align-items: center; gap: 14px; font: 800 22px var(--display); }
+.versus figure { display: grid; justify-items: center; gap: 4px; margin: 0; }
+.versus figcaption { font: 700 17px var(--reading); }
+.versus .any { width: 72px; height: 72px; display: grid; place-items: center; font-size: 44px; }
+.btn.big { font-size: 26px; padding: 16px 40px; min-height: 64px; text-decoration: none; }
+/* held for three seconds, so a tap by him never opens the settings */
+.hold { position: relative; overflow: hidden; margin-top: 4vh; }
+.hold-hint { font-weight: 600; opacity: .8; }
+.hold::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 4px; background: var(--mustard);
+  transform: scaleX(0); transform-origin: left;
+}
+.hold.holding::after { transform: scaleX(1); transition: transform 3s linear; }
+
+/* ── grown-ups ────────────────────────────────────────────────────────── */
+
+.gu label.field { display: grid; gap: 4px; font-weight: 700; }
+.gu .crest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.gu .crest img, .gu .crest .none { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: rgba(255, 246, 231, .12); display: grid; place-items: center; font-size: 12px; }
+.gu input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.gu .said { margin: 6px 0 0; min-height: 1.3em; color: var(--on-deep-soft); }
+.gu .check { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
+.gu .check input { width: 26px; height: 26px; }
+
+/* ── a new version ────────────────────────────────────────────────────── */
+
+.update {
+  position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  box-shadow: 0 4px 0 var(--mustard-dark), 0 8px 24px rgba(0, 0, 0, .4);
+}
+.route-error { text-align: center; display: grid; gap: 16px; justify-items: center; padding-top: 10vh; }
