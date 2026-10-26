@@ -7,6 +7,7 @@ import { setSfxEnabled, unlockSfx, wakeSfx } from './lib/sfx';
 import { watchForUpdates } from './lib/update';
 import { read } from './lib/storage';
 import * as home from './game/home';
+import { mountScene } from './game/scene';
 
 const routes: Route[] = [
   { path: 'home', mount: home.mount },
@@ -42,6 +43,8 @@ watchVoices();
 void loadClips();
 unlockOnFirstTap();
 watchForUpdates();
+
+mountScene();
 
 const app = document.querySelector<HTMLElement>('main#app');
 if (app) startRouter(app, routes);
