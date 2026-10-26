@@ -19,11 +19,11 @@ import { el } from '../lib/dom';
 import { lifetime } from '../lib/life';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
-import { say } from '../lib/speech';
 import { keeperFor, simulate, type Flick, type Point, type Shot, type Table } from '../content/botao';
 import { TOUCHES, type Scene } from '../content/match';
 import { drill, type Drill } from '../content/treino';
 import { makeBoard, type Keepers } from './board';
+import { speak } from './choices';
 import { narrate } from './narration';
 import { label, ourTeam, rivalFor } from './teams';
 
@@ -92,7 +92,7 @@ export function mount(root: HTMLElement): () => void {
   };
   const tell = (words: string, aloud = true): void => {
     sayEl.textContent = words;
-    if (aloud) say(words);
+    if (aloud) speak(words);
   };
 
   let goals = 0;

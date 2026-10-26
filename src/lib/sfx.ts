@@ -13,7 +13,7 @@
  * made one plays as before. */
 
 let ctx: AudioContext | null = null;
-/* on or off is the grown-ups' setting (src/game/grown-ups.ts), which sets
+/* on or off is a setting (src/game/settings.ts), which sets
    this as the app starts */
 let enabled = true;
 

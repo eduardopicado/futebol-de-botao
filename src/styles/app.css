@@ -69,7 +69,7 @@ body {
    meets the desk: the words and the score sit on the wall. */
 :root { --split: 36%; }
 body[data-route="home"] { --split: max(46%, 480px); }
-body[data-route="grown-ups"] { --split: 100%; }
+body[data-route="settings"], body[data-route="teams-1"], body[data-route="teams-2"] { --split: 100%; }
 .scene {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
   /* the desk: oak planks (src/assets/desk.webp, a tile made with ChatGPT
@@ -107,7 +107,7 @@ body[data-route="grown-ups"] { --split: 100%; }
 .scene .leaves { left: 0; bottom: 0; width: clamp(340px, 66vw, 900px); height: auto; opacity: .7; }
 body[data-route="home"] .scene .clipboard { top: calc(var(--split) + 2%); }
 body[data-route="home"] .scene .pouch { top: calc(var(--split) + 4%); }
-body[data-route="grown-ups"] .scene svg:not(.doodles) { display: none; }
+body[data-route="settings"] .scene svg:not(.doodles), body[data-route="teams-1"] .scene svg:not(.doodles), body[data-route="teams-2"] .scene svg:not(.doodles) { display: none; }
 html { background: #0E3A32; }
 
 /* launched from the home screen there is no browser chrome, so respect the
@@ -392,31 +392,48 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
 
 /* ── home ─────────────────────────────────────────────────────────────── */
 
-.home { display: grid; justify-items: center; gap: 22px; text-align: center; padding-top: 4vh; }
+.home { position: relative; display: grid; justify-items: center; gap: 22px; text-align: center; padding-top: 6vh; }
 .home h1 { font-size: clamp(38px, 10vw, 64px); }
-.versus { display: flex; align-items: center; gap: 14px; font: 800 22px var(--display); }
-.versus figure { display: grid; justify-items: center; gap: 4px; margin: 0; }
-.versus figcaption { font: 700 17px var(--reading); }
-.versus .any { width: 72px; height: 72px; display: grid; place-items: center; font-size: 44px; }
-.btn.big { font-size: 26px; padding: 16px 40px; min-height: 64px; text-decoration: none; }
-/* held for three seconds, so a tap by him never opens the settings */
-.hold { position: relative; overflow: hidden; margin-top: 4vh; }
-.hold-hint { font-weight: 600; opacity: .8; }
-.hold::after {
-  content: ""; position: absolute; inset: auto 0 0 0; height: 4px; background: var(--mustard);
-  transform: scaleX(0); transform-origin: left;
+.home-tag { margin: -6px 0 6px; font: 700 clamp(16px, 4vw, 20px) var(--reading); color: var(--on-deep-soft); }
+.home .settings-btn { position: absolute; top: 0; right: 0; }
+.home .modes { display: grid; gap: 14px; width: min(100%, 340px); }
+.btn.big { font-size: 26px; padding: 16px 40px; min-height: 64px; text-decoration: none; display: grid; place-items: center; }
+.btn.big.ghost { box-shadow: none; background: rgba(8, 32, 28, .6); }
+
+/* ── settings ─────────────────────────────────────────────────────────── */
+
+.settings .panel, .pick .panel { display: grid; gap: 10px; }
+.settings h2.lbl, .pick h2.lbl { margin: 0; }
+.settings label.field { display: grid; gap: 4px; font-weight: 700; }
+.settings .crest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.settings .crest img, .settings .crest .none { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: rgba(255, 246, 231, .12); display: grid; place-items: center; font-size: 12px; }
+.settings input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.said { margin: 6px 0 0; min-height: 1.3em; color: var(--on-deep-soft); }
+.settings .check { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
+.settings .check input { width: 26px; height: 26px; accent-color: var(--mustard); }
+.chip {
+  font-family: var(--reading); font-weight: 700; font-size: 16px;
+  min-height: var(--tap); padding: 8px 16px; border-radius: 99px; cursor: pointer;
+  border: 2px solid var(--paper); background: transparent; color: var(--on-deep);
 }
-.hold.holding::after { transform: scaleX(1); transition: transform 3s linear; }
+.chip:active { transform: scale(.96); }
+.chip[aria-pressed="true"] { background: var(--mustard); border-color: var(--mustard); color: var(--deep-2); }
 
-/* ── grown-ups ────────────────────────────────────────────────────────── */
+/* ── picking teams ────────────────────────────────────────────────────── */
 
-.gu label.field { display: grid; gap: 4px; font-weight: 700; }
-.gu .crest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.gu .crest img, .gu .crest .none { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: rgba(255, 246, 231, .12); display: grid; place-items: center; font-size: 12px; }
-.gu input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.gu .said { margin: 6px 0 0; min-height: 1.3em; color: var(--on-deep-soft); }
-.gu .check { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
-.gu .check input { width: 26px; height: 26px; }
+.pick .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.team {
+  display: grid; justify-items: center; gap: 4px; padding: 8px 4px; min-height: var(--tap); cursor: pointer;
+  border-radius: 14px; border: 2px solid rgba(255, 246, 231, .18); background: rgba(255, 246, 231, .06); color: var(--on-deep);
+  font: 700 13px var(--reading);
+}
+.team[aria-pressed="true"] { border-color: var(--mustard); background: rgba(243, 178, 41, .22); }
+.team:disabled { opacity: .35; cursor: default; }
+.team .any { font-size: 32px; line-height: 44px; }
+.team-name { line-height: 1.15; }
+.pick-warn { text-align: center; }
+/* Kick off stays in reach at the bottom while the teams scroll */
+.kick-row { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); display: grid; justify-items: center; margin-top: 8px; }
 
 /* ── a new version ────────────────────────────────────────────────────── */
 

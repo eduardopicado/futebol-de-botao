@@ -5,7 +5,7 @@ import { unlockSpeech, watchVoices } from './lib/speech';
 import { loadClips, unlockClips } from './lib/audio';
 import { setSfxEnabled, unlockSfx, wakeSfx } from './lib/sfx';
 import { watchForUpdates } from './lib/update';
-import { read } from './lib/storage';
+import { soundsOn } from './game/choices';
 import * as home from './game/home';
 import { mountScene } from './game/scene';
 
@@ -15,8 +15,10 @@ const routes: Route[] = [
   { path: 'goleiro', title: 'Treino: goleiro', load: () => import('./game/goleiro') },
   { path: 'partida', title: 'Partida', load: () => import('./game/partida') },
   { path: 'computador', title: 'Partida', load: () => import('./game/partida').then((g) => ({ mount: g.mountComputer })) },
-  /* the settings, behind a button held for three seconds on the start screen */
-  { path: 'grown-ups', title: 'Grown-ups', load: () => import('./game/grown-ups') },
+  /* picking the teams before a match */
+  { path: 'teams-1', title: '1 player', load: () => import('./game/pick').then((g) => ({ mount: g.mountOne })) },
+  { path: 'teams-2', title: '2 players', load: () => import('./game/pick').then((g) => ({ mount: g.mountTwo })) },
+  { path: 'settings', title: 'Settings', load: () => import('./game/settings') },
 ];
 
 /* iOS keeps speech and audio locked until they are started inside a real
@@ -40,7 +42,7 @@ function unlockOnFirstTap(): void {
   document.addEventListener('pointerup', wakeSfx);
 }
 
-setSfxEnabled(read<boolean>('sounds', true));
+setSfxEnabled(soundsOn());
 watchVoices();
 /* recorded lines if this build shipped any; harmless and silent if not */
 void loadClips();

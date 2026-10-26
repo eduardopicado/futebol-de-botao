@@ -57,6 +57,7 @@ test.describe('Partida', () => {
     const watch = watchPage(page);
     await page.goto('/');
     await page.getByRole('link', { name: '👥 2 players' }).click();
+    await page.getByRole('button', { name: '▶ Kick off' }).click();
     await expect(game(page)).toHaveAttribute('data-phase', 'toss');
     await expect(page.locator('.toss')).toContainText('Kick-off:');
     await expect(game(page)).toHaveAttribute('data-phase', 'kickoff', { timeout: 6000 });

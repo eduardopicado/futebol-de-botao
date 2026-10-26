@@ -30,10 +30,12 @@ shows a **New version! Tap to update** button.
   freely. Every set-up comes with a way to score, and **Show me** plays it.
   **🧤 Goleiro** turns it round: ten shots by the computer at your goal, to
   save; your best is kept.
-- **Grown-ups:** hold the button on the start screen for three seconds to
-  choose your team, the opponent, the commentator (Português, English or
-  none), the sound effects, and a crest for each team from your own photos.
-  (This becomes a plain settings menu soon.)
+- **Picking teams:** every match starts by picking each side's team, from
+  the World Cup winners, the big clubs and two made-up sides; the side at the
+  top may be "Anyone". The picks are kept for next time.
+- **Settings (⚙):** goals to win (3, 5 or 10), how well the computer plays,
+  the commentator (Português, English or none), sound effects, reading the
+  words aloud, and a crest for any team from your own photos.
 
 The rules are a simple version of the CBFM's 3 Toques (the regra carioca);
 [`src/content/match.ts`](src/content/match.ts) lists them.
