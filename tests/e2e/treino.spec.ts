@@ -47,7 +47,7 @@ test.describe('Treino', () => {
     await page.getByRole('link', { name: '⚽ Treino' }).click();
     await expect(page.locator('.bt-btn.us')).toHaveCount(3);
     await expect(page.locator('.bt-btn.them')).toHaveCount(3);
-    await expect(page.locator('.bt-keeper')).toBeVisible();
+    await expect(page.locator('.bt-keeper.away')).toBeVisible();
     await expectTapTargets(page, '.game button');
     const size = page.viewportSize()!;
     const table = (await page.locator('.bt-table').boundingBox())!;
@@ -126,28 +126,20 @@ test.describe('Treino', () => {
     await expect(page.locator('.game')).toHaveAttribute('data-touches', '0');
   });
 
-  test('three touches, the third by another button; then a new one is set up', async ({ page }) => {
+  test('three touches, with any button, the same one too; then a new one is set up', async ({ page }) => {
     const watch = watchPage(page);
     await start(page);
     const game = page.locator('.game');
-    /* his back button, nudged back towards his own end, away from the ball */
+    /* the back button, nudged back towards its own end, away from the ball, three times */
     for (const n of [1, 2]) {
       await flick(page, { button: 1, vx: 0, vy: 20 });
       await expect(game).toHaveAttribute('data-touches', String(n));
       await expect(page.locator('.bt-say')).toContainText(`${3 - n} touch`, { timeout: 8000 });
     }
     await expect(page.locator('.bt-say')).toContainText('You missed the ball.');
-    await expect(page.locator('.bt-say')).toContainText('has to be another button');
-    await expect(page.locator('.bt-btn.b1')).toHaveClass(/tired/);
-    /* the same button a third time: not allowed */
     await flick(page, { button: 1, vx: 0, vy: 20 });
-    await expect(page.locator('.bt-say')).toHaveText('That button has had two touches. Use another one!');
-    await expect(game).toHaveAttribute('data-touches', '2');
-    /* the other back one: that was the last touch */
-    await flick(page, { button: 2, vx: 0, vy: 20 });
     await expect(page.locator('.bt-say')).toContainText('No touches left.', { timeout: 8000 });
     await expect(game).toHaveAttribute('data-touches', '0', { timeout: 6000 });
-    await expect(page.locator('.bt-btn.tired')).toHaveCount(0);
     noProblems(watch);
   });
 

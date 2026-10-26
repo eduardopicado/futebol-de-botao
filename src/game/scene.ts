@@ -87,6 +87,6 @@ export function mountScene(): void {
   };
   draw();
   document.body.prepend(scene);
-  /* his team may have changed on the grown-ups' screen */
+  /* the teams may have changed in the settings */
   window.addEventListener('hashchange', draw);
 }

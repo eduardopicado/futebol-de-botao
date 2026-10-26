@@ -111,8 +111,8 @@ export function pitch(): SVGGElement {
   const [left, right] = MOUTH;
   const net = goalNet();
   net.classList.add('ours');
-  /* his own goal at the bottom, the top one turned round: he attacks the
-     top, but this one is open too, and a ball that goes in is an own goal */
+  /* the bottom goal, the top one turned round: the side at the bottom
+     attacks the top, and a ball in its own net is an own goal */
   const theirs = svg('g', { class: 'bt-goal-far', transform: FAR }, goalNet());
   /* mown stripes across the felt and down it, so it is mown in squares */
   const stripes = [

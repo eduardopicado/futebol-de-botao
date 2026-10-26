@@ -1,7 +1,6 @@
 /* Treino: practice in front of the other side's goal.
  *
- * Until the match is settled (docs/HANDOVER.md, "Questions for the new
- * game"), this is the whole game: his three buttons, the ball, three of
+ * Practice, next to the match (match.ts): your three buttons, the ball, three of
  * theirs standing still in the way, and their goleiro, who gets in line with
  * the ball after every touch. Three touches to score, the regra carioca's.
  *

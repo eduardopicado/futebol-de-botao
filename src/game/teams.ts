@@ -1,16 +1,16 @@
 /* The teams, and the shirts they play in.
  *
- * He asked for the real thing: World Cup winners and the big clubs. Countries
+ * The real thing: World Cup winners and the big clubs. Countries
  * come with their flag. Clubs come as their kit colours and nothing more — a
  * club crest is someone's trademark and the app never comes with one, but a
  * green shirt is Palmeiras to anyone who follows them, and that is all a
- * six-year-old needs to know who he is playing. A grown-up can add a crest
+ * player needs to know who they are playing. You can add a crest
  * from their own iPad's pictures, kept on that iPad (src/lib/crests.ts), and
  * every shirt and button of that team wears it.
  *
- * Two sides are his own rather than real: You, and the Rivals, for the
- * favourite opponent a grown-up gives a crest to — a friend's team, or the
- * club across town. The Rivals only play when he picks them.
+ * Two sides are made up rather than real: You, and the Rivals, for a
+ * favourite opponent you give a crest to — a friend's team, or the club
+ * across town. The Rivals only play when picked.
  *
  * The shirt is a small inline SVG so it needs no image files, stays sharp at
  * any size and works offline. */
@@ -44,16 +44,16 @@ export interface Team {
   pt?: string;
 }
 
-/** the side he plays for until he picks one */
+/** the side you play for until you pick one */
 export const YOU: Team = { id: 'you', name: 'You', short: 'You', kind: 'you', flag: '⭐', colours: ['#F3B229', '#10403E'], pattern: 'plain', shorts: '#10403E' };
 
-/** his favourite opponent, made up: in purple, which no real team here wears */
+/** a favourite opponent, made up: in purple, which no real team here wears */
 export const RIVALS: Team = { id: 'rivals', name: 'The Rivals', short: 'Rivals', kind: 'rivals', flag: '🛡️', colours: ['#6B3FA0', '#FFFFFF'], pattern: 'plain', shorts: '#2E1A47' };
 
 export const TEAMS: Team[] = [
   YOU,
   RIVALS,
-  /* every World Cup winner, and the two he is likeliest to be asked about */
+  /* every World Cup winner, and Portugal and Australia */
   { id: 'brazil', name: 'Brazil', short: 'Brazil', kind: 'country', flag: '🇧🇷', colours: ['#FFD500', '#009B3A'], pattern: 'plain', shorts: '#1F3FA8', pt: 'do Brasil' },
   { id: 'argentina', name: 'Argentina', short: 'Argentina', kind: 'country', flag: '🇦🇷', colours: ['#75AADB', '#FFFFFF'], pattern: 'stripes', shorts: '#1B1B3A', pt: 'da Argentina' },
   { id: 'france', name: 'France', short: 'France', kind: 'country', flag: '🇫🇷', colours: ['#1F3A93', '#FFFFFF'], pattern: 'plain', shorts: '#FFFFFF', pt: 'da França' },
@@ -80,23 +80,37 @@ export const TEAMS: Team[] = [
 
 export const teamById = (id: string | null | undefined): Team | undefined => TEAMS.find((t) => t.id === id);
 
-/** a country or a club, rather than one of his own sides */
+/** a country or a club, rather than one of the made-up sides */
 export const real = (t: Team): boolean => t.kind === 'country' || t.kind === 'club';
 
-/** the side he plays for, chosen on the grown-ups' screen */
+/** the side you play for, chosen in the settings */
 export const ourTeam = (): Team => teamById(read<string>('team', YOU.id)) ?? YOU;
 export const setOurTeam = (id: string): void => write('team', id);
 
-/** the opponent chosen on the grown-ups' screen, or 'any' */
+/** the opponent chosen in the settings, or 'any' */
 export const rivalChoice = (): string => read<string>('rival', 'any');
 export const setRival = (id: string): void => write('rival', id);
 
-/** who he plays: the opponent chosen, unless that is his own side, or else
-    any real team but his own and the one just played */
+/** who you play: the opponent chosen, unless that is your own side, or else
+    any real team but yours and the one just played */
 export function rivalFor(us: Team, last?: Team): Team {
   const chosen = teamById(rivalChoice());
-  return chosen && chosen !== us ? chosen : pick(TEAMS.filter((t) => real(t) && t !== us && t !== last));
+  if (chosen && chosen !== us) return chosen;
+  const others = TEAMS.filter((t) => real(t) && t !== us && t !== last);
+  /* buttons whose faces would look alike on the table are no match */
+  const apart = others.filter((t) => !clash(t, us));
+  return pick(apart.length ? apart : others);
 }
+
+/** how far apart two colours look, roughly: 0 the same, about 765 black and white */
+function gap(p: string, q: string): number {
+  const rgb = (hex: string): number[] => { const n = parseInt(hex.replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const [a, b] = [rgb(p), rgb(q)];
+  return a.reduce((sum, v, i) => sum + Math.abs(v - b[i]), 0);
+}
+
+/** do two teams' buttons look too alike to tell apart (their faces, the first colour)? */
+export const clash = (t: Team, u: Team): boolean => gap(t.colours[0], u.colours[0]) < 160;
 
 /** a team's name as it is shown, flag first where there is one */
 export const label = (team: Team, short = false): string =>
@@ -153,7 +167,7 @@ export function kit(team: Team, size: number): SVGSVGElement {
 
 const INK = '#0B302F';
 
-/** the crest a grown-up added for the team, cut to a circle on a thin white
+/** the crest added for the team, cut to a circle on a thin white
     ring, as a badge is sewn on; nothing when there is none */
 function badge(team: Team, cx: number, cy: number, r: number): SVGElement[] {
   const crest = crestOf(team.id);
