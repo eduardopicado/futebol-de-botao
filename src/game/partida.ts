@@ -1,4 +1,5 @@
-/* Partida — a match for two players on one iPad, first to 3 goals (or 5, or 10).
+/* Partida — a match, first to 3 goals (or 5, or 10): two players on one iPad,
+ * or one against the computer.
  *
  * The iPad lies flat between the two players. Side a sits at the bottom and
  * attacks the goal at the top; side b sits at the top and attacks the
@@ -12,8 +13,14 @@
  * line and taps Pronto before it is taken. Fouls give free kicks, or a
  * penalty in the area. When the turn passes, the note says whose it is and
  * nothing can be flicked for a moment, so nobody flicks by mistake in the
- * handover. All the rules are in src/content/match.ts; the table on the
- * screen is board.ts. */
+ * handover.
+ *
+ * Against the computer you play side a, at the bottom, and the note never
+ * turns round: the computer thinks for a moment on its turn, shows its arrow
+ * for a moment and flicks, calls "A gol!" for you to place your goleiro, and
+ * places its own when you call. All the rules are in src/content/match.ts,
+ * the computer in src/content/computer.ts; the table on the screen is
+ * board.ts. */
 
 import { el } from '../lib/dom';
 import { lifetime } from '../lib/life';
@@ -22,25 +29,29 @@ import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
 import { say } from '../lib/speech';
 import { read, write } from '../lib/storage';
+import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  GOALS, KICKOFF_TOUCHES, TOUCHES, call, clampKeeper, flick, mayCall, mayFlick, newMatch, other, pronto,
+  KICKOFF_TOUCHES, TOUCHES, call, clampKeeper, flick, mayCall, mayFlick, newMatch, other, pronto,
   type Event, type Match, type Side,
 } from '../content/match';
 import { makeBoard, type Benched, type Keepers } from './board';
+import { computerLevel, goalsToWin } from './choices';
 import { narrate } from './narration';
 import { label, ourTeam, rivalFor, type Team } from './teams';
 
 /** a moment between turns when nothing can be flicked */
 const HANDOVER = 1000;
 
-/** how many goals win, as chosen in the settings */
-export const goalsToWin = (): number => {
-  const n = read<number>('goals', GOALS[0]);
-  return (GOALS as readonly number[]).includes(n) ? n : GOALS[0];
-};
+/** two players on one iPad */
+export const mount = (root: HTMLElement): (() => void) => match(root, false);
+/** one player, against the computer */
+export const mountComputer = (root: HTMLElement): (() => void) => match(root, true);
 
-export function mount(root: HTMLElement): () => void {
+function match(root: HTMLElement, computer: boolean): () => void {
   const life = lifetime();
+  /* the computer's side, if it is playing, and how well */
+  const cpu: Side | null = computer ? COMPUTER : null;
+  const level = computerLevel();
   const wait = (ms: number): Promise<void> => new Promise((done) => { life.later(done, ms); });
   const a = ourTeam();
   const teams: Record<Side, Team> = { a, b: rivalFor(a) };
@@ -54,7 +65,7 @@ export function mount(root: HTMLElement): () => void {
   const sayEl = el('div', { class: 'bt-say', 'aria-live': 'polite' }, words, actions);
   const whose = el('span', { class: 'whose' });
   const pips = el('span', { class: 'bt-pips', role: 'img' });
-  const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name} at the top`);
+  const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`);
   const stage = el('div', { class: 'bt-stage' }, board.node);
   const node = el('div', { class: 'game' },
     el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, 'Partida')), scoreEl),
@@ -71,6 +82,8 @@ export function mount(root: HTMLElement): () => void {
   let sliding = 0;
   /* what just happened, said before what to do next */
   let news = '';
+  /* the computer is about to move: it has been asked once */
+  let thinking = false;
 
   const keepersOf = (x: Match): Keepers => ({ top: x.keepers.b, bottom: x.keepers.a });
   const benchedOf = (x: Match): Benched[] => x.out.map(({ side, index, net }) => ({ side, index, net }));
@@ -87,7 +100,8 @@ export function mount(root: HTMLElement): () => void {
   const tell = (text: string, facing: Side, ...buttons: HTMLElement[]): void => {
     words.textContent = text;
     actions.replaceChildren(...buttons);
-    sayEl.classList.toggle('flip', facing === 'b');
+    /* against the computer the note always faces you, at the bottom */
+    sayEl.classList.toggle('flip', facing === 'b' && !cpu);
   };
 
   /** everything as it is now, and what the side to play may do, after the
@@ -107,13 +121,19 @@ export function mount(root: HTMLElement): () => void {
     whose.textContent = m.phase === 'placing' ? `${name(defender())}: goleiro` : name(m.turn);
     const placing = m.phase === 'placing';
     board.glow(busy || placing || m.phase === 'over' ? null : m.turn);
-    board.placing(placing ? keeperLine(defender()) : null, (x) => {
+    board.placing(placing && defender() !== cpu ? keeperLine(defender()) : null, (x) => {
       sliding = clampKeeper(x);
       m = { ...m, keepers: { ...m.keepers, [defender()]: sliding } };
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
     });
     if (placing) sliding = m.keepers[defender()];
     const t = name(m.turn);
+    /* the computer's own turn, or its goleiro to place: it says so, and does it */
+    if (cpu && m.phase !== 'over' && (m.phase === 'placing' ? defender() === cpu : m.turn === cpu)) {
+      tell(`${lead}${m.phase === 'placing' ? `A gol! ${name(cpu)} places its goleiro…` : `${t} is thinking…`}`, 'a');
+      if (!busy) schedule();
+      return;
+    }
     switch (m.phase) {
       case 'kickoff':
         tell(`${lead}Kick-off: ${t}. Two flicks, by two different buttons, and the ball has to leave the circle.`, m.turn);
@@ -121,7 +141,7 @@ export function mount(root: HTMLElement): () => void {
       case 'play': {
         const left = TOUCHES - m.touches;
         const count = m.touches === 0 ? `${t} to play: three touches.` : `${t}: ${left} ${left === 1 ? 'touch' : 'touches'} left.`;
-        tell(`${lead}${count}${mayCall(m) ? ' Shooting? Call it first!' : ''}`, m.turn, ...(mayCall(m) && !busy ? [callBtn] : []));
+        tell(`${lead}${count}${mayCall(m) ? ' Shooting? Call it first!' : ''}`, m.turn, ...(mayCall(m) && !busy && m.turn !== cpu ? [callBtn] : []));
         break;
       }
       case 'placing':
@@ -213,8 +233,8 @@ export function mount(root: HTMLElement): () => void {
     }
   }
 
-  async function shoot(side: Side, index: number, vx: number, vy: number): Promise<void> {
-    if (busy || side !== m.turn || !mayFlick(m, index)) return;
+  async function shoot(side: Side, index: number, vx: number, vy: number, byComputer = false): Promise<void> {
+    if ((busy && !byComputer) || side !== m.turn || !mayFlick(m, index)) return;
     busy = true;
     board.drop();
     board.glow(null);
@@ -233,8 +253,55 @@ export function mount(root: HTMLElement): () => void {
     render();
   }
 
+  /* ── the computer ───────────────────────────────────────────────────── */
+
+  /** the computer's next move, a moment from now: its goleiro, or its turn */
+  function schedule(): void {
+    if (!cpu || busy || thinking || m.phase === 'over') return;
+    thinking = true;
+    if (m.phase === 'placing') life.later(() => { void cpuPlace(cpu); }, 500);
+    else life.later(() => { void cpuMove(cpu); }, 700);
+  }
+
+  /** it slides its goleiro to where it wants it, and says Pronto */
+  async function cpuPlace(me: Side): Promise<void> {
+    busy = true;
+    const from = m.keepers[me];
+    const to = placeKeeper(m, level);
+    for (let i = 1; i <= 8; i += 1) {
+      m = { ...m, keepers: { ...m.keepers, [me]: from + (to - from) * i / 8 } };
+      board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
+      await wait(50);
+    }
+    sfx.tap();
+    m = pronto(m, to);
+    busy = false;
+    thinking = false;
+    render('');
+  }
+
+  /** its turn: "A gol!", or a flick, its arrow shown for a moment first */
+  async function cpuMove(me: Side): Promise<void> {
+    if (m.turn !== me || m.phase === 'placing' || m.phase === 'over') { thinking = false; return; }
+    const move = decide(m, level);
+    if (move.kind === 'call') {
+      sfx.whistle();
+      m = call(m);
+      thinking = false;
+      render('');
+      return;
+    }
+    busy = true;
+    const from = m[me][move.button];
+    if (from) board.arrow(from, { button: move.button, vx: move.vx, vy: move.vy });
+    await wait(900);
+    board.clearAim();
+    thinking = false;
+    await shoot(me, move.button, move.vx, move.vy, true);
+  }
+
   board.listen({
-    side: () => (busy || m.phase === 'placing' || m.phase === 'over' ? null : m.turn),
+    side: () => (busy || m.phase === 'placing' || m.phase === 'over' || m.turn === cpu ? null : m.turn),
     may: (_side, index) => {
       if (mayFlick(m, index)) return true;
       sfx.wrong();

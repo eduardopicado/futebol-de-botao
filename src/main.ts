@@ -12,7 +12,9 @@ import { mountScene } from './game/scene';
 const routes: Route[] = [
   { path: 'home', mount: home.mount },
   { path: 'treino', title: 'Treino', load: () => import('./game/treino') },
+  { path: 'goleiro', title: 'Treino: goleiro', load: () => import('./game/goleiro') },
   { path: 'partida', title: 'Partida', load: () => import('./game/partida') },
+  { path: 'computador', title: 'Partida', load: () => import('./game/partida').then((g) => ({ mount: g.mountComputer })) },
   /* the settings, behind a button held for three seconds on the start screen */
   { path: 'grown-ups', title: 'Grown-ups', load: () => import('./game/grown-ups') },
 ];

@@ -209,14 +209,29 @@ select {
 
 :focus-visible { outline: 3px solid var(--mustard); outline-offset: 2px; }
 
+/* for a screen reader only */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* two halves of one pill: Treino's drills */
+.kind-switch {
+  display: inline-flex; max-width: 100%; padding: 4px; border-radius: 99px;
+  background: rgba(8, 32, 28, .85); border: 2px solid rgba(243, 178, 41, .5);
+}
+.kind-btn {
+  font: 700 15px var(--reading); min-height: 40px; padding: 8px 14px; border-radius: 99px;
+  display: inline-grid; place-items: center; white-space: nowrap; text-decoration: none; color: var(--on-deep);
+}
+.kind-btn[aria-current="page"] { background: var(--mustard); color: var(--deep-2); }
+@media (max-width: 400px) { .kind-btn { padding: 8px 9px; font-size: 14px; } }
+
 /* ── a screen that is a game: the whole of it fits, nothing scrolls ──────
    The table takes touch-action: none, so a swipe on it can never scroll the
    page; on a phone a swipe meant to scroll that starts on a button would be
    a flick. So the game screen is exactly the screen's height, and the table
    is as big as the room left for it (container units: the stage is the
    container). svh where there is one, so an iPhone's toolbar is counted. */
-body[data-route="treino"], body[data-route="partida"] { overflow: hidden; }
-body[data-route="treino"] .app, body[data-route="partida"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"] { overflow: hidden; }
+body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route="computador"] .app, body[data-route="goleiro"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
 .game {
   height: 100%; max-width: 720px; margin: 0 auto;
   display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 6px;
