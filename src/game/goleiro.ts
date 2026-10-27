@@ -110,7 +110,7 @@ export function mount(root: HTMLElement): () => void {
       ? buttons.flatMap((from) => buttons.filter((to) => to !== from).map((to) => passPlan(mine, from, to, 'middle'))).find((p) => p)
       : undefined;
     const aim = pass ? wobble(pass.flicks[0], level, Math.random) : wobble(shotFor(mine, buttons, level), level, Math.random);
-    await wait(400);
+    await wait(PACE.shotReady);
     board.arrow(turned(mine.us[aim.button]), { button: aim.button, vx: -aim.vx, vy: -aim.vy });
     await wait(PACE.shotAim);
     board.clearAim();

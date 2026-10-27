@@ -117,7 +117,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     const kick = `Kick ${shootoutTaken(s, m.turn) + 1}`;
     if (cpu && (placing ? defender() === cpu : m.turn === cpu)) {
       tell(`${lead}${kick} for ${name(m.turn)}. ${placing ? `${name(cpu)} places its goleiro…` : `${name(cpu)} steps up…`}`, 'a');
-      if (!busy) life.later(() => { void (placing ? cpuPlace() : cpuKick()); }, PACE.cpuMove);
+      if (!busy) life.later(() => { void (placing ? cpuPlace() : cpuKick()); }, placing ? PACE.cpuPlace : PACE.cpuMove);
       return;
     }
     if (placing) tell(`${lead}${kick} for ${name(m.turn)}. ${name(defender())}: slide your goleiro along the line, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
@@ -172,7 +172,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     for (let i = 1; i <= 8; i += 1) {
       m = { ...m, keepers: { ...m.keepers, [cpu]: from + (to - from) * i / 8 } };
       draw();
-      await wait(50);
+      await wait(PACE.slideStep);
     }
     sfx.tap();
     m = pronto(m, to);

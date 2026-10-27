@@ -212,7 +212,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
     words.textContent = `↺ Replay. ${said}`;
     replaying = (async () => {
       for (const c of goalMove) await board.play(c.frames, c.bumps, c.keepers, c.benched, 0.5);
-      await wait(400);
+      await wait(PACE.afterReplay);
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
       words.textContent = said;
       delete node.dataset.replay;
@@ -331,7 +331,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
     for (let i = 1; i <= 8; i += 1) {
       m = { ...m, keepers: { ...m.keepers, [me]: from + (to - from) * i / 8 } };
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
-      await wait(50);
+      await wait(PACE.slideStep);
     }
     sfx.tap();
     m = pronto(m, to);

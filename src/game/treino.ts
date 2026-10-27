@@ -145,7 +145,7 @@ export function mount(root: HTMLElement): () => void {
       t = { ...shot.end, keeper: keeperFor('middle', shot.end.ball) };
       draw(t);
       if (shot.goal) node.dataset.goal = 'shown';
-      await wait(500);
+      await wait(PACE.showNext);
     }
     tell('Your turn! Here is a new one.');
     await wait(PACE.newSetUp);
