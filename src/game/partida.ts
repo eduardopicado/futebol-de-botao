@@ -41,11 +41,10 @@ import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak
 import { confetti } from './confetti';
 import { cupShout, recordResult, tieNow } from './cup';
 import { narrate } from './narration';
+import { PACE } from './pace';
 import { buttonsOf, type Player } from './squads';
 import { label, ourTeam, rivalFor, type Team } from './teams';
 
-/** a moment between turns when nothing can be flicked */
-const HANDOVER = 1000;
 
 /** two players on one iPad */
 export const mount = (root: HTMLElement): (() => void) => match(root, false);
@@ -227,7 +226,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     words.textContent = `↺ Replay. ${said}`;
     replaying = (async () => {
       for (const c of goalMove) await board.play(c.frames, c.bumps, c.keepers, c.benched, 0.5);
-      await wait(400);
+      await wait(PACE.afterReplay);
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
       words.textContent = said;
       delete node.dataset.replay;
@@ -248,7 +247,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         words.textContent = `${event.own ? 'Own goal! ' : ''}GOL!${by} ${name(event.side)}! ${m.score.a} – ${m.score.b}`;
         actions.replaceChildren(replayBtn);
         sayEl.classList.remove('flip');
-        await wait(2600);
+        await wait(PACE.goal);
         /* watching it again: play on when it is over */
         while (replaying) await replaying;
         actions.replaceChildren();
@@ -264,7 +263,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         const why = event.couldCall ? 'No goal: the shot was not called. Call "A gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
         speak(why);
         render(`${why} Goal kick to ${name(other(event.side))}.`);
-        await wait(2200);
+        await wait(PACE.noGoal);
         return;
       }
       case 'foul': {
@@ -272,7 +271,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         const why = event.penalty ? `Foul in the area! Penalty to ${name(event.side)}.` : `Foul! Free kick to ${name(event.side)}.`;
         speak(why);
         render(event.penalty ? 'Foul in the area!' : why);
-        await wait(1800);
+        await wait(PACE.foul);
         return;
       }
       case 'parked': {
@@ -280,19 +279,19 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         const why = `Parked ball! Free kick to ${name(event.side)}: the ball was left between the other side's own buttons.`;
         speak(why);
         render(why);
-        await wait(2200);
+        await wait(PACE.parked);
         return;
       }
       case 'retake':
         sfx.whistle();
         render('The ball has to leave the circle: kick off again.');
-        await wait(1600);
+        await wait(PACE.retake);
         return;
       case 'turn': {
         const shotWords = event.why === 'penalty' ? (saved ? 'Saved!' : 'Missed!') : called ? (saved ? 'Saved!' : 'No goal.') : event.why === 'touches' && m.rule === '1' ? '' : WHY[event.why];
         render(shotWords);
         /* the handover: nothing can be flicked for a moment */
-        await wait(HANDOVER);
+        await wait(PACE.handover);
         return;
       }
       case 'on':
@@ -334,8 +333,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   function schedule(): void {
     if (!cpu || busy || thinking || m.phase === 'over') return;
     thinking = true;
-    if (m.phase === 'placing') life.later(() => { void cpuPlace(cpu); }, 500);
-    else life.later(() => { void cpuMove(cpu); }, 700);
+    if (m.phase === 'placing') life.later(() => { void cpuPlace(cpu); }, PACE.cpuPlace);
+    else life.later(() => { void cpuMove(cpu); }, PACE.cpuMove);
   }
 
   /** it slides its goleiro to where it wants it, and says Pronto */
@@ -346,7 +345,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     for (let i = 1; i <= 8; i += 1) {
       m = { ...m, keepers: { ...m.keepers, [me]: from + (to - from) * i / 8 } };
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
-      await wait(50);
+      await wait(PACE.slideStep);
     }
     sfx.tap();
     m = pronto(m, to);
@@ -369,7 +368,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     busy = true;
     const from = m[me][move.button];
     if (from) board.arrow(from, { button: move.button, vx: move.vx, vy: move.vy });
-    await wait(900);
+    await wait(PACE.cpuAim);
     board.clearAim();
     thinking = false;
     await shoot(me, move.button, move.vx, move.vy, true);
@@ -401,7 +400,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     node.dataset.phase = 'toss';
     tell('Coin toss…', 'a');
     sfx.whistle();
-    await wait(1800);
+    await wait(PACE.toss);
     overlay.setAttribute('hidden', '');
     m = newMatch(goalsToWin(), first, m.size, m.rule);
     speak(`Kick-off: ${teams[first].name}!`);

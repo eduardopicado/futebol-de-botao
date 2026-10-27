@@ -25,6 +25,7 @@ import { type Keepers, makeBoard, SHAPE } from './board';
 import { computerLevel, speak } from './choices';
 import { confetti } from './confetti';
 import { narrate } from './narration';
+import { PACE } from './pace';
 import { takerOf } from './squads';
 import { kit, label, ourTeam, rivalFor, type Team } from './teams';
 
@@ -117,7 +118,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     const kick = `Kick ${shootoutTaken(s, m.turn) + 1}`;
     if (cpu && (placing ? defender() === cpu : m.turn === cpu)) {
       tell(`${lead}${kick} for ${name(m.turn)}. ${placing ? `${name(cpu)} places its goleiro…` : `${name(cpu)} steps up…`}`, 'a');
-      if (!busy) life.later(() => { void (placing ? cpuPlace() : cpuKick()); }, 600);
+      if (!busy) life.later(() => { void (placing ? cpuPlace() : cpuKick()); }, placing ? PACE.cpuPlace : PACE.cpuMove);
       return;
     }
     if (placing) tell(`${lead}${kick} for ${name(m.turn)}. ${name(defender())}: slide your goleiro along the line, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
@@ -153,7 +154,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!` : `${by} misses for ${name(taker)}!`;
     tell(said, 'a');
     speak(said);
-    await wait(1800);
+    await wait(PACE.kick);
     if (s.winner) { champion(s.winner); return; }
     m = penaltyFor(s.turn);
     setUpKick();
@@ -172,7 +173,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     for (let i = 1; i <= 8; i += 1) {
       m = { ...m, keepers: { ...m.keepers, [cpu]: from + (to - from) * i / 8 } };
       draw();
-      await wait(50);
+      await wait(PACE.slideStep);
     }
     sfx.tap();
     m = pronto(m, to);
@@ -188,7 +189,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     busy = true;
     const from = m[cpu][move.button];
     if (from) board.arrow(from, { button: move.button, vx: move.vx, vy: move.vy });
-    await wait(900);
+    await wait(PACE.cpuAim);
     board.clearAim();
     await shoot(move.button, move.vx, move.vy, true);
   }
@@ -212,7 +213,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     node.dataset.phase = 'toss';
     tell('Coin toss…', 'a');
     sfx.whistle();
-    await wait(1800);
+    await wait(PACE.toss);
     overlay.setAttribute('hidden', '');
     begin(newShootout(first));
   }
