@@ -69,7 +69,7 @@ body {
    meets the desk: the words and the score sit on the wall. */
 :root { --split: 36%; }
 body[data-route="home"] { --split: max(46%, 480px); }
-body[data-route="settings"], body[data-route="teams-1"], body[data-route="teams-2"] { --split: 100%; }
+body[data-route="settings"], body[data-route="teams-1"], body[data-route="teams-2"], body[data-route="pen-teams-1"], body[data-route="pen-teams-2"] { --split: 100%; }
 .scene {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
   /* the desk: oak planks (src/assets/desk.webp, a tile made with ChatGPT
@@ -107,7 +107,8 @@ body[data-route="settings"], body[data-route="teams-1"], body[data-route="teams-
 .scene .leaves { left: 0; bottom: 0; width: clamp(340px, 66vw, 900px); height: auto; opacity: .7; }
 body[data-route="home"] .scene .clipboard { top: calc(var(--split) + 2%); }
 body[data-route="home"] .scene .pouch { top: calc(var(--split) + 4%); }
-body[data-route="settings"] .scene svg:not(.doodles), body[data-route="teams-1"] .scene svg:not(.doodles), body[data-route="teams-2"] .scene svg:not(.doodles) { display: none; }
+body[data-route="settings"] .scene svg:not(.doodles), body[data-route="teams-1"] .scene svg:not(.doodles), body[data-route="teams-2"] .scene svg:not(.doodles),
+body[data-route="pen-teams-1"] .scene svg:not(.doodles), body[data-route="pen-teams-2"] .scene svg:not(.doodles) { display: none; }
 html { background: #0E3A32; }
 
 /* launched from the home screen there is no browser chrome, so respect the
@@ -230,8 +231,9 @@ select {
    a flick. So the game screen is exactly the screen's height, and the table
    is as big as the room left for it (container units: the stage is the
    container). svh where there is one, so an iPhone's toolbar is counted. */
-body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"] { overflow: hidden; }
-body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route="computador"] .app, body[data-route="goleiro"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"], body[data-route="penaltis-1"], body[data-route="penaltis-2"] { overflow: hidden; }
+body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route="computador"] .app, body[data-route="goleiro"] .app,
+body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
 .game {
   height: 100%; margin: 0 auto;
   display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 6px;
@@ -459,3 +461,11 @@ label.btn input[type="file"] { position: absolute; top: 0; left: 0; width: 1px; 
   box-shadow: 0 4px 0 var(--mustard-dark), 0 8px 24px rgba(0, 0, 0, .4);
 }
 .route-error { text-align: center; display: grid; gap: 16px; justify-items: center; padding-top: 10vh; }
+
+/* ── a penalty shootout: each side's kicks, scored, missed or still to take ── */
+
+.pen-kicks { display: grid; gap: 2px; justify-items: center; }
+.pen-row { display: flex; align-items: center; gap: 5px; }
+.pen-mark { width: 13px; height: 13px; border: 2.5px solid var(--paper); border-radius: 50%; }
+.pen-mark.goal { border-color: var(--mustard); background: var(--mustard); }
+.pen-mark.miss { border: none; color: #FF8A70; font: 800 15px / 13px var(--display); display: grid; place-items: center; }

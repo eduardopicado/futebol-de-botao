@@ -15,8 +15,17 @@ import { crestButton, redrawShirts, shirtTile } from './shirts';
 import { TEAMS, clash, ourTeam, rivalChoice, setPick, teamById, type Team } from './teams';
 
 type Players = 1 | 2;
+/** what the teams are picked for: a match, or a penalty shootout */
+type For = 'match' | 'penalties';
 
-function picker(players: Players): (root: HTMLElement) => void {
+/** the shootout's picker starts with how many play: 1 player or 2, a switch like Treino's */
+function playersSwitch(players: Players): HTMLElement {
+  const link = (n: Players, text: string): HTMLElement =>
+    el('a', { class: 'kind-btn', href: `#/pen-teams-${n}`, text, ...(n === players ? { 'aria-current': 'page' } : {}) });
+  return el('nav', { class: 'kind-switch', 'aria-label': 'Players' }, link(1, '🤖 1 player'), link(2, '👥 2 players'));
+}
+
+function picker(players: Players, purpose: For = 'match'): (root: HTMLElement) => void {
   return (root) => {
     let a = ourTeam().id;
     let b = rivalChoice();
@@ -76,15 +85,17 @@ function picker(players: Players): (root: HTMLElement) => void {
 
     const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Back to the start', text: '←' });
     back.addEventListener('click', () => go('home'));
-    const kick = el('button', { class: 'btn big kick', type: 'button', text: '▶ Kick off' });
+    const kick = el('button', { class: 'btn big kick', type: 'button', text: purpose === 'match' ? '▶ Kick off' : '▶ Start' });
     kick.addEventListener('click', () => {
       setPick('a', a);
       setPick('b', b);
       sfx.tap();
-      go(players === 1 ? 'computador' : 'partida');
+      go(purpose === 'penalties' ? (players === 1 ? 'penaltis-1' : 'penaltis-2') : players === 1 ? 'computador' : 'partida');
     });
     page.append(
-      el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, players === 1 ? '1 player' : '2 players'))),
+      el('header', { class: 'topbar' }, back, el('div', { class: 'titles' },
+        el('h1', {}, purpose === 'penalties' ? 'Pênaltis' : players === 1 ? '1 player' : '2 players'),
+        ...(purpose === 'penalties' ? [playersSwitch(players)] : []))),
       el('section', { class: 'panel' }, el('h2', { class: 'lbl', text: sides.a }), el('div', { class: 'teams', role: 'group', 'aria-label': sides.a }, ...shirts.a), crests.a.node),
       el('section', { class: 'panel' }, el('h2', { class: 'lbl', text: sides.b }), el('div', { class: 'teams', role: 'group', 'aria-label': sides.b }, ...shirts.b), crests.b.node),
       warn, said,
@@ -96,3 +107,5 @@ function picker(players: Players): (root: HTMLElement) => void {
 
 export const mountOne = picker(1);
 export const mountTwo = picker(2);
+export const mountPenaltiesOne = picker(1, 'penalties');
+export const mountPenaltiesTwo = picker(2, 'penalties');
