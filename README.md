@@ -28,6 +28,10 @@ shows a **New version! Tap to update** button.
   the area. The note above the table (beside it, with the iPad held sideways)
   turns to face whoever has to act. After a goal, **↺ Replay** plays the move
   that scored again, at half speed.
+- **Pênaltis:** a penalty shootout, against the computer or two on one iPad.
+  Five kicks each, then a kick each until one side scores and the other does
+  not: the defender places their goleiro and taps **Pronto**, and the taker
+  has one flick.
 - **Treino:** practice against three defenders and a goleiro, shooting
   freely. Every set-up comes with a way to score, and **Show me** plays it.
   **🧤 Goleiro** turns it round: ten shots by the computer at your goal, to
