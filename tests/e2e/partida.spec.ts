@@ -47,13 +47,13 @@ const chance = (extra: Partial<Match> = {}): Partial<Match> => ({
 async function open(page: Page, setup?: Partial<Match>): Promise<void> {
   if (setup) await seed(page, { 'match-setup': setup });
   await page.goto('/#/partida');
-  await expect(page.locator('.bt-btn.us')).toHaveCount(5);
+  await expect(page.locator('.bt-btn.us')).toHaveCount(setup?.a?.length ?? 4);
 }
 
 const game = (page: Page) => page.locator('.game');
 
 test.describe('Partida', () => {
-  test('starts with a coin toss, then the kick-off: five a side, two goleiros, all of it on the screen', async ({ page }) => {
+  test('starts with a coin toss, then the kick-off: four a side, two goleiros, all of it on the screen', async ({ page }) => {
     const watch = watchPage(page);
     await page.goto('/');
     await page.getByRole('link', { name: '👥 2 players' }).click();
@@ -61,8 +61,8 @@ test.describe('Partida', () => {
     await expect(game(page)).toHaveAttribute('data-phase', 'toss');
     await expect(page.locator('.toss')).toContainText('Kick-off:');
     await expect(game(page)).toHaveAttribute('data-phase', 'kickoff', { timeout: 6000 });
-    await expect(page.locator('.bt-btn.us')).toHaveCount(5);
-    await expect(page.locator('.bt-btn.them')).toHaveCount(5);
+    await expect(page.locator('.bt-btn.us')).toHaveCount(4);
+    await expect(page.locator('.bt-btn.them')).toHaveCount(4);
     await expect(page.locator('.bt-keeper.home')).toBeVisible();
     await expect(page.locator('.bt-keeper.away')).toBeVisible();
     await expect(page.locator('.bt-say')).toContainText('Kick-off:');

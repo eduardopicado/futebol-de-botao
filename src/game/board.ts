@@ -82,6 +82,10 @@ function keeperBlock(bottom: boolean): { g: SVGGElement; block: SVGRectElement }
   return { g, block };
 }
 
+/** the table's shape, width over height, for the CSS: on the table, and on a
+    game screen that sizes its columns by it */
+export const SHAPE = { '--bt-shape': String(VIEW.w / VIEW.h) };
+
 export function makeBoard(life: Life, label: string): Board {
   const board = svg('svg', { class: 'bt-table', viewBox: `${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`, role: 'img', 'aria-label': label });
   const path = svg('polyline', { class: 'bt-path' });
@@ -100,7 +104,7 @@ export function makeBoard(life: Life, label: string): Board {
     goalFrame(), svg('g', { class: 'bt-goal-far', transform: FAR }, goalFrame()), band, arrowEl);
   const nets = { top: field.querySelector('.bt-net.ours')!, bottom: field.querySelector('.bt-goal-far .bt-net')! };
   /* the table's shape, for its size on the screen (app.css) */
-  const node = el('div', { class: 'bt-wrap', vars: { '--bt-shape': String(VIEW.w / VIEW.h) } }, board);
+  const node = el('div', { class: 'bt-wrap', vars: SHAPE }, board);
 
   let buttons: Record<Side, SVGGElement[]> = { a: [], b: [] };
   let scene: Scene = { ball: { x: W / 2, y: L / 2 }, a: [], b: [] };

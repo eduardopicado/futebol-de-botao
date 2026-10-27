@@ -33,8 +33,8 @@ import {
   KICKOFF_TOUCHES, TOUCHES, call, clampKeeper, flick, mayCall, mayFlick, newMatch, other, pronto,
   type Event, type Match, type Side,
 } from '../content/match';
-import { makeBoard, type Benched, type Keepers } from './board';
-import { computerLevel, goalsToWin, speak } from './choices';
+import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
+import { buttonsPerSide, computerLevel, goalsToWin, speak } from './choices';
 import { narrate } from './narration';
 import { label, ourTeam, rivalFor, type Team } from './teams';
 
@@ -66,15 +66,15 @@ function match(root: HTMLElement, computer: boolean): () => void {
   const pips = el('span', { class: 'bt-pips', role: 'img' });
   const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`);
   const stage = el('div', { class: 'bt-stage' }, board.node);
-  const node = el('div', { class: 'game' },
-    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, 'Partida')), scoreEl),
-    sayEl, stage, el('div', { class: 'bt-foot' }, el('p', { class: 'bt-touches' }, whose, pips)));
+  const node = el('div', { class: 'game', vars: SHAPE },
+    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, 'Partida'), el('p', { class: 'bt-touches' }, whose, pips)), scoreEl),
+    sayEl, stage);
   root.append(node);
 
   const callBtn = el('button', { class: 'btn small call', type: 'button', text: '📣 A gol!' });
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 
-  let m: Match = newMatch(goalsToWin(), 'a');
+  let m: Match = newMatch(goalsToWin(), 'a', buttonsPerSide());
   /* a flick, a pause or the toss is under way: no finger does anything */
   let busy = true;
   /* the goleiro being placed, where the finger has slid it so far */
@@ -327,7 +327,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
     sfx.whistle();
     await wait(1800);
     overlay.setAttribute('hidden', '');
-    m = newMatch(goalsToWin(), first);
+    m = newMatch(goalsToWin(), first, m.size);
     speak(`Kick-off: ${teams[first].name}!`);
     busy = false;
     render('');
@@ -366,7 +366,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
   const setup = read<Partial<Match> | null>('match-setup', null);
   if (setup && typeof setup === 'object') {
     write('match-setup', null);
-    m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a'), ...setup };
+    m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a', setup.a?.length ?? buttonsPerSide()), ...setup };
     board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length });
     busy = false;
     render('');

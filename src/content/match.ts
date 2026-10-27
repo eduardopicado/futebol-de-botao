@@ -1,4 +1,4 @@
-/* A match: two sides of five buttons and a goleiro, first to a number of goals.
+/* A match: two sides of four or five buttons and a goleiro, first to a number of goals.
  *
  * Side a defends the goal at the bottom and attacks the top; side b the
  * other way. The physics (botao.ts) always plays the side whose turn it is
@@ -35,7 +35,8 @@ import { BALL, KEEPER_W, L, MARKS, MOUTH, R, W, simulate, type Bump, type Point,
 export type Side = 'a' | 'b';
 export const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
 
-/** buttons a side, besides its goleiro */
+/** buttons a side, besides its goleiro: the first is the one a match starts with */
+export const SIZES = [4, 5] as const;
 export const BUTTONS = 5;
 /** flicks in a turn, and in a kick-off */
 export const TOUCHES = 3;
@@ -74,6 +75,8 @@ export interface Match {
   score: Record<Side, number>;
   /** goals to win */
   goals: number;
+  /** buttons a side, besides the goleiro */
+  size: number;
   turn: Side;
   /** counts turns, for when a button that went out comes back */
   turnNo: number;
@@ -119,17 +122,18 @@ export const inAttack = (ball: Point, side: Side): boolean =>
   (side === 'a' ? ball.y + BALL < L / 2 : ball.y - BALL > L / 2);
 
 /**
- * Where a side lines up: two at the back, two in midfield, one up front. The
- * side kicking off has its forward behind the ball and a midfielder beside
- * it, both in the centre circle; the other side's forward waits outside it.
+ * Where a side lines up: two at the back, two in midfield (one, with four
+ * buttons), one up front. The side kicking off has its forward behind the
+ * ball and a midfielder beside it, both in the centre circle; the other
+ * side's forward waits outside it.
  */
-export function formation(side: Side, kicking: boolean): Point[] {
+export function formation(side: Side, kicking: boolean, size = BUTTONS): Point[] {
   const mid = L / 2;
-  const ours = [
-    { x: 20, y: 84 }, { x: 44, y: 84 },
-    { x: 12, y: 68 }, kicking ? { x: 43, y: mid + 2 } : { x: 52, y: 68 },
-    { x: W / 2, y: kicking ? mid + 7.5 : mid + 14 },
-  ];
+  const beside = { x: 43, y: mid + 2 };
+  const forward = { x: W / 2, y: kicking ? mid + 7.5 : mid + 14 };
+  const ours = size === 4
+    ? [{ x: 20, y: 84 }, { x: 44, y: 84 }, kicking ? beside : { x: W / 2, y: 76 }, forward]
+    : [{ x: 20, y: 84 }, { x: 44, y: 84 }, { x: 12, y: 68 }, kicking ? beside : { x: 52, y: 68 }, forward];
   return side === 'a' ? ours : ours.map(turned);
 }
 
@@ -158,8 +162,8 @@ export function tableFor(m: Match): { table: Table; ours: number[]; theirs: numb
 
 function lineUp(m: Match, side: Side): void {
   m.ball = { ...MIDDLE };
-  m.a = formation('a', side === 'a');
-  m.b = formation('b', side === 'b');
+  m.a = formation('a', side === 'a', m.size);
+  m.b = formation('b', side === 'b', m.size);
   m.keepers = { a: W / 2, b: W / 2 };
   m.out = [];
   m.turn = side;
@@ -171,10 +175,10 @@ function lineUp(m: Match, side: Side): void {
   m.attack = false;
 }
 
-export function newMatch(goals: number, first: Side): Match {
+export function newMatch(goals: number, first: Side, size = BUTTONS): Match {
   const m: Match = {
     ball: { ...MIDDLE }, a: [], b: [], keepers: { a: W / 2, b: W / 2 }, out: [],
-    score: { a: 0, b: 0 }, goals, turn: first, turnNo: 0, phase: 'kickoff', penalty: false,
+    score: { a: 0, b: 0 }, goals, size, turn: first, turnNo: 0, phase: 'kickoff', penalty: false,
     touches: 0, used: [], attack: false, winner: null,
   };
   lineUp(m, first);

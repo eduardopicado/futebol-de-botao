@@ -50,10 +50,12 @@ test.describe('Against the computer', () => {
         await page.mouse.move(at.x - (vx / PULL) * at.scale, at.y - (vy / PULL) * at.scale, { steps: 6 });
         await page.mouse.up();
       };
-      const kicker = page.locator('.bt-btn.us.b3');
+      /* four a side: the midfielder is the third button */
+      const kicker = page.locator('.bt-btn.us.b2');
       const [kx, ky] = [Number(await kicker.getAttribute('data-x')), Number(await kicker.getAttribute('data-y'))];
+      expect(kx).toBe(43);
       const d = Math.sqrt((32 - kx) ** 2 + (L / 2 - ky) ** 2);
-      await pull(3, (32 - kx) / d * 70, (L / 2 - ky) / d * 70);
+      await pull(2, (32 - kx) / d * 70, (L / 2 - ky) / d * 70);
       await expect(game(page)).toHaveAttribute('data-touches', '1', { timeout: 8000 });
       await pull(0, 0, 12);
     }

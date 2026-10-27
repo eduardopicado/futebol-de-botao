@@ -27,6 +27,22 @@ test.describe('Settings', () => {
     noProblems(watch);
   });
 
+  test('buttons a side: four unless five is picked, and a match is played with them', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.getByRole('button', { name: '4 and a goleiro' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: '5 and a goleiro' }).click();
+    expect(await page.evaluate(() => localStorage.getItem('fdb:buttons'))).toBe('5');
+    await page.getByRole('button', { name: 'Back to the start' }).click();
+    await page.getByRole('link', { name: '👥 2 players' }).click();
+    await page.getByRole('button', { name: '▶ Kick off' }).click();
+    await expect(page.locator('.game')).toHaveAttribute('data-phase', 'kickoff', { timeout: 6000 });
+    await expect(page.locator('.bt-btn.us')).toHaveCount(5);
+    await expect(page.locator('.bt-btn.them')).toHaveCount(5);
+    noProblems(watch);
+  });
+
   test('the words are read aloud, unless that is turned off', async ({ page }) => {
     await recordSpeech(page);
     await page.goto('/#/treino');

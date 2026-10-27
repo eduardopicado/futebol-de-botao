@@ -90,8 +90,8 @@ src/game/choices.ts       what the settings chose, read where a game needs it
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
 src/game/home.ts          the start screen: 1 player, 2 players, Treino, and ⚙
 src/game/pick.ts          picking the teams before a match, kept for next time
-src/game/settings.ts      the settings: goals to win, computer level, commentator,
-                          sound effects, reading aloud, crests
+src/game/settings.ts      the settings: goals to win, buttons a side, computer
+                          level, commentator, sound effects, reading aloud, crests
 src/game/teams.ts         the teams, their flags and kits; rivalFor picks the opponent
 src/game/narration.ts     the commentator ("Goooool do Brasil!")
 src/lib/                  speech, sfx, audio (recorded lines; none ship yet),

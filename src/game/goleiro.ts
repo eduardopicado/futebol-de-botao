@@ -17,7 +17,7 @@ import { L, W, oneTouch, passPlan, simulate, type Point, type Shot, type Table }
 import { SKILL, shotFor, wobble } from '../content/computer';
 import { clampKeeper, type Scene } from '../content/match';
 import { drill } from '../content/treino';
-import { makeBoard } from './board';
+import { makeBoard, SHAPE } from './board';
 import { narrate } from './narration';
 import { computerLevel } from './choices';
 import { modeSwitch } from './treino';
@@ -48,9 +48,9 @@ export function mount(root: HTMLElement): () => void {
   const stage = el('div', { class: 'bt-stage' }, board.node);
   const overlay = el('div', { class: 'bt-overlay', hidden: '' });
   stage.append(overlay);
-  const node = el('div', { class: 'game' },
-    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, modeSwitch('goleiro')), score),
-    sayEl, stage, el('div', { class: 'bt-foot' }, shotEl));
+  const node = el('div', { class: 'game', vars: SHAPE },
+    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, modeSwitch('goleiro'), shotEl), score),
+    sayEl, stage);
   root.append(node);
   const pronto = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 

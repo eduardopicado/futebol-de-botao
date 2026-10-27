@@ -20,12 +20,13 @@ shows a **New version! Tap to update** button.
 - **1 player:** a match against the computer, which thinks, shows its arrow
   for a moment and flicks, calls "A gol!" for you to place your goleiro, and
   places its own when you call. Easy, medium or hard.
-- **2 players:** a match on one iPad, five buttons and a goleiro a side,
-  first to 3 goals. A coin toss picks who kicks off. Each turn is up to three
-  flicks with any of your buttons; to shoot, call **A gol!** (in a turn that
-  started in the other half), and the other player slides their goleiro along
-  the line and taps **Pronto**. Fouls give free kicks, or a penalty in the
-  area. The note above the table turns to face whoever has to act.
+- **2 players:** a match on one iPad, four buttons and a goleiro a side (or
+  five), first to 3 goals. A coin toss picks who kicks off. Each turn is up to
+  three flicks with any of your buttons; to shoot, call **A gol!** (in a turn
+  that started in the other half), and the other player slides their goleiro
+  along the line and taps **Pronto**. Fouls give free kicks, or a penalty in
+  the area. The note above the table (beside it, with the iPad held sideways)
+  turns to face whoever has to act.
 - **Treino:** practice against three defenders and a goleiro, shooting
   freely. Every set-up comes with a way to score, and **Show me** plays it.
   **🧤 Goleiro** turns it round: ten shots by the computer at your goal, to
@@ -33,9 +34,10 @@ shows a **New version! Tap to update** button.
 - **Picking teams:** every match starts by picking each side's team, from
   the World Cup winners, the big clubs and two made-up sides; the side at the
   top may be "Anyone". The picks are kept for next time.
-- **Settings (⚙):** goals to win (3, 5 or 10), how well the computer plays,
-  the commentator (Português, English or none), sound effects, reading the
-  words aloud, and a crest for any team from your own photos.
+- **Settings (⚙):** goals to win (3, 5 or 10), four or five buttons a side,
+  how well the computer plays, the commentator (Português, English or none),
+  sound effects, reading the words aloud, and a crest for any team from your
+  own photos.
 
 The rules are a simple version of the CBFM's 3 Toques (the regra carioca);
 [`src/content/match.ts`](src/content/match.ts) lists them.

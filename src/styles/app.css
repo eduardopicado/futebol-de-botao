@@ -233,10 +233,26 @@ select {
 body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"] { overflow: hidden; }
 body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route="computador"] .app, body[data-route="goleiro"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
 .game {
-  height: 100%; max-width: 720px; margin: 0 auto;
-  display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 6px;
+  height: 100%; margin: 0 auto;
+  display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 6px;
 }
 .game .topbar { margin: 0; }
+/* under the title: whose turn it is and the touches used, or Goleiro's shot */
+.game .titles { display: grid; justify-items: center; gap: 4px; }
+.game h1 { font-size: clamp(24px, 5vw, 34px); }
+/* held sideways, the title and the note go to a column on the left, and the
+   table takes the whole height of the screen beside them */
+@media (min-aspect-ratio: 5/4) {
+  .game {
+    grid-template-columns: minmax(0, 1fr) min(68vw, calc((100svh - 22px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) * var(--bt-shape)));
+    grid-template-rows: auto minmax(0, 1fr); column-gap: clamp(12px, 3vw, 32px); align-content: start;
+  }
+  .game .topbar { grid-column: 1; flex-wrap: wrap; justify-content: space-between; row-gap: 10px; }
+  .game .topbar .titles { order: 3; flex-basis: 100%; }
+  .game .bt-say { grid-column: 1; align-self: start; margin-top: 12px; }
+  .game .bt-stage { grid-column: 2; grid-row: 1 / -1; }
+  .game .bt-say::before, .game .bt-say::after { display: none; }
+}
 .score {
   display: flex; align-items: center; gap: 8px; flex: none;
   min-width: var(--tap); height: var(--tap); padding: 0 14px; border-radius: 16px;
@@ -249,10 +265,10 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
    the words fell off the bottom of the screen) */
 .bt-say {
   /* a note on a strip of paper, as in the design picture: dark ink on cream */
-  justify-self: center; width: min(100%, 620px); margin: 2px 0;
-  min-height: calc(2.5em + 14px); padding: 7px 18px;
-  display: grid; place-items: center; text-align: center;
-  font: 700 clamp(16px, 4vw, 22px) / 1.25 var(--reading);
+  justify-self: center; width: min(100%, 620px); margin: 0;
+  min-height: calc(2.5em + 10px); padding: 5px 14px;
+  display: flex; align-items: center; justify-content: center; gap: 10px; text-align: center;
+  font: 700 clamp(15px, 3.6vw, 20px) / 1.25 var(--reading);
   color: var(--ink); background: linear-gradient(176deg, #FFF8EA, #F1E4CB);
   border-radius: 5px 12px 6px 14px / 12px 5px 14px 6px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
@@ -270,7 +286,7 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
 .bt-stage { container-type: size; display: grid; place-items: center; min-height: 0; position: relative; }
 /* the note's buttons ("A gol!", Pronto) beside its words; the whole note
    turns round to face the player at the top when it is talking to them */
-.bt-say .say-actions { display: inline-flex; gap: 8px; margin-left: 10px; vertical-align: middle; }
+.bt-say .say-actions { display: inline-flex; flex: none; gap: 8px; }
 .bt-say .say-actions:empty { display: none; }
 .bt-say .say-actions .btn { min-height: var(--tap); }
 .bt-say.flip { transform: rotate(179.4deg); }
@@ -301,21 +317,16 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
 @keyframes bt-fall { to { transform: translateY(110vh) rotate(calc(var(--r) + 540deg)); } }
 .home .modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
 .btn.big.ghost { box-shadow: none; }
-.bt-foot {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  justify-self: center; width: min(100%, 620px); padding: 4px 4px 4px 16px; border-radius: 99px;
-  background: rgba(8, 32, 28, .85); box-shadow: 0 3px 10px rgba(0, 0, 0, .3);
-}
 
-.bt-touches { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--paper); font: 700 18px var(--display); }
-.bt-pips { display: inline-flex; gap: 6px; }
-.bt-pip { width: 18px; height: 18px; border: 3px solid var(--paper); border-radius: 50%; }
+.bt-touches { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--paper); font: 700 15px / 1.2 var(--display); }
+.bt-pips { display: inline-flex; gap: 5px; }
+.bt-pip { width: 14px; height: 14px; border: 2.5px solid var(--paper); border-radius: 50%; }
 .bt-pip.used { border-color: var(--mustard); background: var(--mustard); }
 /* the table's shape (--bt-shape, width over height) is VIEW in
    src/content/botao.ts, set on .bt-wrap where it is made; as wide as the
    stage allows, or as tall */
 .bt-wrap {
-  width: min(100%, calc((100svh - 240px) * var(--bt-shape)));
+  width: min(100%, calc((100svh - 190px) * var(--bt-shape)));
   /* the tray's own corners, from its picture (38 of 699 across, of 987 down), and its shadow on the page */
   border-radius: 5.4% / 3.9%;
   box-shadow: 0 10px 22px rgba(0, 0, 0, .35);
@@ -438,7 +449,7 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
 /* ── a new version ────────────────────────────────────────────────────── */
 
 .update {
-  position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
+  position: fixed; z-index: 50; left: 50%; translate: -50% 0;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
   box-shadow: 0 4px 0 var(--mustard-dark), 0 8px 24px rgba(0, 0, 0, .4);
 }
