@@ -4,6 +4,12 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { noProblems, recordSpeech, said, seed, watchPage } from './helpers';
 
+/** a picture from the device: one red pixel, as a PNG */
+const PICTURE = {
+  name: 'crest.png', mimeType: 'image/png',
+  buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==', 'base64'),
+};
+
 test.describe('Settings', () => {
   test('the ⚙ opens them; goals to win and the computer level stick, and a match is played to them', async ({ page }) => {
     const watch = watchPage(page);
@@ -73,6 +79,28 @@ test.describe('Settings', () => {
     expect(await said(page)).toEqual([]);
   });
 
+  test('a crest for any team: tap its shirt, add a picture, and remove it again', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/#/settings');
+    const crests = page.getByRole('group', { name: 'Team for a crest' });
+    await crests.getByRole('button', { name: 'Brazil' }).click();
+    await expect(crests.getByRole('button', { name: 'Brazil' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.settings .crest .none')).toHaveText('No crest');
+    await page.locator('.settings .crest-btn input[type="file"]').setInputFiles(PICTURE);
+    await expect(page.locator('.settings .said')).toHaveText('Crest saved for Brazil, on this device.');
+    await expect(page.getByRole('img', { name: 'The crest for Brazil' })).toBeVisible();
+    await expect(page.locator('.settings .crest-btn')).toHaveText('📷 Change crest: Brazil');
+    await expect(crests.locator('.team[data-team="brazil"] .pk-crest')).toHaveCount(1);
+    /* the crest button opens the photo picker; the button beside it is not under it */
+    const chooser = page.waitForEvent('filechooser');
+    await page.locator('.settings .crest-btn').click();
+    await chooser;
+    await page.getByRole('button', { name: 'Remove' }).click();
+    await expect(page.locator('.settings .said')).toHaveText('Removed.');
+    await expect(crests.locator('.team[data-team="brazil"] .pk-crest')).toHaveCount(0);
+    noProblems(watch);
+  });
+
   test('has no accessibility violations', async ({ page }) => {
     await page.goto('/#/settings');
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -138,6 +166,23 @@ test.describe('Picking teams', () => {
     await page.getByRole('button', { name: 'Change teams' }).click();
     await expect(page).toHaveURL(/#\/teams-2$/);
     await expect(page.getByRole('button', { name: '▶ Kick off' })).toBeVisible();
+  });
+
+  test('a crest for the team picked, from a picture: every shirt of that team wears it', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/#/teams-2');
+    await page.getByRole('group', { name: 'Player at the bottom' }).getByRole('button', { name: 'Palmeiras' }).click();
+    const add = page.locator('.crest-btn').first();
+    await expect(add).toHaveText('📷 Add a crest: Palmeiras');
+    await add.locator('input[type="file"]').setInputFiles(PICTURE);
+    await expect(page.locator('.pick-said')).toHaveText('Crest saved for Palmeiras, on this device.');
+    await expect(add).toHaveText('📷 Change crest: Palmeiras');
+    /* on its shirt on both sides */
+    await expect(page.locator('.team[data-team="palmeiras"] .pk-crest')).toHaveCount(2);
+    expect(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('fdb:crests') ?? '{}')))).toEqual(['palmeiras']);
+    /* Anyone, at the top, has no crest to add */
+    await expect(page.locator('.crest-btn').nth(1)).toBeHidden();
+    noProblems(watch);
   });
 
   test('has no accessibility violations', async ({ page }) => {
