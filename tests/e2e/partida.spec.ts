@@ -256,6 +256,33 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
+  test('the players: a number on each rim, the name while a button is held, and the scorer in the goal', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { 'team-a': 'brazil', 'team-b': 'argentina', 'match-setup': chance({ keepers: { a: 32, b: 23 } }) });
+    await page.goto('/#/partida');
+    await expect(page.locator('.bt-btn.us')).toHaveCount(5);
+    /* Brazil's first button, at the back on the left: Marquinhos, 4; Argentina's forward: Messi, 10 */
+    await expect(page.locator('.bt-btn.us.b0 .bt-number')).toHaveText('4');
+    await expect(page.locator('.bt-btn.them.t4 .bt-number')).toHaveText('10');
+    /* held, its number and name above it; let go without a pull, gone */
+    const at = await screen(page, await where(page, 'a', 0));
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down();
+    await expect(page.locator('.bt-tag')).toBeVisible();
+    await expect(page.locator('.bt-tag-text')).toHaveText('4 · Marquinhos');
+    await page.mouse.up();
+    await expect(page.locator('.bt-tag')).toBeHidden();
+    /* and when he scores, the note says so */
+    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
+    const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
+    await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
+    await expect(game(page)).toHaveAttribute('data-event', 'goal', { timeout: 10000 });
+    await expect(page.locator('.say-words')).toContainText('GOL! Marquinhos (4),');
+    noProblems(watch);
+  });
+
   test('1 toque: when a shot is called, the goleiro may come off its line, anywhere in its small area', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ rule: '1' }));

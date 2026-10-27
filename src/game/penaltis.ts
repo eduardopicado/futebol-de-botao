@@ -24,6 +24,7 @@ import {
 import { type Keepers, makeBoard, SHAPE } from './board';
 import { computerLevel, speak } from './choices';
 import { narrate } from './narration';
+import { takerOf } from './squads';
 import { kit, label, ourTeam, rivalFor, type Team } from './teams';
 
 /** two players on one iPad */
@@ -67,6 +68,10 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
   const defender = (): Side => other(m.turn);
   const keeperLine = (side: Side): 'top' | 'bottom' => (side === 'a' ? 'bottom' : 'top');
   const draw = (): void => board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m));
+
+  /** each side's taker for its next kick, on the table: the forward first, then back through the team */
+  const setUpKick = (): void => board.setUp(teams.a, teams.b, { a: 1, b: 1 },
+    { a: [takerOf(teams.a, shootoutTaken(s, 'a'))], b: [takerOf(teams.b, shootoutTaken(s, 'b'))] });
 
   /** the score, and each side's kicks: scored, missed, or still to take of the five */
   function showKicks(): void {
@@ -133,6 +138,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     board.glow(null);
     actions.replaceChildren();
     const taker = m.turn;
+    const who = takerOf(teams[taker], shootoutTaken(s, taker));
     const play = flick(m, index, vx, vy);
     await board.play(play.frames, play.bumps, keepersOf(m));
     const scored = scoredFrom(play, taker);
@@ -140,14 +146,16 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     s = kicked(s, scored);
     node.dataset.kick = scored ? 'goal' : saved ? 'saved' : 'missed';
     showKicks();
-    if (scored) { sfx.cheer(); narrate('goal', teams[taker], () => undefined, life.later); } else if (saved) narrate('save', teams[other(taker)], () => undefined, life.later);
+    if (scored) { sfx.cheer(); narrate('goal', teams[taker], () => undefined, life.later, who.name); } else if (saved) narrate('save', teams[other(taker)], () => undefined, life.later);
     else sfx.wrong();
-    const said = scored ? `GOL! ${name(taker)} scores.` : saved ? `Saved by ${name(other(taker))}!` : `${name(taker)} misses!`;
+    const by = who.name || `Number ${who.n}`;
+    const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!` : `${by} misses for ${name(taker)}!`;
     tell(said, 'a');
     speak(said);
     await wait(1800);
     if (s.winner) { champion(s.winner); return; }
     m = penaltyFor(s.turn);
+    setUpKick();
     busy = false;
     render(said);
   }
@@ -211,6 +219,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
   function begin(from: Shootout): void {
     s = from;
     m = penaltyFor(s.turn);
+    setUpKick();
     busy = false;
     speak(`First kick: ${teams[s.turn].name}!`);
     render();
@@ -243,7 +252,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
       ...Array.from({ length: 48 }, (_, i) => el('i', { vars: { '--x': `${(i * 37) % 100}%`, '--d': `${(i % 7) * 0.18}s`, '--c': colours[i % colours.length], '--r': `${(i * 53) % 360}deg` } }))));
   }
 
-  board.setUp(teams.a, teams.b, { a: 1, b: 1 });
+  setUpKick();
   /* a test (or someone debugging) can put a shootout part-way through on the device to start from */
   const setup = read<Partial<Shootout> | null>('shootout-setup', null);
   if (setup && typeof setup === 'object') {

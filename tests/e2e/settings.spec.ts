@@ -87,7 +87,7 @@ test.describe('Settings', () => {
     await expect(crests.getByRole('button', { name: 'Brazil' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.settings .crest .none')).toHaveText('No crest');
     await page.locator('.settings .crest-btn input[type="file"]').setInputFiles(PICTURE);
-    await expect(page.locator('.settings .said')).toHaveText('Crest saved for Brazil, on this device.');
+    await expect(page.locator('.settings .crest-said')).toHaveText('Crest saved for Brazil, on this device.');
     await expect(page.getByRole('img', { name: 'The crest for Brazil' })).toBeVisible();
     await expect(page.locator('.settings .crest-btn')).toHaveText('📷 Change crest: Brazil');
     await expect(crests.locator('.team[data-team="brazil"] .pk-crest')).toHaveCount(1);
@@ -96,8 +96,31 @@ test.describe('Settings', () => {
     await page.locator('.settings .crest-btn').click();
     await chooser;
     await page.getByRole('button', { name: 'Remove' }).click();
-    await expect(page.locator('.settings .said')).toHaveText('Removed.');
+    await expect(page.locator('.settings .crest-said')).toHaveText('Removed.');
     await expect(crests.locator('.team[data-team="brazil"] .pk-crest')).toHaveCount(0);
+    noProblems(watch);
+  });
+
+  test("a team's players: a number and a name changed, kept, and back to the real squad", async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/#/settings');
+    await page.getByRole('group', { name: 'Team for a crest' }).getByRole('button', { name: 'Brazil' }).click();
+    const name = page.getByRole('textbox', { name: 'Forward: name' });
+    await expect(name).toHaveValue('Vinícius Júnior');
+    await name.fill('Pelé');
+    await name.press('Tab');
+    const number = page.getByRole('spinbutton', { name: 'Forward: number' });
+    await number.fill('10');
+    await number.press('Tab');
+    await expect(page.locator('.settings .players-said')).toContainText('Saved');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('fdb:players') ?? '{}').brazil[5])).toEqual({ name: 'Pelé', n: 10 });
+    /* and they are there the next time */
+    await page.reload();
+    await page.getByRole('group', { name: 'Team for a crest' }).getByRole('button', { name: 'Brazil' }).click();
+    await expect(page.getByRole('textbox', { name: 'Forward: name' })).toHaveValue('Pelé');
+    await page.getByRole('button', { name: '↺ Back to the real squad' }).click();
+    await expect(page.getByRole('textbox', { name: 'Forward: name' })).toHaveValue('Vinícius Júnior');
+    await expect(page.getByRole('spinbutton', { name: 'Forward: number' })).toHaveValue('7');
     noProblems(watch);
   });
 

@@ -39,6 +39,7 @@ import {
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
 import { narrate } from './narration';
+import { buttonsOf, type Player } from './squads';
 import { label, ourTeam, rivalFor, type Team } from './teams';
 
 /** a moment between turns when nothing can be flicked */
@@ -199,6 +200,8 @@ function match(root: HTMLElement, computer: boolean): () => void {
   let move: Clip[] = [];
   let moveTurn = -1;
   let goalMove: Clip[] = [];
+  /* who scored the last goal */
+  let scorer: Player | null = null;
   let replaying: Promise<void> | null = null;
   const replayBtn = el('button', { class: 'btn on-paper ghost small', type: 'button', text: '↺ Replay' });
 
@@ -224,10 +227,11 @@ function match(root: HTMLElement, computer: boolean): () => void {
     switch (event.kind) {
       case 'goal': {
         sfx.cheer();
-        narrate('goal', teams[event.side], () => undefined, life.later);
+        narrate('goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
         node.dataset.goal = event.side;
         showScore();
-        words.textContent = `${event.own ? 'Own goal! ' : ''}GOL! ${name(event.side)}! ${m.score.a} – ${m.score.b}`;
+        const by = scorer ? ` ${scorer.name ? `${scorer.name} (${scorer.n})` : `Number ${scorer.n}`},` : '';
+        words.textContent = `${event.own ? 'Own goal! ' : ''}GOL!${by} ${name(event.side)}! ${m.score.a} – ${m.score.b}`;
         actions.replaceChildren(replayBtn);
         sayEl.classList.remove('flip');
         await wait(2600);
@@ -294,7 +298,11 @@ function match(root: HTMLElement, computer: boolean): () => void {
     const play = flick(m, index, vx, vy);
     if (before.turnNo !== moveTurn) { move = []; moveTurn = before.turnNo; }
     move.push({ frames: play.frames, bumps: play.bumps, keepers: keepersOf(before), benched: benchedOf(before) });
-    if (play.event.kind === 'goal' || play.event.kind === 'champion') goalMove = move;
+    if (play.event.kind === 'goal' || play.event.kind === 'champion') {
+      goalMove = move;
+      /* the scorer: the button that made the scoring flick (no one, for an own goal) */
+      scorer = play.event.own ? null : buttonsOf(teams[before.turn], before.size)[index] ?? null;
+    }
     await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before));
     m = play.next;
     node.dataset.event = play.event.kind;
@@ -416,6 +424,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
       el('p', { class: 'win-shout', text: 'É campeão!' }),
       el('p', { class: 'win-team', text: label(teams[side]) }),
       el('p', { class: 'win-score', text: `${label(teams.a, true)} ${m.score.a} – ${m.score.b} ${label(teams.b, true)}` }),
+      ...(scorer ? [el('p', { class: 'win-scorer', text: `The winning goal: ${scorer.name ? `${scorer.name} (${scorer.n})` : `Number ${scorer.n}`}` })] : []),
       el('div', { class: 'row' }, again, replayGoal, change)));
     overlay.removeAttribute('hidden');
     const colours = [teams[side].colours[0], teams[side].colours[1], '#F3B229', '#FFF6E7'];
@@ -428,11 +437,11 @@ function match(root: HTMLElement, computer: boolean): () => void {
   if (setup && typeof setup === 'object') {
     write('match-setup', null);
     m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a', setup.a?.length ?? buttonsPerSide(), matchRule()), ...setup };
-    board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length });
+    board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length }, { a: buttonsOf(teams.a, m.a.length), b: buttonsOf(teams.b, m.b.length) });
     busy = false;
     render('');
   } else {
-    board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length });
+    board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length }, { a: buttonsOf(teams.a, m.a.length), b: buttonsOf(teams.b, m.b.length) });
     render();
     void toss();
   }

@@ -59,8 +59,10 @@ const FACE = R * 0.72;
 /** a button, raised off the felt: its shadow, its side showing below it,
     the rim in a team's second colour with a bevel, the face in its first
     with a shine, and on top the crest added for the team
-    (src/lib/crests.ts), or its flag. Its top is where the physics has it */
-export function button(team: Team, cls: string): SVGGElement {
+    (src/lib/crests.ts), or its flag; its number, if it has one, small at the
+    foot of the rim like the sticker on a real botão. Its top is where the
+    physics has it */
+export function button(team: Team, cls: string, number?: number): SVGGElement {
   const crest = crestOf(team.id);
   const g = svg('g', { class: `bt-btn ${cls}` },
     svg('circle', { r: R, cx: SHADOW.x, cy: SHADOW.y + DEPTH, class: 'bt-shadow' }),
@@ -76,6 +78,11 @@ export function button(team: Team, cls: string): SVGGElement {
     const flag = svg('text', { class: 'bt-flag', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 4.6 });
     flag.textContent = team.flag;
     g.append(flag);
+  }
+  if (number !== undefined) {
+    const n = svg('text', { class: 'bt-number', y: R - 0.75, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 1.7 });
+    n.textContent = String(number);
+    g.append(n);
   }
   return g;
 }

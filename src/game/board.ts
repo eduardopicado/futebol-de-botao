@@ -22,6 +22,7 @@ import { sfx } from '../lib/sfx';
 import { BALL, KEEPER_W, KEEPER_Y, L, MOUTH, R, VIEW, W, flickFor, type Bump, type Flick, type Point } from '../content/botao';
 import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
+import { playerLabel, type Player } from './squads';
 import type { Team } from './teams';
 
 /** a goleiro's place across its line, or null for none */
@@ -53,7 +54,9 @@ export interface Board {
   node: HTMLElement;
   svg: SVGSVGElement;
   /** the teams, and how many buttons a side */
-  setUp: (a: Team, b: Team, counts: { a: number; b: number }) => void;
+  /** the teams, how many buttons a side, and the players on them (their
+      numbers on the rims, and a tag with the name while one is held) */
+  setUp: (a: Team, b: Team, counts: { a: number; b: number }, players?: { a: Player[]; b: Player[] }) => void;
   draw: (s: Scene, keepers: Keepers, benched?: Benched[]) => void;
   /** a flick played out; resolves when everything has stopped */
   /** a flick played out, frame by frame; `speed` below 1 is slower, for a replay */
@@ -111,8 +114,13 @@ export function makeBoard(life: Life, label: string): Board {
     svg('circle', { r: BALL, class: 'bt-ball-face' }));
   const discs = svg('g', {});
   const field = pitch();
+  /* the held button's number and name, above it, while it is held */
+  const tagText = svg('text', { class: 'bt-tag-text', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 2.4 });
+  const tagBack = svg('rect', { class: 'bt-tag-back', rx: 1.2 });
+  const tag = svg('g', { class: 'bt-tag', 'aria-hidden': 'true' }, tagBack, tagText);
+  tag.style.display = 'none';
   board.append(shading(), field, trail, path, ghostEl, top.g, bottom.g, discs, ballEl,
-    goalFrame(), svg('g', { class: 'bt-goal-far', transform: FAR }, goalFrame()), band, arrowEl);
+    goalFrame(), svg('g', { class: 'bt-goal-far', transform: FAR }, goalFrame()), band, arrowEl, tag);
   const nets = { top: field.querySelector('.bt-net.ours')!, bottom: field.querySelector('.bt-goal-far .bt-net')! };
   /* the table's shape, for its size on the screen (app.css) */
   const node = el('div', { class: 'bt-wrap', vars: SHAPE }, board);
@@ -120,10 +128,12 @@ export function makeBoard(life: Life, label: string): Board {
   let buttons: Record<Side, SVGGElement[]> = { a: [], b: [] };
   let scene: Scene = { ball: { x: W / 2, y: L / 2 }, a: [], b: [] };
 
-  const setUp = (a: Team, b: Team, counts: { a: number; b: number }): void => {
+  let players: { a: Player[]; b: Player[] } = { a: [], b: [] };
+  const setUp = (a: Team, b: Team, counts: { a: number; b: number }, who?: { a: Player[]; b: Player[] }): void => {
+    players = who ?? { a: [], b: [] };
     buttons = {
-      a: Array.from({ length: counts.a }, (_, i) => button(a, `us b${i}`)),
-      b: Array.from({ length: counts.b }, (_, i) => button(b, `them t${i}`)),
+      a: Array.from({ length: counts.a }, (_, i) => button(a, `us b${i}`, players.a[i]?.n)),
+      b: Array.from({ length: counts.b }, (_, i) => button(b, `them t${i}`, players.b[i]?.n)),
     };
     discs.replaceChildren(...buttons.b, ...buttons.a);
     top.block.setAttribute('fill', b.colours[0]);
@@ -237,6 +247,24 @@ export function makeBoard(life: Life, label: string): Board {
     for (const n of [path, trail, arrowEl]) n.setAttribute('points', '');
     for (const k of ['x1', 'y1', 'x2', 'y2']) band.setAttribute(k, '0');
     ghostEl.setAttribute('hidden', '');
+    tag.style.display = 'none';
+  };
+
+  /** the held button's number and name, just above it (below it, at the top edge) */
+  const showTag = (side: Side, index: number): void => {
+    const who = players[side][index];
+    const p = scene[side][index];
+    if (!who || !p) return;
+    tagText.textContent = playerLabel(who);
+    const w = 1.3 * tagText.textContent.length + 2;
+    const y = p.y - R - 2.6 < VIEW.y + 2 ? p.y + R + 2.6 : p.y - R - 2.6;
+    const x = Math.min(VIEW.x + VIEW.w - w / 2 - 1, Math.max(VIEW.x + w / 2 + 1, p.x));
+    tagBack.setAttribute('x', (-w / 2).toFixed(2));
+    tagBack.setAttribute('y', '-1.8');
+    tagBack.setAttribute('width', w.toFixed(2));
+    tagBack.setAttribute('height', '3.6');
+    tag.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+    tag.style.display = '';
   };
 
   /* ── the finger ─────────────────────────────────────────────────────── */
@@ -289,6 +317,7 @@ export function makeBoard(life: Life, label: string): Board {
     drag = { side, index: best, pointer: e.pointerId, from: p };
     try { board.setPointerCapture(e.pointerId); } catch { /* the drag still works inside the table */ }
     clearAim();
+    showTag(side, best);
   });
   board.addEventListener('pointermove', (e) => {
     if (sliding && e.pointerId === sliding.pointer && slide) {
