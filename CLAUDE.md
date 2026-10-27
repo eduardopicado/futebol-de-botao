@@ -85,19 +85,22 @@ src/game/table.ts         the table drawn: tray, felt, lines, goals, buttons
 src/game/board.ts         the table on the screen, shared: both sides, both
                           goleiros, a flick played out, the finger
 src/game/partida.ts       a match on the screen, two players or one against the
-                          computer: the toss, the note that turns to face whoever
-                          has to act, "A gol!" and Pronto, the goal replayed,
-                          full time
+                          computer (a round of the Copa too): the toss, the note
+                          that turns to face whoever has to act, "A gol!" and
+                          Pronto, the goal replayed, full time
+src/game/cup.ts           the Copa: three opponents drawn, a level for each round,
+                          the results kept, the cups won
+src/game/copa.ts          the Copa's page: the rounds, the next match, the trophy
 src/game/penaltis.ts      Pênaltis: a penalty shootout, two players or one
                           against the computer
 src/game/treino.ts        Treino: three touches, free shooting, Show me
 src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
 src/game/choices.ts       what the settings chose, read where a game needs it
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
-src/game/home.ts          the start screen: 1 player, 2 players, Pênaltis, Treino,
-                          and ⚙
-src/game/pick.ts          picking the teams before a match, kept for next time,
-                          and a crest for the team picked
+src/game/home.ts          the start screen: 1 player, 2 players, Copa, Pênaltis,
+                          Treino, and ⚙
+src/game/pick.ts          picking the teams before a match (or your team for a
+                          Copa), kept for next time, and a crest for the team picked
 src/game/shirts.ts        a team as a shirt to tap, and the button that gives a
                           team its crest (the picker and the settings share them)
 src/game/settings.ts      the settings: goals to win, the rule, buttons a side,
@@ -112,7 +115,7 @@ src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
                           "new version, tap to update" button)
 src/assets/tray.webp      the wooden tray, cut from the design handoff
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
-                          squads, storage, sfx, speech, crests
+                          squads, the Copa, storage, sfx, speech, crests
 tests/e2e/                Playwright, real finger drags through the table's viewBox
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```
