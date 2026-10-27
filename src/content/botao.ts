@@ -35,6 +35,10 @@ export const KEEPER_W = 6;
     the goal can stay big enough to score in */
 export const MARKS = { box: [32, 7], penalty: [50, 18], spot: 12, arc: 8.5 } as const;
 export const KEEPER_Y: readonly [number, number] = [0.6, 3.4];
+/** how far a goleiro may come off its line, and across, and stay in its
+    small area (1 Toque lets it go anywhere in there) */
+export const KEEPER_OUT = MARKS.box[1] - KEEPER_Y[1];
+export const KEEPER_SPAN = MARKS.box[0] / 2 - KEEPER_W / 2;
 const MID = (MOUTH[0] + MOUTH[1]) / 2;
 
 export interface Point { x: number; y: number }
@@ -49,6 +53,9 @@ export interface Table {
   them: Point[];
   keeper: number | null;
   home?: number | null;
+  /** how far each goleiro stands off its line, when it is not on it */
+  keeperOut?: number;
+  homeOut?: number;
 }
 
 /** a flick: which button, and how fast it sets off, in table units a second */
@@ -139,9 +146,9 @@ function offRim(d: Disc): Point | null {
 }
 
 /** off a goleiro's block: theirs at the top, or our own at the bottom */
-function offKeeper(d: Disc, keeper: number, bottom = false): boolean {
+function offKeeper(d: Disc, keeper: number, bottom = false, out = 0): boolean {
   const cx = Math.min(keeper + KEEPER_W / 2, Math.max(keeper - KEEPER_W / 2, d.x));
-  const [lo, hi] = bottom ? [L - KEEPER_Y[1], L - KEEPER_Y[0]] : KEEPER_Y;
+  const [lo, hi] = bottom ? [L - KEEPER_Y[1] - out, L - KEEPER_Y[0] - out] : [KEEPER_Y[0] + out, KEEPER_Y[1] + out];
   const cy = Math.min(hi, Math.max(lo, d.y));
   return offPoint(d, cx, cy);
 }
@@ -232,8 +239,8 @@ export function simulate(table: Table, flick: Flick): Shot {
         }
       }
       for (const py of [0, L]) for (const px of MOUTH) if (offPoint(d, px, py, POST) && d === ball) bump('post', step);
-      if (table.keeper !== null && offKeeper(d, table.keeper) && d === ball) bump('keeper', step);
-      if (table.home !== undefined && table.home !== null && offKeeper(d, table.home, true) && d === ball) bump('home', step);
+      if (table.keeper !== null && offKeeper(d, table.keeper, false, table.keeperOut) && d === ball) bump('keeper', step);
+      if (table.home !== undefined && table.home !== null && offKeeper(d, table.home, true, table.homeOut) && d === ball) bump('home', step);
       slow(d);
     }
     /* over the line: a goal, or one in our own net, and a moment more for
@@ -248,7 +255,7 @@ export function simulate(table: Table, flick: Flick): Shot {
   const at = (d: Disc): Point => ({ x: d.x, y: d.y });
   return {
     frames,
-    end: { ball: at(ball), us: discs.slice(1, 1 + ours).map(at), them: discs.slice(1 + ours).map(at), keeper: table.keeper, ...(table.home === undefined ? {} : { home: table.home }) },
+    end: { ball: at(ball), us: discs.slice(1, 1 + ours).map(at), them: discs.slice(1 + ours).map(at), keeper: table.keeper, ...(table.home === undefined ? {} : { home: table.home }), ...(table.keeperOut === undefined ? {} : { keeperOut: table.keeperOut }), ...(table.homeOut === undefined ? {} : { homeOut: table.homeOut }) },
     goal,
     own,
     bumps,

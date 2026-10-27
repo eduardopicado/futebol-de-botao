@@ -25,7 +25,13 @@ import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import type { Team } from './teams';
 
 /** a goleiro's place across its line, or null for none */
-export interface Keepers { top: number | null; bottom: number | null }
+export interface Keepers {
+  top: number | null;
+  bottom: number | null;
+  /** how far each stands off its line, into the table (1 Toque) */
+  topOut?: number;
+  bottomOut?: number;
+}
 
 /** a button out of play, drawn faded on the rim beside the net it went into */
 export interface Benched { side: Side; index: number; net: 'top' | 'bottom' }
@@ -55,7 +61,10 @@ export interface Board {
   /** the side to play, glowing */
   glow: (side: Side | null) => void;
   /** the goleiro being placed, which the finger may slide along its line */
-  placing: (which: 'top' | 'bottom' | null, onMove?: (x: number) => void) => void;
+  /** a goleiro to slide: along its line, or with `area` anywhere a finger
+      takes it (the rules keep it in its small area); onMove hears across and
+      how far off the line */
+  placing: (which: 'top' | 'bottom' | null, onMove?: (x: number, out: number) => void, area?: boolean) => void;
   arrow: (from: Point, f: Flick) => void;
   /** a way drawn on the table, dashed (Show me) */
   way: (ball: Point[], mine?: Point[]) => void;
@@ -148,10 +157,11 @@ export function makeBoard(life: Life, label: string): Board {
         }
       });
     }
-    for (const [k, el] of [[keepers.top, top.g], [keepers.bottom, bottom.g]] as const) {
+    for (const [k, out, el, down] of [[keepers.top, keepers.topOut ?? 0, top.g, 1], [keepers.bottom, keepers.bottomOut ?? 0, bottom.g, -1]] as const) {
       el.toggleAttribute('hidden', k === null);
-      if (k !== null) el.style.transform = `translateX(${k.toFixed(2)}px)`;
+      if (k !== null) el.style.transform = `translate(${k.toFixed(2)}px, ${(out * down).toFixed(2)}px)`;
       el.dataset.x = k === null ? '' : k.toFixed(2);
+      el.dataset.out = out.toFixed(2);
     }
   };
 
@@ -231,8 +241,8 @@ export function makeBoard(life: Life, label: string): Board {
 
   let finger: Finger = { side: () => null, flick: () => undefined };
   let drag: { side: Side; index: number; pointer: number; from: Point } | null = null;
-  let slide: { which: 'top' | 'bottom'; onMove?: (x: number) => void } | null = null;
-  let sliding: { pointer: number; from: number; start: number } | null = null;
+  let slide: { which: 'top' | 'bottom'; onMove?: (x: number, out: number) => void; area: boolean } | null = null;
+  let sliding: { pointer: number; from: Point; start: number; startOut: number } | null = null;
 
   const toTable = (e: PointerEvent): Point => {
     const box = board.getBoundingClientRect();
@@ -242,20 +252,24 @@ export function makeBoard(life: Life, label: string): Board {
   /** a pull too small to see is no pull */
   const tiny = (pull: Point): boolean => Math.sqrt(pull.x * pull.x + pull.y * pull.y) < 1.5;
   const keeperAt = (which: 'top' | 'bottom'): number => Number((which === 'top' ? top.g : bottom.g).dataset.x);
+  const keeperOutAt = (which: 'top' | 'bottom'): number => Number((which === 'top' ? top.g : bottom.g).dataset.out ?? 0);
 
   board.addEventListener('pointerdown', (e) => {
     if (drag || sliding) return;
     const p = toTable(e);
-    /* the goleiro being placed: a finger near it, along its line, slides it */
+    /* the goleiro being placed: a finger near it slides it; anywhere else
+       on the table is for the buttons, if any may be flicked now */
     if (slide) {
       const x = keeperAt(slide.which);
-      const y = slide.which === 'top' ? (KEEPER_Y[0] + KEEPER_Y[1]) / 2 : L - (KEEPER_Y[0] + KEEPER_Y[1]) / 2;
+      const out = keeperOutAt(slide.which);
+      const mid = (KEEPER_Y[0] + KEEPER_Y[1]) / 2 + out;
+      const y = slide.which === 'top' ? mid : L - mid;
       if (Math.abs(p.x - x) < KEEPER_W / 2 + 5 && Math.abs(p.y - y) < 8) {
         e.preventDefault();
-        sliding = { pointer: e.pointerId, from: p.x, start: x };
+        sliding = { pointer: e.pointerId, from: p, start: x, startOut: out };
         try { board.setPointerCapture(e.pointerId); } catch { /* the slide still works inside the table */ }
+        return;
       }
-      return;
     }
     const side = finger.side();
     if (!side) return;
@@ -276,8 +290,11 @@ export function makeBoard(life: Life, label: string): Board {
   });
   board.addEventListener('pointermove', (e) => {
     if (sliding && e.pointerId === sliding.pointer && slide) {
-      const x = sliding.start + (toTable(e).x - sliding.from);
-      slide.onMove?.(x);
+      const p = toTable(e);
+      const x = sliding.start + (p.x - sliding.from.x);
+      /* off the line is into the table: down from the top goal, up from the bottom one */
+      const out = slide.area ? sliding.startOut + (p.y - sliding.from.y) * (slide.which === 'top' ? 1 : -1) : 0;
+      slide.onMove?.(x, out);
       return;
     }
     if (!drag || e.pointerId !== drag.pointer) return;
@@ -317,11 +334,12 @@ export function makeBoard(life: Life, label: string): Board {
     draw,
     play,
     glow,
-    placing: (which, onMove) => {
-      slide = which ? { which, onMove } : null;
+    placing: (which, onMove, area = false) => {
+      slide = which ? { which, onMove, area } : null;
       sliding = null;
       top.g.classList.toggle('placing', which === 'top');
       bottom.g.classList.toggle('placing', which === 'bottom');
+      for (const g of [top.g, bottom.g]) g.classList.toggle('area', area);
     },
     arrow,
     way,
