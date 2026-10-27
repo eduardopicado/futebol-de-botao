@@ -449,7 +449,7 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
 /* ── a new version ────────────────────────────────────────────────────── */
 
 .update {
-  position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
+  position: fixed; z-index: 50; left: 50%; translate: -50% 0;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
   box-shadow: 0 4px 0 var(--mustard-dark), 0 8px 24px rgba(0, 0, 0, .4);
 }
