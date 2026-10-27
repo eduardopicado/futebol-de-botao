@@ -120,7 +120,8 @@ function match(root: HTMLElement, computer: boolean): () => void {
     pips.setAttribute('aria-label', `${used} of ${most} touches used`);
     whose.textContent = m.phase === 'placing' ? `${name(defender())}: goleiro` : name(m.turn);
     const placing = m.phase === 'placing';
-    board.glow(busy || placing || m.phase === 'over' ? null : m.turn);
+    /* at a kick-off, the button that made the first flick may not make the second: it does not glow */
+    board.glow(busy || placing || m.phase === 'over' ? null : m.turn, m.phase === 'kickoff' ? m.used : []);
     board.placing(placing && defender() !== cpu ? keeperLine(defender()) : null, (x) => {
       sliding = clampKeeper(x);
       m = { ...m, keepers: { ...m.keepers, [defender()]: sliding } };

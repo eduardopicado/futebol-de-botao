@@ -89,6 +89,9 @@ test.describe('Partida', () => {
     const back = s === 'a' ? 12 : -12;
     await flick(page, s, 0, 0, back);
     await expect(game(page)).toHaveAttribute('data-touches', '1', { timeout: 6000 });
+    /* the button that made the first flick no longer glows; the others do */
+    await expect(page.locator(sel(s, 0))).toHaveClass(/spent/);
+    await expect(page.locator(sel(s, 1))).not.toHaveClass(/spent/);
     /* the same button again: not at a kick-off */
     await flick(page, s, 0, 0, back);
     await expect(page.locator('.bt-say')).toContainText('the second flick is by another button');
@@ -99,6 +102,8 @@ test.describe('Partida', () => {
     await expect(game(page)).toHaveAttribute('data-phase', 'kickoff');
     await expect(game(page)).toHaveAttribute('data-turn', s);
     await expect(game(page)).toHaveAttribute('data-touches', '0', { timeout: 6000 });
+    /* kicked off again: every button may make the first flick */
+    await expect(page.locator('.bt-btn.spent')).toHaveCount(0);
     noProblems(watch);
   });
 
