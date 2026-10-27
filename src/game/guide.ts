@@ -19,11 +19,8 @@ import type { Match, Scene } from '../content/match';
 import { type Board, type Keepers, makeBoard, SHAPE } from './board';
 import { goalsToWin, matchRule, speak } from './choices';
 import { GUIDE_SEEN } from './home';
+import { PACE } from './pace';
 import { ourTeam, rivalFor } from './teams';
-
-/** how long a demo waits: before it starts, with a flick's arrow shown,
-    while a goleiro slides across, and after each thing it shows */
-const PAUSE = { start: 900, aim: 1200, slide: 600, after: 900 } as const;
 
 const sceneOf = (m: Match): Scene => ({ ball: m.ball, a: m.a, b: m.b });
 const keepersOf = (m: Match): Keepers => ({ top: m.keepers.b, bottom: m.keepers.a, topOut: m.keepersOut.b, bottomOut: m.keepersOut.a });
@@ -83,32 +80,32 @@ export function mount(root: HTMLElement): () => void {
     node.dataset.demo = 'playing';
     board.draw(sceneOf(d.start), keepersOf(d.start));
     board.glow(d.start.turn);
-    await wait(PAUSE.start);
+    await wait(PACE.demoStart);
     const plays = played(d);
     if (d.pronto !== undefined) {
       /* A gol! is called, and the other side's goleiro slides across */
       now.textContent = 'A gol!';
       sfx.whistle();
-      await wait(PAUSE.after);
+      await wait(PACE.demoAfter);
       const placed = plays[0].before;
       board.svg.classList.add('keeper-moving');
       board.draw(sceneOf(placed), keepersOf(placed));
-      await wait(PAUSE.slide);
+      await wait(PACE.demoSlide);
       board.svg.classList.remove('keeper-moving');
       now.textContent = 'Pronto!';
-      await wait(PAUSE.after);
+      await wait(PACE.demoAfter);
     }
     for (const [k, { before, play }] of plays.entries()) {
       const f = d.flicks[k];
       board.glow(before.turn, before.phase === 'kickoff' ? before.used : []);
       board.arrow(before[before.turn][f.button]!, f);
-      await wait(PAUSE.aim);
+      await wait(PACE.demoAim);
       board.clearAim();
       await board.play(play.frames, play.bumps, keepersOf(before));
       now.textContent = told(play, rule);
       if (play.event.kind === 'goal') sfx.cheer();
       if (play.event.kind === 'foul' || play.event.kind === 'parked') sfx.whistle();
-      await wait(PAUSE.after);
+      await wait(PACE.demoAfter);
       /* the free kick set up, or the turn passed; a goal stays where it went in */
       if (play.event.kind !== 'goal') {
         board.draw(sceneOf(play.next), keepersOf(play.next));
