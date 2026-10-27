@@ -50,7 +50,8 @@ export interface Board {
   setUp: (a: Team, b: Team, counts: { a: number; b: number }) => void;
   draw: (s: Scene, keepers: Keepers, benched?: Benched[]) => void;
   /** a flick played out; resolves when everything has stopped */
-  play: (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched?: Benched[]) => Promise<void>;
+  /** a flick played out, frame by frame; `speed` below 1 is slower, for a replay */
+  play: (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched?: Benched[], speed?: number) => Promise<void>;
   /** the side to play, glowing, all but the buttons it may not flick now
       (at a kick-off, the one that made the first flick) */
   glow: (side: Side | null, spent?: number[]) => void;
@@ -161,14 +162,14 @@ export function makeBoard(life: Life, label: string): Board {
     life.later(() => n.classList.remove('bulge'), 900);
   };
 
-  const play = (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched: Benched[] = []): Promise<void> =>
+  const play = (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched: Benched[] = [], speed = 1): Promise<void> =>
     new Promise((done) => {
       const start = performance.now();
       let heard = 0;
       let netted = false;
       const tick = (): void => {
         if (!life.alive()) return;
-        const i = Math.min(frames.length - 1, Math.floor((performance.now() - start) / (1000 / 60)));
+        const i = Math.min(frames.length - 1, Math.floor((performance.now() - start) * speed / (1000 / 60)));
         const f = frames[i];
         draw(f, keepers, benched);
         if (!netted && f.ball.y + BALL < 0) { netted = true; bulge('top'); }

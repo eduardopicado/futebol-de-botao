@@ -84,7 +84,8 @@ src/game/board.ts         the table on the screen, shared: both sides, both
                           goleiros, a flick played out, the finger
 src/game/partida.ts       a match on the screen, two players or one against the
                           computer: the toss, the note that turns to face whoever
-                          has to act, "A gol!" and Pronto, full time
+                          has to act, "A gol!" and Pronto, the goal replayed,
+                          full time
 src/game/treino.ts        Treino: three touches, free shooting, Show me
 src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
 src/game/choices.ts       what the settings chose, read where a game needs it
