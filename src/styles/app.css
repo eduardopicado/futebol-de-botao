@@ -395,8 +395,9 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app { height:
 .bt-tag-back { fill: rgba(8, 32, 28, .88); stroke: var(--mustard); stroke-width: .25; }
 .bt-tag-text { fill: var(--paper); font-family: var(--reading); font-weight: 700; }
 /* the side to play: a gold ring round each of its buttons */
-.bt-table.turn-a .bt-btn.us:not(.out) .bt-rim, .bt-table.turn-b .bt-btn.them:not(.out) .bt-rim { stroke: var(--mustard); stroke-width: 1; }
-.bt-table.turn-b .bt-btn.them:not(.out) { cursor: grab; }
+.bt-table.turn-a .bt-btn.us:not(.out):not(.spent) .bt-rim, .bt-table.turn-b .bt-btn.them:not(.out):not(.spent) .bt-rim { stroke: var(--mustard); stroke-width: 1; }
+.bt-table.turn-b .bt-btn.them:not(.out):not(.spent) { cursor: grab; }
+.bt-table .bt-btn.us.spent { cursor: default; }
 .bt-flag { pointer-events: none; }
 .bt-ball-face { fill: url(#bt-ballshade); stroke: #222; stroke-width: .3; }
 @media (prefers-reduced-motion: reduce) {
