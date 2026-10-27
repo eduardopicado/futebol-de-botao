@@ -26,7 +26,8 @@ shows a **New version! Tap to update** button.
   that started in the other half), and the other player slides their goleiro
   along the line and taps **Pronto**. Fouls give free kicks, or a penalty in
   the area. The note above the table (beside it, with the iPad held sideways)
-  turns to face whoever has to act.
+  turns to face whoever has to act. After a goal, **↺ Replay** plays the move
+  that scored again, at half speed.
 - **Treino:** practice against three defenders and a goleiro, shooting
   freely. Every set-up comes with a way to score, and **Show me** plays it.
   **🧤 Goleiro** turns it round: ten shots by the computer at your goal, to

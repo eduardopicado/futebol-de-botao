@@ -12,7 +12,9 @@
  * parked between the buttons of the side to play); a shot has to be called with "A gol!", in a turn that started
  * in the attacking half, and the defender slides their goleiro along the
  * line and taps Pronto before it is taken. Fouls give free kicks, or a
- * penalty in the area. When the turn passes, the note says whose it is and
+ * penalty in the area. After a goal, ↺ Replay plays the move that scored
+ * again, from its first flick, at half speed (the flicks are kept as played,
+ * so nothing is worked out twice); full time offers the winning goal again. When the turn passes, the note says whose it is and
  * nothing can be flicked for a moment, so nobody flicks by mistake in the
  * handover.
  *
@@ -32,7 +34,7 @@ import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
   KICKOFF_TOUCHES, call, flick, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
-  type Event, type Match, type Side,
+  type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
@@ -188,6 +190,35 @@ function match(root: HTMLElement, computer: boolean): () => void {
     penalty: '',
   };
 
+  /* ── a goal again ─────────────────────────────────────────────────── */
+
+  /** a flick as it was played, to play again */
+  interface Clip { frames: Scene[]; bumps: Play['bumps']; keepers: Keepers; benched: Benched[] }
+  /** the flicks of the turn so far, and of the move that led to the last goal */
+  let move: Clip[] = [];
+  let moveTurn = -1;
+  let goalMove: Clip[] = [];
+  let replaying: Promise<void> | null = null;
+  const replayBtn = el('button', { class: 'btn on-paper ghost small', type: 'button', text: '↺ Replay' });
+
+  /** the move that scored, from its first flick, at half speed; then the table as it is now */
+  function replay(): Promise<void> {
+    if (replaying || goalMove.length === 0) return replaying ?? Promise.resolve();
+    const said = words.textContent ?? '';
+    node.dataset.replay = '';
+    words.textContent = `↺ Replay. ${said}`;
+    replaying = (async () => {
+      for (const c of goalMove) await board.play(c.frames, c.bumps, c.keepers, c.benched, 0.5);
+      await wait(400);
+      board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
+      words.textContent = said;
+      delete node.dataset.replay;
+      replaying = null;
+    })();
+    return replaying;
+  }
+  replayBtn.addEventListener('click', () => { sfx.tap(); void replay(); });
+
   async function after(event: Event, called: boolean, saved: boolean): Promise<void> {
     switch (event.kind) {
       case 'goal': {
@@ -196,9 +227,12 @@ function match(root: HTMLElement, computer: boolean): () => void {
         node.dataset.goal = event.side;
         showScore();
         words.textContent = `${event.own ? 'Own goal! ' : ''}GOL! ${name(event.side)}! ${m.score.a} – ${m.score.b}`;
-        actions.replaceChildren();
+        actions.replaceChildren(replayBtn);
         sayEl.classList.remove('flip');
         await wait(2600);
+        /* watching it again: play on when it is over */
+        while (replaying) await replaying;
+        actions.replaceChildren();
         delete node.dataset.goal;
         render('');
         return;
@@ -257,6 +291,9 @@ function match(root: HTMLElement, computer: boolean): () => void {
     const called = m.phase === 'shot' || m.phase === 'penalty';
     const before = m;
     const play = flick(m, index, vx, vy);
+    if (before.turnNo !== moveTurn) { move = []; moveTurn = before.turnNo; }
+    move.push({ frames: play.frames, bumps: play.bumps, keepers: keepersOf(before), benched: benchedOf(before) });
+    if (play.event.kind === 'goal' || play.event.kind === 'champion') goalMove = move;
     await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before));
     m = play.next;
     node.dataset.event = play.event.kind;
@@ -367,11 +404,18 @@ function match(root: HTMLElement, computer: boolean): () => void {
     });
     const change = el('button', { class: 'btn ghost', type: 'button', text: 'Change teams' });
     change.addEventListener('click', () => go(cpu ? 'teams-1' : 'teams-2'));
+    /* the winning goal again, with the table uncovered while it plays */
+    const replayGoal = el('button', { class: 'btn ghost', type: 'button', text: '↺ Replay the goal' });
+    replayGoal.addEventListener('click', () => {
+      sfx.tap();
+      overlay.setAttribute('hidden', '');
+      void replay().then(() => overlay.removeAttribute('hidden'));
+    });
     overlay.replaceChildren(el('div', { class: 'win', role: 'dialog', 'aria-label': 'Full time' },
       el('p', { class: 'win-shout', text: 'É campeão!' }),
       el('p', { class: 'win-team', text: label(teams[side]) }),
       el('p', { class: 'win-score', text: `${label(teams.a, true)} ${m.score.a} – ${m.score.b} ${label(teams.b, true)}` }),
-      el('div', { class: 'row' }, again, change)));
+      el('div', { class: 'row' }, again, replayGoal, change)));
     overlay.removeAttribute('hidden');
     const colours = [teams[side].colours[0], teams[side].colours[1], '#F3B229', '#FFF6E7'];
     node.append(el('div', { class: 'confetti', 'aria-hidden': 'true' },

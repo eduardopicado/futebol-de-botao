@@ -170,6 +170,42 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
+  test('full time: ↺ Replay the goal plays the winning goal again, the table uncovered while it plays', async ({ page }) => {
+    const watch = watchPage(page);
+    await open(page, chance({ score: { a: 2, b: 0 }, keepers: { a: 32, b: 23 } }));
+    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
+    const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
+    await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
+    await expect(game(page)).toHaveAttribute('data-phase', 'over', { timeout: 10000 });
+    await page.getByRole('button', { name: '↺ Replay the goal' }).click();
+    await expect(game(page)).toHaveAttribute('data-replay', '');
+    await expect(page.locator('.bt-overlay')).toBeHidden();
+    await expect(game(page)).not.toHaveAttribute('data-replay', /.*/, { timeout: 10000 });
+    await expect(page.locator('.win')).toBeVisible();
+    noProblems(watch);
+  });
+
+  test('after a goal, ↺ Replay holds the kick-off until it has played', async ({ page }) => {
+    const watch = watchPage(page);
+    await open(page, chance({ keepers: { a: 32, b: 23 } }));
+    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
+    const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
+    await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
+    await expect(game(page)).toHaveAttribute('data-event', 'goal', { timeout: 10000 });
+    await page.getByRole('button', { name: '↺ Replay' }).click();
+    await expect(page.locator('.say-words')).toContainText('↺ Replay. GOL!');
+    await expect(game(page)).toHaveAttribute('data-phase', 'kickoff');
+    await expect(game(page)).not.toHaveAttribute('data-replay', /.*/, { timeout: 10000 });
+    /* and then the side that conceded kicks off */
+    await expect(page.locator('.say-words')).toContainText('Kick-off:', { timeout: 6000 });
+    await expect(page.getByRole('button', { name: '↺ Replay' })).toHaveCount(0);
+    noProblems(watch);
+  });
+
   test('the last goal wins: É campeão!, and Play again starts a new match', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ score: { a: 2, b: 0 }, keepers: { a: 32, b: 23 } }));
