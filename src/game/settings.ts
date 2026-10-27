@@ -8,7 +8,7 @@
  * club's trademark. Teams are not here: each match starts by picking them
  * (pick.ts). */
 
-import { clearCrest, crestFromFile, crestOf, setCrest } from '../lib/crests';
+import { clearCrest, crestOf } from '../lib/crests';
 import { el } from '../lib/dom';
 import { go } from '../lib/router';
 import { setSfxEnabled } from '../lib/sfx';
@@ -17,7 +17,8 @@ import { LEVELS, type Level } from '../content/computer';
 import { GOALS, RULES, SIZES } from '../content/match';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, readAloud, soundsOn } from './choices';
 import { narrationSelect } from './narration';
-import { TEAMS, label, teamById } from './teams';
+import { crestButton, redrawShirts, shirtTile } from './shirts';
+import { TEAMS, type Team } from './teams';
 
 /** one choice of a few, as a row of chips; the one chosen is pressed */
 function chips<T extends string | number>(name: string, options: readonly { value: T; text: string }[], now: T, set: (v: T) => void): HTMLElement {
@@ -46,32 +47,27 @@ export function mount(root: HTMLElement): void {
   const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Back to the start', text: '←' });
   back.addEventListener('click', () => go('home'));
 
-  /* a crest for any team: pick the team, then the picture */
-  const team = el('select', { 'aria-label': 'Team for a crest' }, ...TEAMS.map((t) => el('option', { value: t.id, text: label(t) })));
+  /* a crest for any team: tap its shirt, then add the picture */
+  let picked: Team = TEAMS[0];
+  const tiles = TEAMS.map((t) => {
+    const tile = shirtTile(t);
+    tile.addEventListener('click', () => { picked = t; drawCrest(); });
+    return tile;
+  });
+  const grid = el('div', { class: 'teams', role: 'group', 'aria-label': 'Team for a crest' }, ...tiles);
   const shown = el('span', { class: 'shown' });
-  const file = el('input', { type: 'file', accept: 'image/*' });
-  const choose = el('label', { class: 'btn ghost small' }, '🖼️ Choose a picture', file);
   const remove = el('button', { class: 'btn ghost small', type: 'button', text: 'Remove' });
   const said = el('p', { class: 'said', 'aria-live': 'polite' });
-  const drawCrest = (words = ''): void => {
-    const t = teamById(team.value)!;
-    const crest = crestOf(t.id);
-    shown.replaceChildren(crest ? el('img', { src: crest, alt: `The crest for ${t.name}` }) : el('span', { class: 'none', text: 'No crest' }));
+  const add = crestButton(() => picked, (t, words) => { redrawShirts(grid, t); drawCrest(words); });
+  function drawCrest(words = ''): void {
+    const crest = crestOf(picked.id);
+    for (const tile of tiles) tile.setAttribute('aria-pressed', String(tile.dataset.team === picked.id));
+    shown.replaceChildren(crest ? el('img', { src: crest, alt: `The crest for ${picked.name}` }) : el('span', { class: 'none', text: 'No crest' }));
     remove.hidden = !crest;
+    add.update();
     said.textContent = words;
-  };
-  team.addEventListener('change', () => drawCrest());
-  file.addEventListener('change', () => {
-    const chosen = file.files?.[0];
-    const t = teamById(team.value)!;
-    file.value = '';
-    if (!chosen) return;
-    crestFromFile(chosen).then(
-      (crest) => drawCrest(setCrest(t.id, crest) ? `Saved for ${t.name}, on this device.` : 'This device would not keep the picture. Try removing another crest first.'),
-      () => drawCrest('That picture could not be read. Try another one.'),
-    );
-  });
-  remove.addEventListener('click', () => { clearCrest(team.value); drawCrest('Removed.'); });
+  }
+  remove.addEventListener('click', () => { clearCrest(picked.id); redrawShirts(grid, picked); drawCrest('Removed.'); });
   drawCrest();
 
   root.append(el('div', { class: 'wrap settings' },
@@ -96,8 +92,8 @@ export function mount(root: HTMLElement): void {
       toggle('Read the words aloud', readAloud(), (on) => write('read-aloud', on))),
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'Crests' }),
-      el('p', { class: 'tag', text: "Put a team's crest on its buttons, from your own photos." }),
-      el('label', { class: 'field' }, 'Team', team),
-      el('div', { class: 'crest' }, shown, choose, remove), said),
+      el('p', { class: 'tag', text: "Put a team's crest on its shirt and its buttons, from your own photos. Tap the team:" }),
+      grid,
+      el('div', { class: 'crest' }, shown, add.node, remove), said),
     el('p', { class: 'tag', text: 'Everything here stays on this device. Nothing is sent anywhere.' })));
 }

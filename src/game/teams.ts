@@ -162,9 +162,9 @@ export function kit(team: Team, size: number): SVGSVGElement {
      stands out on the grass */
   root.append(svg('path', { d: 'M27 5 Q32 11 37 5', fill: 'none', stroke: team.colours[1], 'stroke-width': 3 }));
   root.append(svg('path', { d: SHIRT, fill: 'none', stroke: '#0B302F', 'stroke-width': 2, 'stroke-linejoin': 'round' }));
-  /* high on the left of the chest, where a crest is worn; too small to make
-     out below 32px */
-  if (size >= 32) root.append(...badge(team, 40, 16.5, 6));
+  /* big on the chest, so it reads on a shirt the size of a fingertip; too
+     small to make out below 32px */
+  if (size >= 32) root.append(...badge(team, 32, 34, 10));
   return root;
 }
 

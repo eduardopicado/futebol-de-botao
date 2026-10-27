@@ -418,7 +418,8 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
 .settings label.field { display: grid; gap: 4px; font-weight: 700; }
 .settings .crest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .settings .crest img, .settings .crest .none { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: rgba(255, 246, 231, .12); display: grid; place-items: center; font-size: 12px; }
-.settings input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+label.btn input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.crest-btn { position: relative; justify-self: start; }
 .said { margin: 6px 0 0; min-height: 1.3em; color: var(--on-deep-soft); }
 .settings .check { display: flex; align-items: center; gap: 10px; min-height: var(--tap); }
 .settings .check input { width: 26px; height: 26px; accent-color: var(--mustard); }
@@ -432,7 +433,7 @@ body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route
 
 /* ── picking teams ────────────────────────────────────────────────────── */
 
-.pick .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.pick .teams, .settings .teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
 .team {
   display: grid; justify-items: center; gap: 4px; padding: 8px 4px; min-height: var(--tap); cursor: pointer;
   border-radius: 14px; border: 2px solid rgba(255, 246, 231, .18); background: rgba(255, 246, 231, .06); color: var(--on-deep);

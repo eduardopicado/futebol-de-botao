@@ -33,7 +33,9 @@ shows a **New version! Tap to update** button.
   save; your best is kept.
 - **Picking teams:** every match starts by picking each side's team, from
   the World Cup winners, the big clubs and two made-up sides; the side at the
-  top may be "Anyone". The picks are kept for next time.
+  top may be "Anyone". The picks are kept for next time, and **📷 Add a
+  crest** under each side puts a picture from your photos on that team's
+  shirt and buttons.
 - **Settings (⚙):** goals to win (3, 5 or 10), the rule (3 toques or
   1 toque), four or five buttons a side, how well the computer plays, the
   commentator (Português, English or none), sound effects, reading the words

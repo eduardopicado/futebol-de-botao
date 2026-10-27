@@ -90,7 +90,10 @@ src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
 src/game/choices.ts       what the settings chose, read where a game needs it
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
 src/game/home.ts          the start screen: 1 player, 2 players, Treino, and ⚙
-src/game/pick.ts          picking the teams before a match, kept for next time
+src/game/pick.ts          picking the teams before a match, kept for next time,
+                          and a crest for the team picked
+src/game/shirts.ts        a team as a shirt to tap, and the button that gives a
+                          team its crest (the picker and the settings share them)
 src/game/settings.ts      the settings: goals to win, the rule, buttons a side,
                           computer level, commentator, sound effects, reading
                           aloud, crests
