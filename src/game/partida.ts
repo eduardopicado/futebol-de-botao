@@ -33,7 +33,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, call, clampKeeper, flick, mayCall, mayFlick, mustFree, newMatch, other, pronto, touchesFor,
+  KICKOFF_TOUCHES, call, flick, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
@@ -81,13 +81,13 @@ function match(root: HTMLElement, computer: boolean): () => void {
   /* a flick, a pause or the toss is under way: no finger does anything */
   let busy = true;
   /* the goleiro being placed, where the finger has slid it so far */
-  let sliding = 0;
+  let sliding = { x: 0, out: 0 };
   /* what just happened, said before what to do next */
   let news = '';
   /* the computer is about to move: it has been asked once */
   let thinking = false;
 
-  const keepersOf = (x: Match): Keepers => ({ top: x.keepers.b, bottom: x.keepers.a });
+  const keepersOf = (x: Match): Keepers => ({ top: x.keepers.b, bottom: x.keepers.a, topOut: x.keepersOut.b, bottomOut: x.keepersOut.a });
   const benchedOf = (x: Match): Benched[] => x.out.map(({ side, index, net }) => ({ side, index, net }));
   const defender = (): Side => other(m.turn);
   const keeperLine = (s: Side): 'top' | 'bottom' => (s === 'a' ? 'bottom' : 'top');
@@ -124,12 +124,18 @@ function match(root: HTMLElement, computer: boolean): () => void {
     const placing = m.phase === 'placing';
     /* at a kick-off, the button that made the first flick may not make the second: it does not glow */
     board.glow(busy || placing || m.phase === 'over' ? null : m.turn, m.phase === 'kickoff' ? m.used : []);
-    board.placing(placing && defender() !== cpu ? keeperLine(defender()) : null, (x) => {
-      sliding = clampKeeper(x);
-      m = { ...m, keepers: { ...m.keepers, [defender()]: sliding } };
+    /* the defender placing their goleiro; or at 1 Toque, the side to play
+       moving its own, anywhere in its small area, before it flicks */
+    const own = mayMoveGoleiro(m) && !busy && m.turn !== cpu;
+    const mover = placing && defender() !== cpu ? defender() : own ? m.turn : null;
+    board.placing(mover ? keeperLine(mover) : null, (x, out) => {
+      if (m.phase === 'placing') {
+        sliding = placeGoleiro(m.rule, x, out);
+        m = { ...m, keepers: { ...m.keepers, [defender()]: sliding.x }, keepersOut: { ...m.keepersOut, [defender()]: sliding.out } };
+      } else m = moveGoleiro(m, x, out);
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
-    });
-    if (placing) sliding = m.keepers[defender()];
+    }, m.rule === '1');
+    if (placing) sliding = { x: m.keepers[defender()], out: m.keepersOut[defender()] };
     const t = name(m.turn);
     /* the computer's own turn, or its goleiro to place: it says so, and does it */
     if (cpu && m.phase !== 'over' && (m.phase === 'placing' ? defender() === cpu : m.turn === cpu)) {
@@ -143,13 +149,13 @@ function match(root: HTMLElement, computer: boolean): () => void {
         break;
       case 'play': {
         const left = touchesFor(m.rule) - m.touches;
-        const count = m.rule === '1' ? `${t} to play: one flick.` : m.touches === 0 ? `${t} to play: three touches.` : `${t}: ${left} ${left === 1 ? 'touch' : 'touches'} left.`;
+        const count = m.rule === '1' ? `${t} to play: one flick${m.turn === cpu ? '' : ', and you may move your goleiro first'}.` : m.touches === 0 ? `${t} to play: three touches.` : `${t}: ${left} ${left === 1 ? 'touch' : 'touches'} left.`;
         const free = mustFree(m) ? ' The ball is parked between two of your buttons: free it with this flick, or it is a free kick to them.' : '';
         tell(`${lead}${count}${free}${mayCall(m) ? ' Shooting? Call it first!' : ''}`, m.turn, ...(mayCall(m) && !busy && m.turn !== cpu ? [callBtn] : []));
         break;
       }
       case 'placing':
-        tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'A gol! '}${name(defender())}: slide your goleiro along the line, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
+        tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'A gol! '}${name(defender())}: ${m.rule === '1' ? 'move your goleiro anywhere in the small area' : 'slide your goleiro along the line'}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
         break;
       case 'shot':
         tell(`${lead}${t}: take your shot!`, m.turn);
@@ -171,7 +177,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
   prontoBtn.addEventListener('click', () => {
     if (busy || m.phase !== 'placing') return;
     sfx.tap();
-    m = pronto(m, sliding);
+    m = pronto(m, sliding.x, sliding.out);
     render('');
   });
 

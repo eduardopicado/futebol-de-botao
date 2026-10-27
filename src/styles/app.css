@@ -379,6 +379,7 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app { height:
 /* the goleiro being placed after "A gol!": it glows, and slides with the finger */
 .bt-keeper.placing .bt-keeper-block { stroke: var(--mustard); stroke-width: .9; }
 .bt-keeper.placing { cursor: ew-resize; }
+.bt-keeper.placing.area { cursor: move; }
 .bt-btn .bt-rim { stroke: rgba(0, 0, 0, .55); stroke-width: .5; }
 /* a button's side, in its rim's colour in shade */
 .bt-side { stroke: rgba(0, 0, 0, .6); stroke-width: .4; }

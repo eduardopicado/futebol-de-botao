@@ -5,7 +5,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, noProblems, seed, watchPage } from './helpers';
-import { KEEPER_Y, PULL, VIEW, oneTouch, type Flick, type Point } from '../../src/content/botao';
+import { KEEPER_Y, L, PULL, VIEW, oneTouch, type Flick, type Point } from '../../src/content/botao';
 import type { Match, Side } from '../../src/content/match';
 
 const sel = (side: Side, i: number): string => (side === 'a' ? `.bt-btn.us.b${i}` : `.bt-btn.them.t${i}`);
@@ -254,6 +254,57 @@ test.describe('Partida', () => {
     await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 8000 });
     await expect(game(page)).toHaveAttribute('data-touches', '0');
     noProblems(watch);
+  });
+
+  test('1 toque: when a shot is called, the goleiro may come off its line, anywhere in its small area', async ({ page }) => {
+    const watch = watchPage(page);
+    await open(page, chance({ rule: '1' }));
+    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await expect(page.locator('.bt-say')).toContainText('move your goleiro anywhere in the small area');
+    /* b's goleiro, at the top, dragged out towards the ball and across */
+    const from = await screen(page, { x: 32, y: (KEEPER_Y[0] + KEEPER_Y[1]) / 2 });
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x - 4 * from.scale, from.y + 3 * from.scale, { steps: 6 });
+    await page.mouse.up();
+    const keeper = page.locator('.bt-keeper.away');
+    expect(Number(await keeper.getAttribute('data-out'))).toBeGreaterThan(2);
+    expect(Number(await keeper.getAttribute('data-x'))).toBeLessThan(30);
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect(game(page)).toHaveAttribute('data-phase', 'shot');
+    expect(Number(await keeper.getAttribute('data-out'))).toBeGreaterThan(2);
+    noProblems(watch);
+  });
+
+  test('1 toque: on your turn you may move your own goleiro before your flick', async ({ page }) => {
+    const watch = watchPage(page);
+    await open(page, chance({ rule: '1', attack: false, ball: { x: 32, y: 60 }, a: [{ x: 32, y: 72 }, ...parked('a').slice(1)] }));
+    await expect(page.locator('.bt-say')).toContainText('you may move your goleiro first');
+    const line = L - (KEEPER_Y[0] + KEEPER_Y[1]) / 2;
+    const from = await screen(page, { x: 32, y: line });
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 5 * from.scale, from.y - 3 * from.scale, { steps: 6 });
+    await page.mouse.up();
+    const keeper = page.locator('.bt-keeper.home');
+    expect(Number(await keeper.getAttribute('data-x'))).toBeGreaterThan(34);
+    expect(Number(await keeper.getAttribute('data-out'))).toBeGreaterThan(2);
+    /* it is still your turn, and your flick still plays */
+    await expect(game(page)).toHaveAttribute('data-turn', 'a');
+    await flick(page, 'a', 0, 0, -40);
+    await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 8000 });
+    noProblems(watch);
+  });
+
+  test('3 toques: your own goleiro stays put on your turn', async ({ page }) => {
+    await open(page, chance({ attack: false, ball: { x: 32, y: 60 }, a: [{ x: 32, y: 72 }, ...parked('a').slice(1)] }));
+    const from = await screen(page, { x: 32, y: L - (KEEPER_Y[0] + KEEPER_Y[1]) / 2 });
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 5 * from.scale, from.y - 3 * from.scale, { steps: 6 });
+    await page.mouse.up();
+    await expect(page.locator('.bt-keeper.home')).toHaveAttribute('data-x', '32.00');
+    await expect(page.locator('.bt-keeper.home')).toHaveAttribute('data-out', '0.00');
   });
 
   test('has no accessibility violations', async ({ page }) => {
