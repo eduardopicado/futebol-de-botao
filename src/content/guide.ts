@@ -9,7 +9,7 @@
  * ball at 1 Toque. */
 
 import type { Point } from './botao';
-import { call, flick, newMatch, pronto, type Event, type Match, type Play, type Rule } from './match';
+import { call, flick, newMatch, pronto, type Event, type Match, type Play, type Rule, type Side } from './match';
 
 export type StepId = 'flick' | 'touches' | 'call' | 'goleiro' | 'foul' | 'parked' | 'kickoff';
 
@@ -153,18 +153,29 @@ export function played(d: Demo): { before: Match; play: Play }[] {
   });
 }
 
-/** what a demo's flick led to, in a few words, for the note */
-export function told(e: Event, rule: Rule): string {
+/** what a flick led to, in a few words for the note, as the side at the bottom (a) sees it */
+export function told(play: Pick<Play, 'event' | 'bumps'>, rule: Rule): string {
+  const e = play.event;
+  const to = (s: Side): string => (s === 'a' ? 'you' : 'them');
+  const turn = (s: Side): string => (s === 'a' ? 'your turn now.' : 'their turn now.');
+  const Turn = (s: Side): string => (s === 'a' ? 'Your turn now.' : 'Their turn now.');
   switch (e.kind) {
-    case 'goal': case 'champion': return 'GOL!';
-    case 'foul': return e.penalty ? 'Foul! A penalty to them.' : 'Foul! A free kick to them.';
-    case 'parked': return 'Parked! A free kick to them.';
+    case 'goal': case 'champion': return e.own ? 'Own goal!' : 'GOL!';
+    case 'foul': return `Foul! A ${e.penalty ? 'penalty' : 'free kick'} to ${to(e.side)}.`;
+    case 'parked': return `Parked! A free kick to ${to(e.side)}.`;
     case 'uncalled': return 'Not called: no goal.';
     case 'retake': return 'Still in the circle: again.';
     case 'on': return `${e.left} ${e.left === 1 ? 'touch' : 'touches'} left.`;
-    case 'turn':
-      return e.why === 'theirs' ? (e.side === 'a' ? 'Saved! Your turn now.' : 'They touched it last: their turn now.')
-        : e.why === 'kickoff' ? 'Out of the circle. Their turn now.'
-          : rule === '1' ? 'One flick: their turn now.' : 'No touches left: their turn now.';
+    case 'turn': {
+      if (e.why === 'theirs') {
+        /* the goleiro's touch is a save; one of the buttons', a block */
+        const last = [...play.bumps].reverse().find((b) => b.what === 'block' || b.what === 'keeper');
+        return `${last?.what === 'keeper' ? 'Saved!' : 'Blocked!'} ${Turn(e.side)}`;
+      }
+      if (e.why === 'still') return `Missed the ball: ${turn(e.side)}`;
+      if (e.why === 'kickoff') return `Out of the circle. ${Turn(e.side)}`;
+      if (e.why === 'penalty') return `Penalty taken. ${Turn(e.side)}`;
+      return `${rule === '1' ? 'One flick' : 'No touches left'}: ${turn(e.side)}`;
+    }
   }
 }

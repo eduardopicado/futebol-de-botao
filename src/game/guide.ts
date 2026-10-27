@@ -105,7 +105,7 @@ export function mount(root: HTMLElement): () => void {
       await wait(PAUSE.aim);
       board.clearAim();
       await board.play(play.frames, play.bumps, keepersOf(before));
-      now.textContent = told(play.event, rule);
+      now.textContent = told(play, rule);
       if (play.event.kind === 'goal') sfx.cheer();
       if (play.event.kind === 'foul' || play.event.kind === 'parked') sfx.whistle();
       await wait(PAUSE.after);
