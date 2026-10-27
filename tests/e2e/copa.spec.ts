@@ -92,6 +92,12 @@ test.describe('Copa', () => {
     await expect(page.locator('.copa-trophy')).toContainText('won the Copa');
     await expect(page.locator('.copa-round.won')).toHaveCount(3);
     await expect(page.locator('.copa-tally')).toHaveText('Cups won on this iPad: 1');
+    await expect(page.locator('.confetti')).toHaveCount(1);
+    /* celebrated once: a later visit shows the trophy, quietly */
+    await page.getByRole('button', { name: 'Back to the start' }).click();
+    await page.getByRole('link', { name: '🏆 Copa' }).click();
+    await expect(page.locator('.copa-trophy')).toContainText('won the Copa');
+    await expect(page.locator('.confetti')).toHaveCount(0);
     noProblems(watch);
   });
 
@@ -110,6 +116,9 @@ test.describe('Copa', () => {
     await expect(page.locator('.copa-round').first()).toContainText('Won 3 – 0');
     await expect(page.locator('.copa-round').nth(1)).toHaveClass(/next/);
     await expect(page.getByRole('link', { name: '▶ Play the semi-final' })).toBeVisible();
+    /* a new cup would end this one: the picker says so */
+    await page.getByRole('link', { name: 'Start a new cup' }).click();
+    await expect(page.locator('.copa-ending')).toHaveText('You are through to the semi-final: a new Copa ends that one.');
     noProblems(watch);
   });
 

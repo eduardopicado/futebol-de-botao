@@ -38,10 +38,11 @@ import {
 } from '../content/match';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
+import { confetti } from './confetti';
+import { cupShout, recordResult, tieNow } from './cup';
 import { narrate } from './narration';
 import { buttonsOf, type Player } from './squads';
-import { ROUNDS, cupNow, recordResult, roundOf, stageOf } from './cup';
-import { label, ourTeam, rivalFor, teamById, type Team } from './teams';
+import { label, ourTeam, rivalFor, type Team } from './teams';
 
 /** a moment between turns when nothing can be flicked */
 const HANDOVER = 1000;
@@ -56,22 +57,25 @@ export const mountCup = (root: HTMLElement): (() => void) => match(root, true, t
 function match(root: HTMLElement, computer: boolean, forCup = false): () => void {
   const life = lifetime();
   /* in the Copa, the tie to play; with none to play, back to the Copa's page */
-  const cup = forCup ? cupNow() : null;
-  if (forCup && (!cup || stageOf(cup) !== 'playing')) {
+  const tie = forCup ? tieNow() : null;
+  if (forCup && !tie) {
     go('copa');
     return () => life.end();
   }
-  const round = cup ? ROUNDS[roundOf(cup)] : null;
+  /* what this match is: its title, who plays, how well the computer plays, and where ← goes */
+  const us = ourTeam();
+  const occasion = tie
+    ? { title: tie.name, teams: { a: tie.us, b: tie.them }, level: tie.level, back: { to: 'copa', label: 'Back to the Copa' } }
+    : { title: 'Partida', teams: { a: us, b: rivalFor(us) }, level: computerLevel(), back: { to: 'home', label: 'Back to the start' } };
   /* the computer's side, if it is playing, and how well */
   const cpu: Side | null = computer ? COMPUTER : null;
-  const level = round ? round.level : computerLevel();
+  const level = occasion.level;
   const wait = (ms: number): Promise<void> => new Promise((done) => { life.later(done, ms); });
-  const a = cup ? teamById(cup.team)! : ourTeam();
-  const teams: Record<Side, Team> = { a, b: cup ? teamById(cup.opponents[roundOf(cup)])! : rivalFor(a) };
+  const teams: Record<Side, Team> = occasion.teams;
   const name = (s: Side): string => label(teams[s], true);
 
-  const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': round ? 'Back to the Copa' : 'Back to the start', text: '←' });
-  back.addEventListener('click', () => go(round ? 'copa' : 'home'));
+  const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': occasion.back.label, text: '←' });
+  back.addEventListener('click', () => go(occasion.back.to));
   const scoreEl = el('p', { class: 'score match-score', 'aria-live': 'polite' });
   const words = el('span', { class: 'say-words' });
   const actions = el('span', { class: 'say-actions' });
@@ -81,7 +85,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`);
   const stage = el('div', { class: 'bt-stage' }, board.node);
   const node = el('div', { class: 'game', vars: SHAPE },
-    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, round ? round.name : 'Partida'), el('p', { class: 'bt-touches' }, whose, pips)), scoreEl),
+    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, occasion.title), el('p', { class: 'bt-touches' }, whose, pips)), scoreEl),
     sayEl, stage);
   root.append(node);
 
@@ -426,8 +430,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     /* a Copa tie counts at full time, and leads back to the cup */
     const copa = el('button', { class: 'btn', type: 'button', text: '🏆 Back to the Copa' });
     copa.addEventListener('click', () => { sfx.tap(); go('copa'); });
-    const after = round ? recordResult({ us: m.score.a, them: m.score.b }) : null;
-    const shout = !round ? 'É campeão!' : side !== 'a' ? 'Out of the Copa' : after && stageOf(after) === 'won' ? 'É campeão!' : `Through to the ${ROUNDS[roundOf(after!)].name.toLowerCase()}!`;
+    const cup = tie ? recordResult(tie.cup, { us: m.score.a, them: m.score.b }) : null;
+    const shout = cup ? cupShout(cup) : 'É campeão!';
     /* the winning goal again, with the table uncovered while it plays */
     const replayGoal = el('button', { class: 'btn ghost', type: 'button', text: '↺ Replay the goal' });
     replayGoal.addEventListener('click', () => {
@@ -440,11 +444,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       el('p', { class: 'win-team', text: label(teams[side]) }),
       el('p', { class: 'win-score', text: `${label(teams.a, true)} ${m.score.a} – ${m.score.b} ${label(teams.b, true)}` }),
       ...(scorer ? [el('p', { class: 'win-scorer', text: `The winning goal: ${scorer.name ? `${scorer.name} (${scorer.n})` : `Number ${scorer.n}`}` })] : []),
-      el('div', { class: 'row' }, ...(round ? [copa, replayGoal] : [again, replayGoal, change]))));
+      el('div', { class: 'row' }, ...(cup ? [copa, replayGoal] : [again, replayGoal, change]))));
     overlay.removeAttribute('hidden');
-    const colours = [teams[side].colours[0], teams[side].colours[1], '#F3B229', '#FFF6E7'];
-    node.append(el('div', { class: 'confetti', 'aria-hidden': 'true' },
-      ...Array.from({ length: 48 }, (_, i) => el('i', { vars: { '--x': `${(i * 37) % 100}%`, '--d': `${(i % 7) * 0.18}s`, '--c': colours[i % colours.length], '--r': `${(i * 53) % 360}deg` } }))));
+    node.append(confetti(teams[side]));
   }
 
   /* a test (or someone debugging) can put a match on the device to start from */

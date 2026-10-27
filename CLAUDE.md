@@ -110,6 +110,7 @@ src/game/teams.ts         the teams, their flags and kits; rivalFor picks the op
 src/game/squads.ts        the players: each real team's six (men's squads, October
                           2026), numbers and names, changed by anyone on the device
 src/game/narration.ts     the commentator ("Goooool do Brasil!")
+src/game/confetti.ts      confetti in the winners' colours, over a win
 src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
                           storage, crests, life, router, dom, update (the
                           "new version, tap to update" button)

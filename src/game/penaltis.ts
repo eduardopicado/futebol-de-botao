@@ -23,6 +23,7 @@ import {
 } from '../content/match';
 import { type Keepers, makeBoard, SHAPE } from './board';
 import { computerLevel, speak } from './choices';
+import { confetti } from './confetti';
 import { narrate } from './narration';
 import { takerOf } from './squads';
 import { kit, label, ourTeam, rivalFor, type Team } from './teams';
@@ -247,9 +248,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
       el('p', { class: 'win-score', text: `${label(teams.a, true)} ${shootoutGoals(s, 'a')} – ${shootoutGoals(s, 'b')} ${label(teams.b, true)}, on penalties` }),
       el('div', { class: 'row' }, again, change)));
     overlay.removeAttribute('hidden');
-    const colours = [teams[side].colours[0], teams[side].colours[1], '#F3B229', '#FFF6E7'];
-    node.append(el('div', { class: 'confetti', 'aria-hidden': 'true' },
-      ...Array.from({ length: 48 }, (_, i) => el('i', { vars: { '--x': `${(i * 37) % 100}%`, '--d': `${(i % 7) * 0.18}s`, '--c': colours[i % colours.length], '--r': `${(i * 53) % 360}deg` } }))));
+    node.append(confetti(teams[side]));
   }
 
   setUpKick();

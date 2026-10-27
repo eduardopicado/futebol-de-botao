@@ -2,18 +2,20 @@
  *
  * Each round shows its opponent's shirt and how hard the computer plays,
  * with the result once it is played. Still in it: play the next round. Won
- * the final: the trophy. Knocked out: start another cup. With no cup on the
- * device it says what a cup is and starts one. The cup itself is cup.ts. */
+ * the final: the trophy, with the commentator and confetti the moment it is
+ * won (a later visit shows the trophy quietly). Knocked out: start another
+ * cup. With no cup on the device it says what a cup is and starts one. The
+ * cup itself is cup.ts. */
 
 import { el } from '../lib/dom';
 import { lifetime } from '../lib/life';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
+import { LEVEL_NAMES } from './choices';
+import { confetti } from './confetti';
+import { ROUNDS, cupNow, cupsWon, justWon, roundOf, stageOf, type Cup } from './cup';
 import { narrate } from './narration';
-import { ROUNDS, cupNow, cupsWon, roundOf, stageOf, type Cup } from './cup';
 import { kit, label, teamById } from './teams';
-
-const LEVEL_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 
 export function mount(root: HTMLElement): () => void {
   const life = lifetime();
@@ -55,10 +57,10 @@ export function mount(root: HTMLElement): () => void {
       el('p', { class: 'win-shout', text: 'É campeão!' }),
       el('p', { class: 'win-team', text: `${label(team)} won the Copa` })),
     bracket(cup), el('div', { class: 'kick-row' }, newCup('🏆 Play another cup', true)));
-    narrate('champion', team, () => undefined, life.later);
-    const colours = [team.colours[0], team.colours[1], '#F3B229', '#FFF6E7'];
-    page.append(el('div', { class: 'confetti', 'aria-hidden': 'true' },
-      ...Array.from({ length: 48 }, (_, i) => el('i', { vars: { '--x': `${(i * 37) % 100}%`, '--d': `${(i % 7) * 0.18}s`, '--c': colours[i % colours.length], '--r': `${(i * 53) % 360}deg` } }))));
+    if (justWon()) {
+      narrate('champion', team, () => undefined, life.later);
+      page.append(confetti(team));
+    }
   } else {
     const lost = ROUNDS[cup.results.length - 1];
     page.append(el('section', { class: 'panel copa-out', role: 'status' },

@@ -28,6 +28,9 @@ export const matchRule = (): Rule => {
 /** a rule's name, as a player says it */
 export const RULE_NAMES: Record<Rule, string> = { 3: '3 toques', 1: '1 toque' };
 
+/** a computer level's name, as the settings and the Copa show it */
+export const LEVEL_NAMES: Record<Level, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+
 /** how well the computer plays */
 export const computerLevel = (): Level => {
   const l = read<string>('level', 'medium');
