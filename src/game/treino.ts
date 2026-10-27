@@ -25,6 +25,7 @@ import { drill, type Drill } from '../content/treino';
 import { type Keepers, makeBoard, SHAPE } from './board';
 import { speak } from './choices';
 import { narrate } from './narration';
+import { PACE } from './pace';
 import { label, ourTeam, rivalFor } from './teams';
 
 /** how far along its way the ball is shown while you aim */
@@ -129,7 +130,7 @@ export function mount(root: HTMLElement): () => void {
     let t: Table = d.table;
     draw(t);
     setPips(0);
-    await wait(900);
+    await wait(PACE.showStart);
     for (const f of d.plan.flicks) {
       /* the spot the button meets the ball */
       const shot = simulate(t, f);
@@ -138,7 +139,7 @@ export function mount(root: HTMLElement): () => void {
       board.arrow(t.us[f.button], f);
       const way = wayOf(t, f, true);
       board.way(way.ball, way.mine);
-      await wait(1600);
+      await wait(PACE.showAim);
       board.clearAim();
       await board.play(framesOf(t, shot), shot.bumps, keepersOf(t));
       t = { ...shot.end, keeper: keeperFor('middle', shot.end.ball) };
@@ -147,7 +148,7 @@ export function mount(root: HTMLElement): () => void {
       await wait(500);
     }
     tell('Your turn! Here is a new one.');
-    await wait(1800);
+    await wait(PACE.newSetUp);
     next();
   }
   showMe.addEventListener('click', () => { if (!busy) void demo(); });
@@ -163,7 +164,7 @@ export function mount(root: HTMLElement): () => void {
     table = { ...shot.end, keeper: keeperFor('middle', shot.end.ball) };
     if (shot.own) {
       tell('Own goal! That one went into your own net.');
-      await wait(2200);
+      await wait(PACE.newSetUp);
       next();
       return;
     }
@@ -174,7 +175,7 @@ export function mount(root: HTMLElement): () => void {
       sfx.cheer();
       tell(`GOL! ${touches === 1 ? 'In one touch!' : `In ${touches} touches.`}`, false);
       narrate('goal', us, () => undefined, life.later);
-      await wait(2600);
+      await wait(PACE.goal);
       rival = rivalFor(us, rival);
       next();
       return;
@@ -187,7 +188,7 @@ export function mount(root: HTMLElement): () => void {
     if (bumped.includes('keeper')) narrate('save', rival, () => undefined, life.later);
     if (touches >= TOUCHES) {
       tell(`${what} No touches left. Here is a new one.`, !bumped.includes('keeper'));
-      await wait(2200);
+      await wait(PACE.newSetUp);
       next();
       return;
     }
