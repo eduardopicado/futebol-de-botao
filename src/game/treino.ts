@@ -22,7 +22,7 @@ import { sfx } from '../lib/sfx';
 import { keeperFor, simulate, type Flick, type Point, type Shot, type Table } from '../content/botao';
 import { TOUCHES, type Scene } from '../content/match';
 import { drill, type Drill } from '../content/treino';
-import { makeBoard, type Keepers } from './board';
+import { type Keepers, makeBoard, SHAPE } from './board';
 import { speak } from './choices';
 import { narrate } from './narration';
 import { label, ourTeam, rivalFor } from './teams';
@@ -72,16 +72,16 @@ export function mount(root: HTMLElement): () => void {
   const score = el('p', { class: 'score', 'aria-live': 'polite' }, el('span', { class: 'lbl', text: 'Goals' }), goalsEl);
   const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Back to the start', text: '←' });
   back.addEventListener('click', () => go('home'));
-  const title = el('div', { class: 'titles' }, modeSwitch('treino'));
-  const sayEl = el('p', { class: 'bt-say', 'aria-live': 'polite' });
+
+  const sayWords = el('span', { class: 'say-words' });
   const pips = el('span', { class: 'bt-pips', role: 'img' });
   const touchesEl = el('p', { class: 'bt-touches' }, el('span', { text: 'Touches' }), pips);
-  const showMe = el('button', { class: 'btn ghost small', type: 'button', text: '👀 Show me' }) as HTMLButtonElement;
+  const showMe = el('button', { class: 'btn on-paper ghost small', type: 'button', text: '👀 Show me' }) as HTMLButtonElement;
   const board = makeBoard(life, 'The table: your buttons, the ball, and the goal at the top');
   const stage = el('div', { class: 'bt-stage' }, board.node);
-  const node = el('div', { class: 'game' },
-    el('header', { class: 'topbar' }, back, title, score),
-    sayEl, stage, el('div', { class: 'bt-foot' }, touchesEl, showMe));
+  const node = el('div', { class: 'game', vars: SHAPE },
+    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, modeSwitch('treino'), touchesEl), score),
+    el('div', { class: 'bt-say', 'aria-live': 'polite' }, sayWords, el('span', { class: 'say-actions' }, showMe)), stage);
   root.append(node);
 
   const draw = (t: Table): void => board.draw(sceneOf(t), keepersOf(t));
@@ -91,7 +91,7 @@ export function mount(root: HTMLElement): () => void {
     node.dataset.touches = String(used);
   };
   const tell = (words: string, aloud = true): void => {
-    sayEl.textContent = words;
+    sayWords.textContent = words;
     if (aloud) speak(words);
   };
 

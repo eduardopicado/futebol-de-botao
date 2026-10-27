@@ -5,12 +5,18 @@
 import { say } from '../lib/speech';
 import { read } from '../lib/storage';
 import { LEVELS, type Level } from '../content/computer';
-import { GOALS } from '../content/match';
+import { GOALS, SIZES } from '../content/match';
 
 /** how many goals win a match */
 export const goalsToWin = (): number => {
   const n = read<number>('goals', GOALS[0]);
   return (GOALS as readonly number[]).includes(n) ? n : GOALS[0];
+};
+
+/** buttons a side, besides the goleiro */
+export const buttonsPerSide = (): number => {
+  const n = read<number>('buttons', SIZES[0]);
+  return (SIZES as readonly number[]).includes(n) ? n : SIZES[0];
 };
 
 /** how well the computer plays */

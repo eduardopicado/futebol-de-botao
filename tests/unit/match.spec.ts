@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { BALL, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
 import {
-  BUTTONS, CIRCLE, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, newMatch, pronto, tableFor,
+  BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, newMatch, pronto, tableFor,
   type Match, type Side,
 } from '../../src/content/match';
 
@@ -25,11 +25,11 @@ const parked = (side: Side): Point[] => [
 ];
 
 describe('the line-up', () => {
-  it('puts five a side on the table, nothing touching, the kickers in the circle and the others out of it', () => {
-    for (const first of ['a', 'b'] as const) {
-      const m = newMatch(3, first);
-      expect(m.a).toHaveLength(BUTTONS);
-      expect(m.b).toHaveLength(BUTTONS);
+  it('puts four or five a side on the table, nothing touching, the kickers in the circle and the others out of it', () => {
+    for (const size of SIZES) for (const first of ['a', 'b'] as const) {
+      const m = newMatch(3, first, size);
+      expect(m.a).toHaveLength(size);
+      expect(m.b).toHaveLength(size);
       expect(m.ball).toEqual(MIDDLE);
       expect(m.phase).toBe('kickoff');
       expect(m.turn).toBe(first);
@@ -52,7 +52,17 @@ describe('the line-up', () => {
   });
 
   it('is the same for both sides, turned round', () => {
-    expect(formation('b', true)).toEqual(formation('a', true).map(turned));
+    for (const size of SIZES) expect(formation('b', true, size)).toEqual(formation('a', true, size).map(turned));
+  });
+
+  it('five a side unless asked, and the same number again after a goal', () => {
+    expect(newMatch(3, 'a').a).toHaveLength(BUTTONS);
+    let m: Match = { ...newMatch(3, 'a', 4), turn: 'a' as Side, phase: 'shot' as const, touches: 0, used: [], attack: true,
+      ball: { x: 32, y: 6 }, a: [{ x: 32, y: 14 }, ...parked('a').slice(1, 4)], b: parked('b').slice(0, 4), keepers: { a: 32, b: 12 } };
+    m = flick(m, 0, 0, -60).next;
+    expect(m.score.a).toBe(1);
+    expect(m.a).toHaveLength(4);
+    expect(m.b).toHaveLength(4);
   });
 });
 

@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { KEEPER_W, L, MOUTH, W, keeperFor, type Point } from '../../src/content/botao';
 import { LEVELS, SKILL, decide, placeKeeper, shotFor, wobble, type Level } from '../../src/content/computer';
-import { call, clampKeeper, flick, inAttack, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
+import { SIZES, call, clampKeeper, flick, inAttack, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
 
 /* the same choices on every run */
 function seeded(seed: number): () => number {
@@ -59,8 +59,8 @@ describe('its aim', () => {
 
 describe('its turn', () => {
   for (const side of ['a', 'b'] as const) {
-    it(`side ${side}: kicks off with two different buttons, and the ball leaves the circle`, () => {
-      let m = newMatch(3, side);
+    for (const size of SIZES) it(`side ${side}, ${size} a side: kicks off with two different buttons, and the ball leaves the circle`, () => {
+      let m = newMatch(3, side, size);
       const first = decide(m, 'medium', steady);
       expect(first.kind).toBe('flick');
       if (first.kind !== 'flick') return;

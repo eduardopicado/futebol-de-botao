@@ -14,8 +14,8 @@ import { go } from '../lib/router';
 import { setSfxEnabled } from '../lib/sfx';
 import { write } from '../lib/storage';
 import { LEVELS, type Level } from '../content/computer';
-import { GOALS } from '../content/match';
-import { computerLevel, goalsToWin, readAloud, soundsOn } from './choices';
+import { GOALS, SIZES } from '../content/match';
+import { buttonsPerSide, computerLevel, goalsToWin, readAloud, soundsOn } from './choices';
 import { narrationSelect } from './narration';
 import { TEAMS, label, teamById } from './teams';
 
@@ -79,6 +79,9 @@ export function mount(root: HTMLElement): void {
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'A match is won by' }),
       chips('Goals to win', GOALS.map((g) => ({ value: g, text: `${g} goals` })), goalsToWin(), (g) => write('goals', g))),
+    el('section', { class: 'panel' },
+      el('h2', { class: 'lbl', text: 'Buttons a side' }),
+      chips('Buttons a side', SIZES.map((n) => ({ value: n, text: `${n} and a goleiro` })), buttonsPerSide(), (n) => write('buttons', n))),
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'The computer plays' }),
       chips('Computer level', LEVELS.map((l) => ({ value: l, text: LEVEL_NAMES[l] })), computerLevel(), (l) => write('level', l))),

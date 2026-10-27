@@ -41,7 +41,7 @@ async function clearTable(page: Page): Promise<void> {
 }
 
 test.describe('Treino', () => {
-  test('from the start screen onto the table: it all fits, with nothing to scroll, the words above the table', async ({ page }) => {
+  test('from the start screen onto the table: it all fits, with nothing to scroll, the words above the table or beside it', async ({ page }) => {
     const watch = watchPage(page);
     await page.goto('/');
     await page.getByRole('link', { name: '⚽ Treino' }).click();
@@ -60,7 +60,9 @@ test.describe('Treino', () => {
     const showMe = (await page.getByRole('button', { name: '👀 Show me' }).boundingBox())!;
     expect(showMe.y + showMe.height).toBeLessThanOrEqual(size.height);
     const words = (await page.locator('.bt-say').boundingBox())!;
-    expect(words.y + words.height).toBeLessThanOrEqual(table.y);
+    /* held sideways, the words are in a column to the left of the table */
+    if (size.width / size.height >= 5 / 4) expect(words.x + words.width).toBeLessThanOrEqual(table.x);
+    else expect(words.y + words.height).toBeLessThanOrEqual(table.y);
     await expect(page.locator('.bt-say')).toContainText('Three touches to score!');
     expect(await page.evaluate(() => document.scrollingElement!.scrollHeight)).toBeLessThanOrEqual(size.height);
     noProblems(watch);
@@ -75,7 +77,7 @@ test.describe('Treino', () => {
       if (i < flicks.length - 1) await expect(page.locator('.bt-say')).toContainText('touches left', { timeout: 10000 });
     }
     await expect(page.locator('.game')).toHaveAttribute('data-goal', 'scored', { timeout: 10000 });
-    await expect(page.locator('.bt-say')).toHaveText(flicks.length === 1 ? 'GOL! In one touch!' : `GOL! In ${flicks.length} touches.`);
+    await expect(page.locator('.say-words')).toHaveText(flicks.length === 1 ? 'GOL! In one touch!' : `GOL! In ${flicks.length} touches.`);
     await expect(page.locator('.score')).toContainText('1');
     await clearTable(page);
     /* and a new one is set up */
@@ -147,7 +149,7 @@ test.describe('Treino', () => {
     const watch = watchPage(page);
     await start(page);
     await page.getByRole('button', { name: '👀 Show me' }).click();
-    await expect(page.locator('.bt-say')).toHaveText('Watch: here is one way.');
+    await expect(page.locator('.say-words')).toHaveText('Watch: here is one way.');
     await expect(page.locator('.bt-ghost')).toBeVisible({ timeout: 4000 });
     await expect(page.locator('.bt-path')).not.toHaveAttribute('points', '');
     await expect(page.locator('.game')).toHaveAttribute('data-goal', 'shown', { timeout: 20000 });
