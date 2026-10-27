@@ -23,6 +23,7 @@ const routes: Route[] = [
   { path: 'penaltis-1', title: 'Pênaltis', load: () => import('./game/penaltis').then((g) => ({ mount: g.mountComputer })) },
   { path: 'penaltis-2', title: 'Pênaltis', load: () => import('./game/penaltis') },
   { path: 'settings', title: 'Settings', load: () => import('./game/settings') },
+  { path: 'how-to-play', title: 'How to play', load: () => import('./game/guide') },
 ];
 
 /* iOS keeps speech and audio locked until they are started inside a real

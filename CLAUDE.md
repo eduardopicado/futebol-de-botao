@@ -80,6 +80,8 @@ src/content/computer.ts   the computer: its moves, when it calls "A gol!", where
                           stands its goleiro (a guess, in a shootout), and how far
                           off it is at each level
 src/content/treino.ts     Treino's set-ups, each with a way to score from it
+src/content/guide.ts      How to play: the steps, for the rule chosen, each with a
+                          little match played through the rules to show it
 src/content/commentary.ts what the commentator shouts, both languages
 src/game/table.ts         the table drawn: tray, felt, lines, goals, buttons
 src/game/board.ts         the table on the screen, shared: both sides, both
@@ -92,10 +94,12 @@ src/game/penaltis.ts      Pênaltis: a penalty shootout, two players or one
                           against the computer
 src/game/treino.ts        Treino: three touches, free shooting, Show me
 src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
+src/game/guide.ts         How to play: the steps to tap through, each demo played
+                          on its own table
 src/game/choices.ts       what the settings chose, read where a game needs it
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
 src/game/home.ts          the start screen: 1 player, 2 players, Pênaltis, Treino,
-                          and ⚙
+                          How to play (offered the first time), and ⚙
 src/game/pick.ts          picking the teams before a match, kept for next time,
                           and a crest for the team picked
 src/game/shirts.ts        a team as a shirt to tap, and the button that gives a
@@ -112,7 +116,7 @@ src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
                           "new version, tap to update" button)
 src/assets/tray.webp      the wooden tray, cut from the design handoff
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
-                          squads, storage, sfx, speech, crests
+                          squads, the guide's demos, storage, sfx, speech, crests
 tests/e2e/                Playwright, real finger drags through the table's viewBox
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```

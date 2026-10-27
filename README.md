@@ -36,6 +36,10 @@ shows a **New version! Tap to update** button.
   freely. Every set-up comes with a way to score, and **Show me** plays it.
   **🧤 Goleiro** turns it round: ten shots by the computer at your goal, to
   save; your best is kept.
+- **📖 How to play:** a short guide, offered the first time the app is
+  opened and below the ways to play after that. Each step is a few words and
+  a little match played on the table to show them: the flick, the touches,
+  **A gol!**, the goleiro, fouls, no parking at 1 Toque, and the kick-off.
 - **Picking teams:** every match starts by picking each side's team, from
   the World Cup winners, the big clubs and two made-up sides; the side at the
   top may be "Anyone". The picks are kept for next time, and **📷 Add a
