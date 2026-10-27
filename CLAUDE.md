@@ -101,15 +101,17 @@ src/game/shirts.ts        a team as a shirt to tap, and the button that gives a
                           team its crest (the picker and the settings share them)
 src/game/settings.ts      the settings: goals to win, the rule, buttons a side,
                           computer level, commentator, sound effects, reading
-                          aloud, crests
+                          aloud, crests and players
 src/game/teams.ts         the teams, their flags and kits; rivalFor picks the opponent
+src/game/squads.ts        the players: each real team's six (men's squads, October
+                          2026), numbers and names, changed by anyone on the device
 src/game/narration.ts     the commentator ("Goooool do Brasil!")
 src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
                           storage, crests, life, router, dom, update (the
                           "new version, tap to update" button)
 src/assets/tray.webp      the wooden tray, cut from the design handoff
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
-                          storage, sfx, speech, crests
+                          squads, storage, sfx, speech, crests
 tests/e2e/                Playwright, real finger drags through the table's viewBox
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```

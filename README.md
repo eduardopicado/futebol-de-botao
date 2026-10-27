@@ -44,7 +44,12 @@ shows a **New version! Tap to update** button.
 - **Settings (⚙):** goals to win (3, 5 or 10), the rule (3 toques or
   1 toque), four or five buttons a side, how well the computer plays, the
   commentator (Português, English or none), sound effects, reading the words
-  aloud, and a crest for any team from your own photos.
+  aloud, and for any team a crest from your own photos and its players'
+  numbers and names.
+- **Players:** every real team comes with six of its men's squad as of
+  October 2026, the goleiro and five on the buttons, each with his number.
+  The number is on the button's rim; hold a button and its name shows above
+  it, and a goal says who scored, the commentator too.
 
 The rules are a simple version of the CBFM's 3 Toques (the regra carioca),
 or of its 1 Toque (once the regra baiana): one flick a turn, and no parking

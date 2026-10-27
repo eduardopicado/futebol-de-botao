@@ -18,6 +18,7 @@ import { GOALS, RULES, SIZES } from '../content/match';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, readAloud, soundsOn } from './choices';
 import { narrationSelect } from './narration';
 import { crestButton, redrawShirts, shirtTile } from './shirts';
+import { POSITIONS, SQUADS, changedSquad, resetSquad, setPlayer, squadOf } from './squads';
 import { TEAMS, type Team } from './teams';
 
 /** one choice of a few, as a row of chips; the one chosen is pressed */
@@ -57,7 +58,7 @@ export function mount(root: HTMLElement): void {
   const grid = el('div', { class: 'teams', role: 'group', 'aria-label': 'Team for a crest' }, ...tiles);
   const shown = el('span', { class: 'shown' });
   const remove = el('button', { class: 'btn ghost small', type: 'button', text: 'Remove' });
-  const said = el('p', { class: 'said', 'aria-live': 'polite' });
+  const said = el('p', { class: 'said crest-said', 'aria-live': 'polite' });
   const add = crestButton(() => picked, (t, words) => { redrawShirts(grid, t); drawCrest(words); });
   function drawCrest(words = ''): void {
     const crest = crestOf(picked.id);
@@ -68,7 +69,32 @@ export function mount(root: HTMLElement): void {
     said.textContent = words;
   }
   remove.addEventListener('click', () => { clearCrest(picked.id); redrawShirts(grid, picked); drawCrest('Removed.'); });
+
+  /* the same team's players: a number and a name for each, the goleiro first */
+  const roster = el('div', { class: 'players' });
+  const reset = el('button', { class: 'btn ghost small', type: 'button' });
+  const rosterSaid = el('p', { class: 'said players-said', 'aria-live': 'polite' });
+  function drawPlayers(words = ''): void {
+    const team = picked;
+    roster.replaceChildren(...squadOf(team).map((p, slot) => {
+      const position = POSITIONS[slot];
+      const number = el('input', { type: 'number', inputmode: 'numeric', min: '1', max: '99', value: String(p.n), 'aria-label': `${position}: number` }) as HTMLInputElement;
+      const name = el('input', { type: 'text', maxlength: '30', value: p.name, placeholder: 'Name', 'aria-label': `${position}: name` }) as HTMLInputElement;
+      number.addEventListener('change', () => {
+        const n = Number(number.value);
+        if (Number.isInteger(n) && n >= 1 && n <= 99) { setPlayer(team, slot, { n }); drawPlayers(`Saved: ${position.toLowerCase()} number ${n}.`); } else number.value = String(squadOf(team)[slot].n);
+      });
+      name.addEventListener('change', () => { setPlayer(team, slot, { name: name.value }); drawPlayers('Saved.'); });
+      return el('div', { class: 'player' }, el('span', { class: 'position', text: position }), number, name);
+    }));
+    reset.textContent = SQUADS[team.id] ? '↺ Back to the real squad' : '↺ Clear the names';
+    reset.hidden = !changedSquad(team);
+    rosterSaid.textContent = words;
+  }
+  reset.addEventListener('click', () => { resetSquad(picked); drawPlayers('Back as it was.'); });
+  for (const tile of tiles) tile.addEventListener('click', () => drawPlayers());
   drawCrest();
+  drawPlayers();
 
   root.append(el('div', { class: 'wrap settings' },
     el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, 'Settings'))),
@@ -91,9 +117,10 @@ export function mount(root: HTMLElement): void {
       toggle('Sound effects', soundsOn(), (on) => { write('sounds', on); setSfxEnabled(on); }),
       toggle('Read the words aloud', readAloud(), (on) => write('read-aloud', on))),
     el('section', { class: 'panel' },
-      el('h2', { class: 'lbl', text: 'Crests' }),
-      el('p', { class: 'tag', text: "Put a team's crest on its shirt and its buttons, from your own photos. Tap the team:" }),
+      el('h2', { class: 'lbl', text: 'Crests and players' }),
+      el('p', { class: 'tag', text: "Put a team's crest on its shirt and its buttons, from your own photos, and change its players' numbers and names. Tap the team:" }),
       grid,
-      el('div', { class: 'crest' }, shown, add.node, remove), said),
+      el('div', { class: 'crest' }, shown, add.node, remove), said,
+      el('h3', { class: 'lbl', text: 'Players' }), roster, el('div', { class: 'row' }, reset), rosterSaid),
     el('p', { class: 'tag', text: 'Everything here stays on this device. Nothing is sent anywhere.' })));
 }

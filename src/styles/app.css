@@ -388,6 +388,11 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app { height:
 .bt-shine { fill: url(#bt-shine); }
 .bt-btn.us { cursor: grab; }
 .bt-btn.out { opacity: .45; }
+/* a button's number, small at the foot of its rim; and while one is held, its number and name above it */
+.bt-number { fill: #fff; stroke: rgba(0, 0, 0, .7); stroke-width: .35; paint-order: stroke; font-family: var(--display); font-weight: 800; pointer-events: none; }
+.bt-tag { pointer-events: none; }
+.bt-tag-back { fill: rgba(8, 32, 28, .88); stroke: var(--mustard); stroke-width: .25; }
+.bt-tag-text { fill: var(--paper); font-family: var(--reading); font-weight: 700; }
 /* the side to play: a gold ring round each of its buttons */
 .bt-table.turn-a .bt-btn.us:not(.out) .bt-rim, .bt-table.turn-b .bt-btn.them:not(.out) .bt-rim { stroke: var(--mustard); stroke-width: 1; }
 .bt-table.turn-b .bt-btn.them:not(.out) { cursor: grab; }
@@ -418,6 +423,10 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app { height:
 .settings .panel, .pick .panel { display: grid; gap: 10px; }
 .settings h2.lbl, .pick h2.lbl { margin: 0; }
 .settings label.field { display: grid; gap: 4px; font-weight: 700; }
+.settings .players { display: grid; gap: 6px; }
+.settings .player { display: grid; grid-template-columns: 6.5em 4.2em minmax(0, 1fr); gap: 8px; align-items: center; }
+.settings .player .position { font-size: 14px; color: var(--on-deep-soft); }
+.settings .player input { min-height: var(--tap); padding: 6px 10px; border-radius: 10px; border: 2px solid rgba(255, 246, 231, .25); background: rgba(255, 246, 231, .08); color: var(--on-deep); font: 600 16px var(--reading); min-width: 0; }
 .settings .crest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .settings .crest img, .settings .crest .none { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: rgba(255, 246, 231, .12); display: grid; place-items: center; font-size: 12px; }
 /* the file input inside its button: out of sight and out of the way of a
