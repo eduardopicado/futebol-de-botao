@@ -216,5 +216,9 @@ export function placeKeeper(m: Match, level: Level, rand: Rand = Math.random): n
   return clampKeeper(m.turn === 'a' ? x : W - x);
 }
 
+/** in a penalty shootout it guesses: anywhere across its goal, the same at every level */
+export const guessKeeper = (rand: Rand = Math.random): number =>
+  clampKeeper(MOUTH[0] + rand() * (MOUTH[1] - MOUTH[0]));
+
 /** the computer's side, in a match against it: the top */
 export const COMPUTER = 'b' as const;

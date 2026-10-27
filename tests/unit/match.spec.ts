@@ -6,7 +6,8 @@ import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouc
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
-  type Match, type Side,
+  kicked, newShootout, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
+  type Match, type Shootout, type Side,
 } from '../../src/content/match';
 
 const dist = (p: Point, q: Point): number => Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
@@ -417,3 +418,47 @@ describe('the goleiro at 1 Toque', () => {
   });
 });
 
+describe('a penalty shootout', () => {
+  const run = (first: Side, kicks: boolean[]): Shootout => kicks.reduce((s, k) => kicked(s, k), newShootout(first));
+
+  it('takes turns, five each, and is decided as soon as one side cannot be caught', () => {
+    /* a scores three, b misses three: after b's third, b could only reach two */
+    const s = run('a', [true, false, true, false, true, false]);
+    expect(s.winner).toBe('a');
+    expect(shootoutGoals(s, 'a')).toBe(3);
+    expect(shootoutTaken(s, 'b')).toBe(3);
+    /* one kick earlier it was still open */
+    expect(run('a', [true, false, true, false, true]).winner).toBeNull();
+  });
+
+  it('goes to a kick each when level after five, until one scores and the other does not', () => {
+    const five = [true, true, false, false, true, true, true, true, false, false];
+    expect(run('b', five).winner).toBeNull();
+    /* both score their sixth: still on */
+    expect(run('b', [...five, true, true]).winner).toBeNull();
+    /* the first to kick scores its sixth: the other still has its own */
+    expect(run('b', [...five, true]).winner).toBeNull();
+    /* b scores, a misses */
+    const done = run('b', [...five, true, false]);
+    expect(done.winner).toBe('b');
+    expect(kicked(done, true)).toBe(done);
+  });
+
+  it('a kick: the ball on the spot, the taker behind it, the goleiro to place, one flick', () => {
+    for (const taker of ['a', 'b'] as const) {
+      const m = penaltyFor(taker);
+      expect(m.phase).toBe('placing');
+      expect(mayCall(m)).toBe(false);
+      const keeperAside = taker === 'a' ? MOUTH[0] + KEEPER_W / 2 : W - MOUTH[0] - KEEPER_W / 2;
+      const ready = pronto(m, keeperAside);
+      expect(ready.phase).toBe('penalty');
+      const { table } = tableFor(ready);
+      const plan = oneTouch(table, [0], false)!;
+      const f = plan.flicks[0];
+      const play = flick(ready, 0, taker === 'a' ? f.vx : -f.vx, taker === 'a' ? f.vy : -f.vy);
+      expect(scoredFrom(play, taker)).toBe(true);
+      /* straight back at its own end: no goal */
+      expect(scoredFrom(flick(ready, 0, 0, taker === 'a' ? 30 : -30), taker)).toBe(false);
+    }
+  });
+});

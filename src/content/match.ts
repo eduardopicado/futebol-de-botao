@@ -30,6 +30,8 @@
  *   free (Art. 28, 29).
  * - The ball never goes out: the rim keeps it in. No offside.
  *
+ * A penalty shootout, its own way to play, is at the end of this file.
+ *
  * Or a match is played to 1 Toque, from the CBFM's 1 Toque rulebook
  * (v2.1.2, 2010), with everything else as above:
  *
@@ -510,3 +512,63 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
   next.phase = 'play';
   return result({ kind: 'on', left: touchesFor(m.rule) - next.touches });
 }
+
+/* ── a penalty shootout ────────────────────────────────────────────────── */
+
+/**
+ * Five penalties each, taken in turn; decided as soon as one side can no
+ * longer be caught, and level after five each it goes on a kick each until
+ * one scores and the other does not. Each kick is a penalty as in a match:
+ * the ball on the spot, the defender places their goleiro and says Pronto,
+ * and the taker has one flick.
+ */
+export const SHOOTOUT_KICKS = 5;
+
+export interface Shootout {
+  first: Side;
+  /** whose kick it is */
+  turn: Side;
+  kicks: { side: Side; scored: boolean }[];
+  winner: Side | null;
+}
+
+export const newShootout = (first: Side): Shootout => ({ first, turn: first, kicks: [], winner: null });
+
+/** goals and kicks taken by a side so far */
+export const shootoutGoals = (s: Shootout, side: Side): number => s.kicks.filter((k) => k.side === side && k.scored).length;
+export const shootoutTaken = (s: Shootout, side: Side): number => s.kicks.filter((k) => k.side === side).length;
+
+/** a kick taken, scored or not: the next side's kick, or the winner */
+export function kicked(s: Shootout, scored: boolean): Shootout {
+  if (s.winner) return s;
+  const next: Shootout = { ...s, kicks: [...s.kicks, { side: s.turn, scored }], turn: other(s.turn) };
+  const goals = (side: Side): number => shootoutGoals(next, side);
+  const taken = (side: Side): number => shootoutTaken(next, side);
+  for (const side of ['a', 'b'] as const) {
+    const you = other(side);
+    /* in the five: out of reach of what the other side has left */
+    if (taken(side) <= SHOOTOUT_KICKS && taken(you) <= SHOOTOUT_KICKS && goals(side) > goals(you) + SHOOTOUT_KICKS - taken(you)) next.winner = side;
+  }
+  /* after the five, or level at the end of them: a kick each, until one is ahead */
+  if (!next.winner && taken('a') === taken('b') && taken('a') >= SHOOTOUT_KICKS && goals('a') !== goals('b')) {
+    next.winner = goals('a') > goals('b') ? 'a' : 'b';
+  }
+  return next;
+}
+
+/** the table for one kick: the ball on the spot in front of the other side's
+    goal, the taker behind it, no one else; the defender's goleiro to place */
+export function penaltyFor(taker: Side): Match {
+  const m = newMatch(1, taker);
+  const { line, into } = ownGoal(other(taker));
+  const spot = { x: W / 2, y: line + into * MARKS.spot };
+  const behind = { x: W / 2, y: line + into * (MARKS.spot + 9) };
+  return {
+    ...m, ball: spot, a: [taker === 'a' ? behind : null], b: [taker === 'b' ? behind : null],
+    phase: 'placing', penalty: true, attack: false,
+  };
+}
+
+/** did this flick at a shootout kick score? */
+export const scoredFrom = (play: Play, taker: Side): boolean =>
+  (play.event.kind === 'goal' || play.event.kind === 'champion') && play.event.side === taker && !play.event.own;

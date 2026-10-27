@@ -18,6 +18,10 @@ const routes: Route[] = [
   /* picking the teams before a match */
   { path: 'teams-1', title: '1 player', load: () => import('./game/pick').then((g) => ({ mount: g.mountOne })) },
   { path: 'teams-2', title: '2 players', load: () => import('./game/pick').then((g) => ({ mount: g.mountTwo })) },
+  { path: 'pen-teams-1', title: 'Pênaltis', load: () => import('./game/pick').then((g) => ({ mount: g.mountPenaltiesOne })) },
+  { path: 'pen-teams-2', title: 'Pênaltis', load: () => import('./game/pick').then((g) => ({ mount: g.mountPenaltiesTwo })) },
+  { path: 'penaltis-1', title: 'Pênaltis', load: () => import('./game/penaltis').then((g) => ({ mount: g.mountComputer })) },
+  { path: 'penaltis-2', title: 'Pênaltis', load: () => import('./game/penaltis') },
   { path: 'settings', title: 'Settings', load: () => import('./game/settings') },
 ];
 
