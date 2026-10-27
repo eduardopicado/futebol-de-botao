@@ -91,6 +91,10 @@ test.describe('Settings', () => {
     await expect(page.getByRole('img', { name: 'The crest for Brazil' })).toBeVisible();
     await expect(page.locator('.settings .crest-btn')).toHaveText('📷 Change crest: Brazil');
     await expect(crests.locator('.team[data-team="brazil"] .pk-crest')).toHaveCount(1);
+    /* the crest button opens the photo picker; the button beside it is not under it */
+    const chooser = page.waitForEvent('filechooser');
+    await page.locator('.settings .crest-btn').click();
+    await chooser;
     await page.getByRole('button', { name: 'Remove' }).click();
     await expect(page.locator('.settings .said')).toHaveText('Removed.');
     await expect(crests.locator('.team[data-team="brazil"] .pk-crest')).toHaveCount(0);
