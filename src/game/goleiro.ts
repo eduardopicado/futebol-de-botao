@@ -20,6 +20,7 @@ import { drill } from '../content/treino';
 import { makeBoard, SHAPE } from './board';
 import { narrate } from './narration';
 import { computerLevel } from './choices';
+import { PACE } from './pace';
 import { modeSwitch } from './treino';
 import { label, ourTeam, rivalFor } from './teams';
 
@@ -109,9 +110,9 @@ export function mount(root: HTMLElement): () => void {
       ? buttons.flatMap((from) => buttons.filter((to) => to !== from).map((to) => passPlan(mine, from, to, 'middle'))).find((p) => p)
       : undefined;
     const aim = pass ? wobble(pass.flicks[0], level, Math.random) : wobble(shotFor(mine, buttons, level), level, Math.random);
-    await wait(400);
+    await wait(PACE.shotReady);
     board.arrow(turned(mine.us[aim.button]), { button: aim.button, vx: -aim.vx, vy: -aim.vy });
-    await wait(800);
+    await wait(PACE.shotAim);
     board.clearAim();
     const shot = simulate(mine, aim);
     await board.play(frames(shot), shot.bumps, { top: null, bottom: keeper });
@@ -121,7 +122,7 @@ export function mount(root: HTMLElement): () => void {
       passed = true;
       sfx.whistle();
       tell('A pass! A gol! again.');
-      await wait(900);
+      await wait(PACE.pass);
       placing();
       return;
     }
@@ -139,7 +140,7 @@ export function mount(root: HTMLElement): () => void {
       node.dataset.result = 'save';
     }
     node.dataset.saves = String(saves);
-    await wait(1800);
+    await wait(PACE.result);
     next();
   }
 
