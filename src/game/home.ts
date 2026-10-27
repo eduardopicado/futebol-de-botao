@@ -16,9 +16,10 @@ export const GUIDE_SEEN = 'guide-seen';
 export function mount(root: HTMLElement): void {
   const one = el('a', { class: 'btn big', href: '#/teams-1', text: '🤖 1 player' });
   const two = el('a', { class: 'btn big', href: '#/teams-2', text: '👥 2 players' });
+  const cup = el('a', { class: 'btn big', href: '#/copa', text: '🏆 Copa' });
   const penalties = el('a', { class: 'btn big ghost', href: '#/pen-teams-1', text: '🥅 Pênaltis' });
   const practice = el('a', { class: 'btn big ghost', href: '#/treino', text: '⚽ Treino' });
-  for (const link of [one, two, penalties, practice]) link.addEventListener('click', () => sfx.tap());
+  for (const link of [one, two, cup, penalties, practice]) link.addEventListener('click', () => sfx.tap());
   const settings = el('button', { class: 'icon-btn settings-btn', type: 'button', 'aria-label': 'Settings', text: '⚙' });
   settings.addEventListener('click', () => { sfx.tap(); go('settings'); });
   const seen = read<boolean>(GUIDE_SEEN, false) === true;
@@ -27,7 +28,7 @@ export function mount(root: HTMLElement): void {
     link.addEventListener('click', () => sfx.tap());
     return link;
   };
-  const modes = el('div', { class: 'modes' }, one, two, penalties, practice);
+  const modes = el('div', { class: 'modes' }, one, two, cup, penalties, practice);
   const later = el('div', { class: 'home-how' }, how(false));
   const offer = el('div', { class: 'home-how offer', role: 'group', 'aria-label': 'New here?' }, el('span', { text: 'New here?' }), how(true));
   const no = el('button', { class: 'btn ghost small', type: 'button', text: 'Not now' });

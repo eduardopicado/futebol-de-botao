@@ -28,6 +28,10 @@ shows a **New version! Tap to update** button.
   the area. The note above the table (beside it, with the iPad held sideways)
   turns to face whoever has to act. After a goal, **↺ Replay** plays the move
   that scored again, at half speed.
+- **🏆 Copa:** a cup against the computer. Pick your team and three
+  opponents are drawn: a quarter-final on easy, a semi-final on medium and
+  the final on hard. Win to go through, lose and you are out; the cup is kept
+  on the iPad to finish another day, and so is the number of cups won.
 - **Pênaltis:** a penalty shootout, against the computer or two on one iPad.
   Five kicks each, then a kick each until one side scores and the other does
   not: the defender places their goleiro and taps **Pronto**, and the taker

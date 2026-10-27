@@ -22,6 +22,9 @@ const routes: Route[] = [
   { path: 'pen-teams-2', title: 'Pênaltis', load: () => import('./game/pick').then((g) => ({ mount: g.mountPenaltiesTwo })) },
   { path: 'penaltis-1', title: 'Pênaltis', load: () => import('./game/penaltis').then((g) => ({ mount: g.mountComputer })) },
   { path: 'penaltis-2', title: 'Pênaltis', load: () => import('./game/penaltis') },
+  { path: 'copa', title: 'Copa', load: () => import('./game/copa') },
+  { path: 'copa-team', title: 'Copa', load: () => import('./game/pick').then((g) => ({ mount: g.mountCup })) },
+  { path: 'copa-jogo', title: 'Copa', load: () => import('./game/partida').then((g) => ({ mount: g.mountCup })) },
   { path: 'settings', title: 'Settings', load: () => import('./game/settings') },
   { path: 'how-to-play', title: 'How to play', load: () => import('./game/guide') },
 ];
