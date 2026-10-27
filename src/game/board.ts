@@ -58,8 +58,9 @@ export interface Board {
   /** a flick played out; resolves when everything has stopped */
   /** a flick played out, frame by frame; `speed` below 1 is slower, for a replay */
   play: (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched?: Benched[], speed?: number) => Promise<void>;
-  /** the side to play, glowing */
-  glow: (side: Side | null) => void;
+  /** the side to play, glowing, all but the buttons it may not flick now
+      (at a kick-off, the one that made the first flick) */
+  glow: (side: Side | null, spent?: number[]) => void;
   /** the goleiro being placed, which the finger may slide along its line */
   /** a goleiro to slide: along its line, or with `area` anywhere a finger
       takes it (the rules keep it in its small area); onMove hears across and
@@ -197,9 +198,10 @@ export function makeBoard(life: Life, label: string): Board {
       tick();
     });
 
-  const glow = (side: Side | null): void => {
+  const glow = (side: Side | null, spent: number[] = []): void => {
     board.classList.toggle('turn-a', side === 'a');
     board.classList.toggle('turn-b', side === 'b');
+    for (const s of ['a', 'b'] as const) buttons[s].forEach((g, i) => g.classList.toggle('spent', s === side && spent.includes(i)));
   };
 
   /** the arrow from a button: which way, and how hard */

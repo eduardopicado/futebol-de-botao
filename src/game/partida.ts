@@ -122,7 +122,8 @@ function match(root: HTMLElement, computer: boolean): () => void {
     pips.setAttribute('aria-label', `${used} of ${most} touches used`);
     whose.textContent = m.phase === 'placing' ? `${name(defender())}: goleiro` : name(m.turn);
     const placing = m.phase === 'placing';
-    board.glow(busy || placing || m.phase === 'over' ? null : m.turn);
+    /* at a kick-off, the button that made the first flick may not make the second: it does not glow */
+    board.glow(busy || placing || m.phase === 'over' ? null : m.turn, m.phase === 'kickoff' ? m.used : []);
     /* the defender placing their goleiro; or at 1 Toque, the side to play
        moving its own, anywhere in its small area, before it flicks */
     const own = mayMoveGoleiro(m) && !busy && m.turn !== cpu;
