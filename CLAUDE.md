@@ -5,8 +5,8 @@ one against the computer, or two on one iPad. It is played on an iPad from the
 home screen (Safari, added as an app), and on phones. It grew out of the
 Futebol de Botão angles game in `eduardopicado/sounds-of-reading`, which stays
 there as a lesson; the first brief was `docs/HANDOVER.md`, and the match's
-rules are the simple ones agreed from the CBFM 3 Toques rulebook
-(`src/content/match.ts` lists them).
+rules are the simple ones agreed from the CBFM 3 Toques rulebook, or by
+choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
 
 ## Rules
 
@@ -71,9 +71,10 @@ In a cloud session whose Playwright browser does not match the installed
 src/content/botao.ts      the table, the physics of a flick, the three-touch rule,
                           the goleiro, and the planner (aimAt, oneTouch, passPlan,
                           robust) that finds a way to score
-src/content/match.ts      a match: turns (three free touches), "A gol!" and the
-                          goleiro, fouls and penalties, kick-off, buttons in a
-                          net, winning
+src/content/match.ts      a match: turns (three free touches, or one at 1 Toque),
+                          "A gol!" and the goleiro, fouls and penalties, the
+                          parked ball (1 Toque), kick-off, buttons in a net,
+                          winning
 src/content/computer.ts   the computer: its moves, when it calls "A gol!", where it
                           stands its goleiro, and how far off it is at each level
 src/content/treino.ts     Treino's set-ups, each with a way to score from it
@@ -90,8 +91,9 @@ src/game/choices.ts       what the settings chose, read where a game needs it
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
 src/game/home.ts          the start screen: 1 player, 2 players, Treino, and ⚙
 src/game/pick.ts          picking the teams before a match, kept for next time
-src/game/settings.ts      the settings: goals to win, buttons a side, computer
-                          level, commentator, sound effects, reading aloud, crests
+src/game/settings.ts      the settings: goals to win, the rule, buttons a side,
+                          computer level, commentator, sound effects, reading
+                          aloud, crests
 src/game/teams.ts         the teams, their flags and kits; rivalFor picks the opponent
 src/game/narration.ts     the commentator ("Goooool do Brasil!")
 src/lib/                  speech, sfx, audio (recorded lines; none ship yet),

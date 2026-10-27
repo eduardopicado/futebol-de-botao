@@ -5,7 +5,7 @@
 import { say } from '../lib/speech';
 import { read } from '../lib/storage';
 import { LEVELS, type Level } from '../content/computer';
-import { GOALS, SIZES } from '../content/match';
+import { GOALS, RULES, SIZES, type Rule } from '../content/match';
 
 /** how many goals win a match */
 export const goalsToWin = (): number => {
@@ -18,6 +18,15 @@ export const buttonsPerSide = (): number => {
   const n = read<number>('buttons', SIZES[0]);
   return (SIZES as readonly number[]).includes(n) ? n : SIZES[0];
 };
+
+/** the rule a match is played to: 3 Toques or 1 Toque */
+export const matchRule = (): Rule => {
+  const r = read<string>('rule', RULES[0]);
+  return (RULES as readonly string[]).includes(r) ? (r as Rule) : RULES[0];
+};
+
+/** a rule's name, as a player says it */
+export const RULE_NAMES: Record<Rule, string> = { 3: '3 toques', 1: '1 toque' };
 
 /** how well the computer plays */
 export const computerLevel = (): Level => {

@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { KEEPER_W, L, MOUTH, W, keeperFor, type Point } from '../../src/content/botao';
 import { LEVELS, SKILL, decide, placeKeeper, shotFor, wobble, type Level } from '../../src/content/computer';
-import { SIZES, call, clampKeeper, flick, inAttack, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
+import { RULES, SIZES, call, clampKeeper, flick, inAttack, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
 
 /* the same choices on every run */
 function seeded(seed: number): () => number {
@@ -103,6 +103,23 @@ describe('its turn', () => {
     }
   });
 
+  it('at 1 Toque, frees the ball parked between its own buttons', () => {
+    const rand = seeded(5);
+    /* its buttons close round the ball, where a careless flick would leave it parked */
+    const close = (n: number): Match => ({
+      ...newMatch(3, 'b', 4, '1'), phase: 'play', touches: 0, used: [], attack: false, ball: { x: 30 + n, y: 38 },
+      b: [{ x: 23, y: 38 }, { x: 37, y: 38 }, { x: 30, y: 26 }, { x: 50, y: 20 }],
+    });
+    for (const level of LEVELS) {
+      for (let n = 0; n < 4; n += 1) {
+        const m = close(n);
+        const move = decide(m, level, rand);
+        if (move.kind !== 'flick') throw new Error('no shot from here');
+        expect(flick(m, move.button, move.vx, move.vy).event.kind).not.toBe('parked');
+      }
+    }
+  });
+
   it('on easy only shoots straight: no wall', () => {
     /* a defender between the ball and the goal: only a wall shot would do */
     const t = { ball: { x: 18, y: 40 }, us: [{ x: 26, y: 48 }], them: [{ x: 22, y: 28 }], keeper: null };
@@ -133,10 +150,10 @@ describe('its goleiro', () => {
 });
 
 describe('a whole match, the computer against itself', () => {
-  it('is played to the end, with a winner, at every level', () => {
+  for (const rule of RULES) it(`is played to the end, with a winner, at every level, at ${rule} Toque${rule === '1' ? '' : 's'}`, () => {
     for (const level of LEVELS) {
       const rand = seeded(level.length * 7);
-      let m = newMatch(1, 'a');
+      let m = newMatch(1, 'a', 4, rule);
       let flicks = 0;
       while (m.phase !== 'over' && flicks < 400) {
         if (m.phase === 'placing') { m = pronto(m, placeKeeper(m, level, rand)); continue; }

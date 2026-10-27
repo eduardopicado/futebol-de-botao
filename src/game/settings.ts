@@ -14,8 +14,8 @@ import { go } from '../lib/router';
 import { setSfxEnabled } from '../lib/sfx';
 import { write } from '../lib/storage';
 import { LEVELS, type Level } from '../content/computer';
-import { GOALS, SIZES } from '../content/match';
-import { buttonsPerSide, computerLevel, goalsToWin, readAloud, soundsOn } from './choices';
+import { GOALS, RULES, SIZES } from '../content/match';
+import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, readAloud, soundsOn } from './choices';
 import { narrationSelect } from './narration';
 import { TEAMS, label, teamById } from './teams';
 
@@ -79,6 +79,10 @@ export function mount(root: HTMLElement): void {
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'A match is won by' }),
       chips('Goals to win', GOALS.map((g) => ({ value: g, text: `${g} goals` })), goalsToWin(), (g) => write('goals', g))),
+    el('section', { class: 'panel' },
+      el('h2', { class: 'lbl', text: 'The rule' }),
+      chips('Rule', RULES.map((r) => ({ value: r, text: RULE_NAMES[r] })), matchRule(), (r) => write('rule', r)),
+      el('p', { class: 'tag', text: '3 toques: up to three flicks a turn. 1 toque: one flick a turn, and no parking the ball between your own buttons.' })),
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'Buttons a side' }),
       chips('Buttons a side', SIZES.map((n) => ({ value: n, text: `${n} and a goleiro` })), buttonsPerSide(), (n) => write('buttons', n))),

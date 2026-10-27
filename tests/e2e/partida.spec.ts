@@ -188,6 +188,33 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
+  test('1 toque: one flick a turn, and a ball left parked between your own buttons is a free kick to them', async ({ page }) => {
+    const watch = watchPage(page);
+    /* the ball in the gap between two of a's buttons, the note says so */
+    await open(page, chance({
+      rule: '1', attack: false, ball: { x: 33, y: 60 },
+      a: [{ x: 26, y: 60 }, { x: 40, y: 60 }, { x: 33, y: 76 }, ...parked('a').slice(3)],
+    }));
+    await expect(page.locator('.bt-say')).toContainText('one flick');
+    await expect(page.locator('.bt-say')).toContainText('The ball is parked between two of your buttons');
+    await expect(page.locator('.bt-pip')).toHaveCount(1);
+    /* a's far button, nudged: the ball is still parked */
+    await flick(page, 'a', 4, 0, 15);
+    await expect(game(page)).toHaveAttribute('data-event', 'parked', { timeout: 8000 });
+    await expect(page.locator('.bt-say')).toContainText('Parked ball! Free kick to');
+    await expect(game(page)).toHaveAttribute('data-turn', 'b');
+    noProblems(watch);
+  });
+
+  test('1 toque: after a flick that moves the ball, it is the other side\'s turn', async ({ page }) => {
+    const watch = watchPage(page);
+    await open(page, chance({ rule: '1', attack: false, ball: { x: 32, y: 60 }, a: [{ x: 32, y: 72 }, ...parked('a').slice(1)] }));
+    await flick(page, 'a', 0, 0, -40);
+    await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 8000 });
+    await expect(game(page)).toHaveAttribute('data-touches', '0');
+    noProblems(watch);
+  });
+
   test('has no accessibility violations', async ({ page }) => {
     await open(page, chance());
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
