@@ -6,7 +6,8 @@
  * little harder or softer at random. Easy only shoots straight; medium also
  * plays it off the wall; hard also passes to set up a shot. The flicks are
  * still played by the same physics as everyone's, so a computer flick does
- * exactly what the same flick by a finger would.
+ * exactly what the same flick by a finger would. At 1 Toque it never passes,
+ * and it never leaves the ball parked between its own buttons.
  *
  * It decides from the match as it stands (match.ts), on its own turn, and
  * when it has to place its goleiro after the other side calls a shot. Its
@@ -17,7 +18,7 @@ import {
   BALL, L, MOUTH, POST, W, aimAt, keeperFor, oneTouch, passPlan,
   type Flick, type Point, type Table,
 } from './botao';
-import { clampKeeper, flick, inAttack, mayCall, mayFlick, tableFor, type Match } from './match';
+import { clampKeeper, flick, inAttack, mayCall, mayFlick, mustFree, tableFor, type Match } from './match';
 
 export type Level = 'easy' | 'medium' | 'hard';
 export const LEVELS: readonly Level[] = ['easy', 'medium', 'hard'];
@@ -50,6 +51,9 @@ export function wobble(f: Flick, level: Level, rand: Rand): Flick {
 }
 
 const MID = (MOUTH[0] + MOUTH[1]) / 2;
+
+/** the furthest off a flick can come, each way: turned and harder or softer */
+const CORNERS = [[0, 0], [0, 1], [1, 0], [1, 1]] as const;
 
 /** a shot at the goal at the top, from a table where it attacks the top:
     the planner's way to score if there is one, or else the best try, at the
@@ -94,7 +98,7 @@ function worthCalling(t: Table, buttons: readonly number[], level: Level): boole
  * rules; the best is the one that takes the ball furthest up the table and
  * keeps it, with no foul, no goal it did not call and nothing in its own net.
  */
-function advance(m: Match, rand: Rand): Move {
+function advance(m: Match, level: Level, rand: Rand): Move {
   const { table: t, ours } = tableFor(m);
   const b = t.ball;
   const targets = [
@@ -103,30 +107,49 @@ function advance(m: Match, rand: Rand): Move {
     { x: Math.max(8, b.x - 14), y: b.y - 22 },
     { x: Math.min(W - 8, b.x + 14), y: b.y - 22 },
   ];
+  const stuck = mustFree(m);
   let best: { move: Move; score: number } | null = null;
   for (const [k, index] of ours.entries()) {
     if (!mayFlick(m, index)) continue;
-    for (const to of targets) {
-      const aim = aimAt(t, k, to);
-      if (!aim) continue;
-      for (const speed of [45, 70, 95]) {
-        const move = onScreen(m, { button: k, vx: aim.x * speed, vy: aim.y * speed }, index);
-        if (move.kind !== 'flick') continue;
-        const play = flick(m, index, move.vx, move.vy);
-        const e = play.event;
-        /* how far up the table the ball is now, as this side sees it */
-        const up = m.turn === 'a' ? L - play.next.ball.y : play.next.ball.y;
-        let score = up;
-        if (e.kind === 'on') score += 30;
-        if (e.kind === 'turn' && e.why === 'still') score -= 50;
-        if (e.kind === 'turn' && e.why === 'theirs') score -= 20;
-        if (e.kind === 'foul') score -= 200;
-        if (e.kind === 'uncalled') score -= 100;
-        if ((e.kind === 'goal' || e.kind === 'champion') && e.side !== m.turn) score -= 500;
-        /* a little of chance, so it does not always play the same */
-        score += rand() * 4;
-        if (!best || score > best.score) best = { move, score };
+    const p = t.us[k];
+    const d = dist(p, b) || 1;
+    /* at each of the points, at a few speeds; and with the ball parked
+       between two of its own, stepping back off it, which frees it when
+       nothing else gets to it */
+    const flicks = [
+      ...targets.flatMap((to) => {
+        const aim = aimAt(t, k, to);
+        return aim ? [45, 70, 95].map((speed) => ({ vx: aim.x * speed, vy: aim.y * speed })) : [];
+      }),
+      ...(stuck ? [{ vx: (p.x - b.x) / d * 50, vy: (p.y - b.y) / d * 50 }] : []),
+    ];
+    for (const { vx, vy } of flicks) {
+      const move = onScreen(m, { button: k, vx, vy }, index);
+      if (move.kind !== 'flick') continue;
+      const play = flick(m, index, move.vx, move.vy);
+      const e = play.event;
+      /* how far up the table the ball is now, as this side sees it */
+      const up = m.turn === 'a' ? L - play.next.ball.y : play.next.ball.y;
+      let score = up;
+      if (e.kind === 'on') score += 30;
+      if (e.kind === 'turn' && e.why === 'still') score -= 50;
+      if (e.kind === 'turn' && e.why === 'theirs') score -= 20;
+      if (e.kind === 'foul' || e.kind === 'parked') score -= 200;
+      if (e.kind === 'uncalled') score -= 100;
+      if ((e.kind === 'goal' || e.kind === 'champion') && e.side !== m.turn) score -= 500;
+      /* a little of chance, so it does not always play the same */
+      score += rand() * 4;
+      /* at 1 Toque, a flick that would leave the ball parked if it came off
+         a little, as its flicks do, is as bad as one that does */
+      if (m.rule === '1' && e.kind !== 'parked' && (!best || score > best.score)) {
+        const off = CORNERS.some((c) => {
+          let i = 0;
+          const f = wobble({ button: index, vx: move.vx, vy: move.vy }, level, () => c[i++ % 2]);
+          return flick(m, index, f.vx, f.vy).event.kind === 'parked';
+        });
+        if (off) score -= 200;
       }
+      if (!best || score > best.score) best = { move, score };
     }
   }
   if (best) return best.move;
@@ -162,8 +185,9 @@ export function decide(m: Match, level: Level, rand: Rand = Math.random): Move {
     return onScreen(m, f, ours[f.button]);
   }
   if (mayCall(m) && worthCalling(t, may, level)) return { kind: 'call' };
-  /* hard: a pass to a team-mate in front of goal, to shoot from there */
-  if (SKILL[level].passes && inAttack(m.ball, m.turn) && m.touches < 2) {
+  /* hard: a pass to a team-mate in front of goal, to shoot from there (not
+     at 1 Toque, where the other side plays before the shot could) */
+  if (SKILL[level].passes && m.rule === '3' && inAttack(m.ball, m.turn) && m.touches < 2) {
     for (const from of may) {
       for (const to of may) {
         if (from === to) continue;
@@ -172,7 +196,7 @@ export function decide(m: Match, level: Level, rand: Rand = Math.random): Move {
       }
     }
   }
-  const move = advance(m, rand);
+  const move = advance(m, level, rand);
   if (move.kind !== 'flick') return move;
   /* aimed, and then a little off */
   const f = wobble({ button: move.button, vx: move.vx, vy: move.vy }, level, rand);

@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { BALL, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
 import {
-  BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, newMatch, pronto, tableFor,
+  BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mustFree, newMatch, pronto, tableFor,
   type Match, type Side,
 } from '../../src/content/match';
 
@@ -321,5 +321,63 @@ describe('a button in a net', () => {
     const blocked = flick({ ...b1.next, b: b1.next.b.map((p, i) => (i === 1 ? { x: W / 2 + MARKS.penalty[0] / 2, y: R + 0.5 } : p)) }, 4, 10, 0);
     expect(blocked.next.a[0]).toBeNull();
     expect(blocked.next.out).toHaveLength(1);
+  });
+});
+
+describe('1 Toque', () => {
+  /* a's button straight behind the ball, everyone else out of the way */
+  const lined = (): Match => playing({
+    turn: 'a', rule: '1', ball: { x: 32, y: 60 },
+    a: [{ x: 32, y: 72 }, ...parked('a').slice(1)], b: parked('b'),
+  });
+  /* the ball in the gap between two of a's buttons, a third behind it */
+  const stuck = (rule: Match['rule']): Match => playing({
+    turn: 'a', rule, ball: { x: 33, y: 60 },
+    a: [{ x: 26, y: 60 }, { x: 40, y: 60 }, { x: 33, y: 72 }, ...parked('a').slice(3)], b: parked('b'),
+  });
+
+  it('is one flick a turn, then the other side plays', () => {
+    const one = flick(lined(), 0, 0, -40);
+    expect(one.event).toEqual({ kind: 'turn', side: 'b', why: 'touches' });
+    expect(one.next.turn).toBe('b');
+  });
+
+  it('still kicks off with two flicks', () => {
+    const first = flick(newMatch(3, 'a', 5, '1'), 4, 0, -12);
+    expect(first.event).toEqual({ kind: 'on', left: 1 });
+  });
+
+  it('starts with 3 Toques unless asked', () => {
+    expect(newMatch(3, 'a').rule).toBe('3');
+    expect(lined().rule).toBe('1');
+  });
+
+  it('the ball parked between two of yours: your flick has to free it, or it is a free kick to them from there', () => {
+    const m = stuck('1');
+    expect(mustFree(m)).toBe(true);
+    /* a far button, nudged: the ball stays parked */
+    const left = flick(m, 4, -10, 0);
+    expect(left.event).toEqual({ kind: 'parked', side: 'b' });
+    expect(left.next.turn).toBe('b');
+    expect(left.next.ball).toEqual(m.ball);
+    /* one of the two moved away frees it, even with the ball left where it is */
+    const freed = flick(m, 0, -40, 0);
+    expect(freed.event).toEqual({ kind: 'turn', side: 'b', why: 'still' });
+    expect(mustFree({ ...freed.next, turn: 'a' })).toBe(false);
+  });
+
+  it('three of yours boxing the ball in after your flick: a free kick to them straight away', () => {
+    const m = playing({
+      turn: 'a', rule: '1', ball: { x: 33, y: 56 },
+      a: [{ x: 26, y: 60 }, { x: 40, y: 60 }, { x: 33, y: 48 }, ...parked('a').slice(3)], b: parked('b'),
+    });
+    expect(mustFree(m)).toBe(false);
+    expect(flick(m, 4, -10, 0).event).toEqual({ kind: 'parked', side: 'b' });
+  });
+
+  it('is not a rule of 3 Toques', () => {
+    const m = stuck('3');
+    expect(mustFree(m)).toBe(false);
+    expect(flick(m, 4, -10, 0).event).toEqual({ kind: 'turn', side: 'b', why: 'still' });
   });
 });

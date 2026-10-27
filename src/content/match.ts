@@ -28,7 +28,18 @@
  *   turn of its side, then comes back on that goal line where the penalty
  *   area meets it, on the right as its own side sees it, once that spot is
  *   free (Art. 28, 29).
- * - The ball never goes out: the rim keeps it in. No offside. */
+ * - The ball never goes out: the rim keeps it in. No offside.
+ *
+ * Or a match is played to 1 Toque, from the CBFM's 1 Toque rulebook
+ * (v2.1.2, 2010), with everything else as above:
+ *
+ * - One flick a turn, then it is the other side's (Art. 8 §3); the kick-off
+ *   is still two (Art. 15). A shot is called as before, from a turn that
+ *   starts with the ball in the attacking half (Art. 21 §3).
+ * - No parking the ball. Two of your buttons less than a button apart with
+ *   the ball between them: your next flick has to free it. Three of yours
+ *   boxing it in, after your flick: straight away. Either way, a free kick
+ *   to the other side from where the ball is (Art. 8 §10–12, Art. 63). */
 
 import { BALL, KEEPER_W, L, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
 
@@ -45,6 +56,11 @@ export const KICKOFF_TOUCHES = 2;
 export const CIRCLE = 8;
 /** how many goals win: the first is the one a match starts with */
 export const GOALS = [3, 5, 10] as const;
+/** the rule a match is played to: 3 Toques, or 1 Toque; the first is the one a match starts with */
+export const RULES = ['3', '1'] as const;
+export type Rule = (typeof RULES)[number];
+/** flicks in a turn, by the rule */
+export const touchesFor = (rule: Rule): number => (rule === '1' ? 1 : TOUCHES);
 /** a flick that moves the ball less than this has not moved it */
 const STILL = 0.3;
 /** at a free kick, the fouling side's buttons stand at least this far from the ball */
@@ -77,6 +93,7 @@ export interface Match {
   goals: number;
   /** buttons a side, besides the goleiro */
   size: number;
+  rule: Rule;
   turn: Side;
   /** counts turns, for when a button that went out comes back */
   turnNo: number;
@@ -99,6 +116,8 @@ export type Event =
   | { kind: 'uncalled'; side: Side; couldCall: boolean }
   /** `side` was fouled and has the free kick, or the penalty */
   | { kind: 'foul'; side: Side; penalty: boolean }
+  /** 1 Toque: the other side parked the ball between its own buttons, and `side` has the free kick */
+  | { kind: 'parked'; side: Side }
   /** the kick-off did not leave the circle: again */
   | { kind: 'retake'; side: Side }
   /** the turn passes to `side` */
@@ -175,15 +194,57 @@ function lineUp(m: Match, side: Side): void {
   m.attack = false;
 }
 
-export function newMatch(goals: number, first: Side, size = BUTTONS): Match {
+export function newMatch(goals: number, first: Side, size = BUTTONS, rule: Rule = RULES[0]): Match {
   const m: Match = {
     ball: { ...MIDDLE }, a: [], b: [], keepers: { a: W / 2, b: W / 2 }, out: [],
-    score: { a: 0, b: 0 }, goals, size, turn: first, turnNo: 0, phase: 'kickoff', penalty: false,
+    score: { a: 0, b: 0 }, goals, size, rule, turn: first, turnNo: 0, phase: 'kickoff', penalty: false,
     touches: 0, used: [], attack: false, winner: null,
   };
   lineUp(m, first);
   return m;
 }
+
+/* ── 1 Toque: no parking the ball ──────────────────────────────────────── */
+
+/** two buttons count as parking the ball when the gap between them is less
+    than a button is wide (6 cm on a table whose buttons are 6 cm) */
+const PARK = 4 * R;
+
+/** is the ball wholly in the gap between two of these buttons, close together? */
+function between2(ball: Point, p: Point, q: Point): boolean {
+  const d = dist(p, q);
+  if (d >= PARK || d === 0) return false;
+  const [ux, uy] = [(q.x - p.x) / d, (q.y - p.y) / d];
+  const along = (ball.x - p.x) * ux + (ball.y - p.y) * uy;
+  const across = Math.abs((ball.x - p.x) * uy - (ball.y - p.y) * ux);
+  return along > 0 && along < d && across <= R - BALL;
+}
+
+/** is the ball inside the triangle of three of these buttons, all close together? */
+function between3(ball: Point, p: Point, q: Point, r: Point): boolean {
+  if (dist(p, q) >= PARK || dist(q, r) >= PARK || dist(r, p) >= PARK) return false;
+  const side = (a: Point, b: Point): number => (b.x - a.x) * (ball.y - a.y) - (b.y - a.y) * (ball.x - a.x);
+  const [s1, s2, s3] = [side(p, q), side(q, r), side(r, p)];
+  return (s1 > 0 && s2 > 0 && s3 > 0) || (s1 < 0 && s2 < 0 && s3 < 0);
+}
+
+const live = (ps: (Point | null)[]): Point[] => ps.flatMap((p) => (p ? [p] : []));
+const pairs = <T>(xs: T[]): [T, T][] => xs.flatMap((x, i) => xs.slice(i + 1).map((y): [T, T] => [x, y]));
+
+/** is the ball parked between two of these buttons? */
+const parkedBy2 = (ball: Point, buttons: (Point | null)[]): boolean =>
+  pairs(live(buttons)).some(([p, q]) => between2(ball, p, q));
+
+/** is the ball boxed in by three of these buttons? */
+const parkedBy3 = (ball: Point, buttons: (Point | null)[]): boolean => {
+  const ps = live(buttons);
+  return ps.some((p, i) => pairs(ps.slice(i + 1)).some(([q, r]) => between3(ball, p, q, r)));
+};
+
+/** 1 Toque: the side to play has the ball parked between two of its own
+    buttons, so its flick has to free it */
+export const mustFree = (m: Match): boolean =>
+  m.rule === '1' && (m.phase === 'play' || m.phase === 'shot') && parkedBy2(m.ball, m[m.turn]);
 
 /** may this button make the next flick? At a kick-off, the second flick is by another button */
 export const mayFlick = (m: Match, button: number): boolean =>
@@ -411,9 +472,15 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
   }
 
   if (m.phase === 'penalty') { pass(next, you); return result({ kind: 'turn', side: you, why: 'penalty' }); }
+  /* 1 Toque: the ball left parked between two of yours that was parked there
+     before the flick, or boxed in by three of yours: a free kick to them */
+  if ((mustFree(m) && parkedBy2(next.ball, next[me])) || (m.rule === '1' && parkedBy3(next.ball, next[me]))) {
+    freeKick(next, you, next.ball);
+    return result({ kind: 'parked', side: you });
+  }
   if (dist(next.ball, m.ball) < STILL) { pass(next, you); return result({ kind: 'turn', side: you, why: 'still' }); }
   if (theirsLast) { pass(next, you); return result({ kind: 'turn', side: you, why: 'theirs' }); }
-  if (next.touches >= TOUCHES) { pass(next, you); return result({ kind: 'turn', side: you, why: 'touches' }); }
+  if (next.touches >= touchesFor(m.rule)) { pass(next, you); return result({ kind: 'turn', side: you, why: 'touches' }); }
   next.phase = 'play';
-  return result({ kind: 'on', left: TOUCHES - next.touches });
+  return result({ kind: 'on', left: touchesFor(m.rule) - next.touches });
 }

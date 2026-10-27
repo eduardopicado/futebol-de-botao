@@ -43,6 +43,20 @@ test.describe('Settings', () => {
     noProblems(watch);
   });
 
+  test('the rule: 3 toques unless 1 toque is picked, and the match says which', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.getByRole('button', { name: '3 toques' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: '1 toque' }).click();
+    expect(await page.evaluate(() => localStorage.getItem('fdb:rule'))).toBe('"1"');
+    await page.getByRole('button', { name: 'Back to the start' }).click();
+    await page.getByRole('link', { name: '👥 2 players' }).click();
+    await page.getByRole('button', { name: '▶ Kick off' }).click();
+    await expect(page.locator('.toss')).toContainText('1 toque');
+    noProblems(watch);
+  });
+
   test('the words are read aloud, unless that is turned off', async ({ page }) => {
     await recordSpeech(page);
     await page.goto('/#/treino');

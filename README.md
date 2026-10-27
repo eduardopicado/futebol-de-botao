@@ -34,12 +34,14 @@ shows a **New version! Tap to update** button.
 - **Picking teams:** every match starts by picking each side's team, from
   the World Cup winners, the big clubs and two made-up sides; the side at the
   top may be "Anyone". The picks are kept for next time.
-- **Settings (⚙):** goals to win (3, 5 or 10), four or five buttons a side,
-  how well the computer plays, the commentator (Português, English or none),
-  sound effects, reading the words aloud, and a crest for any team from your
-  own photos.
+- **Settings (⚙):** goals to win (3, 5 or 10), the rule (3 toques or
+  1 toque), four or five buttons a side, how well the computer plays, the
+  commentator (Português, English or none), sound effects, reading the words
+  aloud, and a crest for any team from your own photos.
 
-The rules are a simple version of the CBFM's 3 Toques (the regra carioca);
+The rules are a simple version of the CBFM's 3 Toques (the regra carioca),
+or of its 1 Toque (once the regra baiana): one flick a turn, and no parking
+the ball between your own buttons.
 [`src/content/match.ts`](src/content/match.ts) lists them.
 
 ## Develop

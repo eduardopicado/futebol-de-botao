@@ -8,7 +8,8 @@
  * too when they have to place their goleiro.
  *
  * A coin toss picks who kicks off. Then each turn is up to three flicks with
- * any buttons; a shot has to be called with "A gol!", in a turn that started
+ * any buttons (at 1 Toque, one flick, and the note warns when the ball is
+ * parked between the buttons of the side to play); a shot has to be called with "A gol!", in a turn that started
  * in the attacking half, and the defender slides their goleiro along the
  * line and taps Pronto before it is taken. Fouls give free kicks, or a
  * penalty in the area. When the turn passes, the note says whose it is and
@@ -30,11 +31,11 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, TOUCHES, call, clampKeeper, flick, mayCall, mayFlick, newMatch, other, pronto,
+  KICKOFF_TOUCHES, call, clampKeeper, flick, mayCall, mayFlick, mustFree, newMatch, other, pronto, touchesFor,
   type Event, type Match, type Side,
 } from '../content/match';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
-import { buttonsPerSide, computerLevel, goalsToWin, speak } from './choices';
+import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
 import { narrate } from './narration';
 import { label, ourTeam, rivalFor, type Team } from './teams';
 
@@ -74,7 +75,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
   const callBtn = el('button', { class: 'btn small call', type: 'button', text: '📣 A gol!' });
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 
-  let m: Match = newMatch(goalsToWin(), 'a', buttonsPerSide());
+  let m: Match = newMatch(goalsToWin(), 'a', buttonsPerSide(), matchRule());
   /* a flick, a pause or the toss is under way: no finger does anything */
   let busy = true;
   /* the goleiro being placed, where the finger has slid it so far */
@@ -113,7 +114,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
     node.dataset.turn = m.turn;
     node.dataset.phase = m.phase;
     node.dataset.touches = String(m.touches);
-    const most = m.phase === 'kickoff' ? KICKOFF_TOUCHES : m.phase === 'penalty' || m.phase === 'shot' ? 1 : TOUCHES;
+    const most = m.phase === 'kickoff' ? KICKOFF_TOUCHES : m.phase === 'penalty' || m.phase === 'shot' ? 1 : touchesFor(m.rule);
     const used = m.phase === 'penalty' || m.phase === 'shot' ? 0 : m.touches;
     pips.replaceChildren(...Array.from({ length: most }, (_, i) => el('span', { class: `bt-pip${i < used ? ' used' : ''}` })));
     pips.setAttribute('aria-label', `${used} of ${most} touches used`);
@@ -138,9 +139,10 @@ function match(root: HTMLElement, computer: boolean): () => void {
         tell(`${lead}Kick-off: ${t}. Two flicks, by two different buttons, and the ball has to leave the circle.`, m.turn);
         break;
       case 'play': {
-        const left = TOUCHES - m.touches;
-        const count = m.touches === 0 ? `${t} to play: three touches.` : `${t}: ${left} ${left === 1 ? 'touch' : 'touches'} left.`;
-        tell(`${lead}${count}${mayCall(m) ? ' Shooting? Call it first!' : ''}`, m.turn, ...(mayCall(m) && !busy && m.turn !== cpu ? [callBtn] : []));
+        const left = touchesFor(m.rule) - m.touches;
+        const count = m.rule === '1' ? `${t} to play: one flick.` : m.touches === 0 ? `${t} to play: three touches.` : `${t}: ${left} ${left === 1 ? 'touch' : 'touches'} left.`;
+        const free = mustFree(m) ? ' The ball is parked between two of your buttons: free it with this flick, or it is a free kick to them.' : '';
+        tell(`${lead}${count}${free}${mayCall(m) ? ' Shooting? Call it first!' : ''}`, m.turn, ...(mayCall(m) && !busy && m.turn !== cpu ? [callBtn] : []));
         break;
       }
       case 'placing':
@@ -214,13 +216,21 @@ function match(root: HTMLElement, computer: boolean): () => void {
         await wait(1800);
         return;
       }
+      case 'parked': {
+        sfx.whistle();
+        const why = `Parked ball! Free kick to ${name(event.side)}: the ball was left between the other side's own buttons.`;
+        speak(why);
+        render(why);
+        await wait(2200);
+        return;
+      }
       case 'retake':
         sfx.whistle();
         render('The ball has to leave the circle: kick off again.');
         await wait(1600);
         return;
       case 'turn': {
-        const shotWords = event.why === 'penalty' ? (saved ? 'Saved!' : 'Missed!') : called ? (saved ? 'Saved!' : 'No goal.') : WHY[event.why];
+        const shotWords = event.why === 'penalty' ? (saved ? 'Saved!' : 'Missed!') : called ? (saved ? 'Saved!' : 'No goal.') : event.why === 'touches' && m.rule === '1' ? '' : WHY[event.why];
         render(shotWords);
         /* the handover: nothing can be flicked for a moment */
         await wait(HANDOVER);
@@ -320,14 +330,14 @@ function match(root: HTMLElement, computer: boolean): () => void {
     overlay.replaceChildren(el('div', { class: 'toss' },
       el('span', { class: 'coin', 'aria-hidden': 'true', text: '🪙' }),
       el('p', { text: `Kick-off: ${name(first)}!` }),
-      el('p', { class: 'toss-to', text: `First to ${goalsToWin()} goals` })));
+      el('p', { class: 'toss-to', text: `First to ${goalsToWin()} goals · ${RULE_NAMES[m.rule]}` })));
     overlay.removeAttribute('hidden');
     node.dataset.phase = 'toss';
     tell('Coin toss…', 'a');
     sfx.whistle();
     await wait(1800);
     overlay.setAttribute('hidden', '');
-    m = newMatch(goalsToWin(), first, m.size);
+    m = newMatch(goalsToWin(), first, m.size, m.rule);
     speak(`Kick-off: ${teams[first].name}!`);
     busy = false;
     render('');
@@ -366,7 +376,7 @@ function match(root: HTMLElement, computer: boolean): () => void {
   const setup = read<Partial<Match> | null>('match-setup', null);
   if (setup && typeof setup === 'object') {
     write('match-setup', null);
-    m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a', setup.a?.length ?? buttonsPerSide()), ...setup };
+    m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a', setup.a?.length ?? buttonsPerSide(), matchRule()), ...setup };
     board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length });
     busy = false;
     render('');
