@@ -36,12 +36,14 @@
  * - One flick a turn, then it is the other side's (Art. 8 §3); the kick-off
  *   is still two (Art. 15). A shot is called as before, from a turn that
  *   starts with the ball in the attacking half (Art. 21 §3).
+ * - The goleiro may stand anywhere in its small area, off its line too: placed
+ *   when a shot is called, and moved on its own side's turn (Art. 10).
  * - No parking the ball. Two of your buttons less than a button apart with
  *   the ball between them: your next flick has to free it. Three of yours
  *   boxing it in, after your flick: straight away. Either way, a free kick
  *   to the other side from where the ball is (Art. 8 §10–12, Art. 63). */
 
-import { BALL, KEEPER_W, L, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
+import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
 
 export type Side = 'a' | 'b';
 export const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
@@ -87,6 +89,9 @@ export interface Match {
   b: (Point | null)[];
   /** where each goleiro stands across its goal line: a's at the bottom, b's at the top */
   keepers: Record<Side, number>;
+  /** how far each goleiro stands off its line: 0 on it (1 Toque lets it come
+      out, anywhere in its small area) */
+  keepersOut: Record<Side, number>;
   out: Out[];
   score: Record<Side, number>;
   /** goals to win */
@@ -173,6 +178,8 @@ export function tableFor(m: Match): { table: Table; ours: number[]; theirs: numb
       them: theirs.map((i) => put(m[you][i]!)),
       keeper: across(m.keepers[you]),
       home: across(m.keepers[me]),
+      keeperOut: m.keepersOut[you],
+      homeOut: m.keepersOut[me],
     },
     ours,
     theirs,
@@ -184,6 +191,7 @@ function lineUp(m: Match, side: Side): void {
   m.a = formation('a', side === 'a', m.size);
   m.b = formation('b', side === 'b', m.size);
   m.keepers = { a: W / 2, b: W / 2 };
+  m.keepersOut = { a: 0, b: 0 };
   m.out = [];
   m.turn = side;
   m.turnNo += 1;
@@ -196,7 +204,7 @@ function lineUp(m: Match, side: Side): void {
 
 export function newMatch(goals: number, first: Side, size = BUTTONS, rule: Rule = RULES[0]): Match {
   const m: Match = {
-    ball: { ...MIDDLE }, a: [], b: [], keepers: { a: W / 2, b: W / 2 }, out: [],
+    ball: { ...MIDDLE }, a: [], b: [], keepers: { a: W / 2, b: W / 2 }, keepersOut: { a: 0, b: 0 }, out: [],
     score: { a: 0, b: 0 }, goals, size, rule, turn: first, turnNo: 0, phase: 'kickoff', penalty: false,
     touches: 0, used: [], attack: false, winner: null,
   };
@@ -261,10 +269,28 @@ export function call(m: Match): Match {
   return { ...m, phase: 'placing' };
 }
 
+/** where a goleiro may stand: on its line between the posts, or at 1 Toque
+    anywhere in its small area (Art. 10) */
+export function placeGoleiro(rule: Rule, x: number, out = 0): { x: number; out: number } {
+  if (rule === '3') return { x: clampKeeper(x), out: 0 };
+  return { x: Math.min(W / 2 + KEEPER_SPAN, Math.max(W / 2 - KEEPER_SPAN, x)), out: Math.min(KEEPER_OUT, Math.max(0, out)) };
+}
+
 /** Pronto: the defender's goleiro stands there, and the shot (or the penalty) may be taken */
-export function pronto(m: Match, x: number): Match {
+export function pronto(m: Match, x: number, out = 0): Match {
   if (m.phase !== 'placing') return m;
-  return { ...m, keepers: { ...m.keepers, [other(m.turn)]: clampKeeper(x) }, phase: m.penalty ? 'penalty' : 'shot' };
+  const at = placeGoleiro(m.rule, x, out);
+  const you = other(m.turn);
+  return { ...m, keepers: { ...m.keepers, [you]: at.x }, keepersOut: { ...m.keepersOut, [you]: at.out }, phase: m.penalty ? 'penalty' : 'shot' };
+}
+
+/** 1 Toque: on its own turn a side may move its goleiro anywhere in its small area (Art. 10 §4) */
+export const mayMoveGoleiro = (m: Match): boolean => m.rule === '1' && m.phase === 'play';
+
+export function moveGoleiro(m: Match, x: number, out: number): Match {
+  if (!mayMoveGoleiro(m)) return m;
+  const at = placeGoleiro(m.rule, x, out);
+  return { ...m, keepers: { ...m.keepers, [m.turn]: at.x }, keepersOut: { ...m.keepersOut, [m.turn]: at.out } };
 }
 
 /* ── moving things about between turns ─────────────────────────────────── */
@@ -410,7 +436,7 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
   };
   const frames = shot.frames.map(scene);
   const end = frames[frames.length - 1];
-  const next: Match = { ...m, ball: end.ball, a: end.a.map((p) => (p ? { ...p } : null)), b: end.b.map((p) => (p ? { ...p } : null)), out: [...m.out], used: [...m.used, button], touches: m.touches + 1, keepers: { ...m.keepers }, score: { ...m.score } };
+  const next: Match = { ...m, ball: end.ball, a: end.a.map((p) => (p ? { ...p } : null)), b: end.b.map((p) => (p ? { ...p } : null)), out: [...m.out], used: [...m.used, button], touches: m.touches + 1, keepers: { ...m.keepers }, keepersOut: { ...m.keepersOut }, score: { ...m.score } };
   const result = (event: Event): Play => ({ frames, bumps: shot.bumps.map(({ what, frame }) => ({ what, frame })), goal: shot.goal || shot.own, next, event });
 
   /* a button that went into a net is out of play. The nets are as deep as a

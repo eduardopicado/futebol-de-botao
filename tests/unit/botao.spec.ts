@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  BALL, KEEPER_W, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
+  BALL, KEEPER_OUT, KEEPER_W, KEEPER_Y, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
   angles, flickFor, keeperFor, oneTouch, passPlan, robust, shownBounce, simulate, slant,
   type Point, type Table,
 } from '../../src/content/botao';
@@ -200,6 +200,19 @@ describe('the goleiro', () => {
       expect(k - KEEPER_W / 2).toBeGreaterThan(MOUTH[0]);
       expect(k + KEEPER_W / 2).toBeLessThan(MOUTH[1]);
     }
+  });
+
+  it('off its line, it stops a shot that would have gone past it on the line', () => {
+    /* from the left, across the face of goal into the far side of the net */
+    const ball = { x: 20, y: 20 };
+    const [ux, uy] = [Math.SQRT1_2, -Math.SQRT1_2];
+    const button = { x: ball.x - ux * (R + BALL + 0.5), y: ball.y - uy * (R + BALL + 0.5) };
+    const shot = (keeperOut: number) => simulate(table(ball, [button], { keeper: 28, keeperOut }), { button: 0, vx: ux * 100, vy: uy * 100 });
+    expect(shot(0).goal).toBe(true);
+    const out = shot(KEEPER_OUT);
+    expect(out.goal).toBe(false);
+    expect(out.bumps.some((b) => b.what === 'keeper')).toBe(true);
+    expect(KEEPER_OUT + KEEPER_Y[1]).toBe(MARKS.box[1]);
   });
 });
 
