@@ -114,5 +114,6 @@ src/assets/tray.webp      the wooden tray, cut from the design handoff
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
                           squads, storage, sfx, speech, crests
 tests/e2e/                Playwright, real finger drags through the table's viewBox
-.claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
+.claude/skills/           grill-me and grilling (mattpocock/skills, MIT); be-ambitious
+                          (DannyMac180/skills, MIT)
 ```
