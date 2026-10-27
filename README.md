@@ -26,7 +26,8 @@ shows a **New version! Tap to update** button.
   that started in the other half), and the other player slides their goleiro
   along the line and taps **Pronto**. Fouls give free kicks, or a penalty in
   the area. The note above the table (beside it, with the iPad held sideways)
-  turns to face whoever has to act.
+  turns to face whoever has to act. After a goal, **↺ Replay** plays the move
+  that scored again, at half speed.
 - **Pênaltis:** a penalty shootout, against the computer or two on one iPad.
   Five kicks each, then a kick each until one side scores and the other does
   not: the defender places their goleiro and taps **Pronto**, and the taker
