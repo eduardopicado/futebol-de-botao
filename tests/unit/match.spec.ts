@@ -2,9 +2,10 @@
    and winning, for both sides. */
 
 import { describe, expect, it } from 'vitest';
-import { BALL, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
+import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
 import {
-  BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mustFree, newMatch, pronto, tableFor,
+  BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
+  newMatch, other, placeGoleiro, pronto, tableFor,
   kicked, newShootout, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
   type Match, type Shootout, type Side,
 } from '../../src/content/match';
@@ -380,6 +381,40 @@ describe('1 Toque', () => {
     const m = stuck('3');
     expect(mustFree(m)).toBe(false);
     expect(flick(m, 4, -10, 0).event).toEqual({ kind: 'turn', side: 'b', why: 'still' });
+  });
+});
+
+describe('the goleiro at 1 Toque', () => {
+  it('stands anywhere in its small area; at 3 Toques only on its line, between the posts', () => {
+    expect(placeGoleiro('3', 2, 3)).toEqual({ x: clampKeeper(2), out: 0 });
+    expect(placeGoleiro('1', 32, 2)).toEqual({ x: 32, out: 2 });
+    expect(placeGoleiro('1', -10, 99)).toEqual({ x: W / 2 - KEEPER_SPAN, out: KEEPER_OUT });
+    expect(placeGoleiro('1', 99, -3)).toEqual({ x: W / 2 + KEEPER_SPAN, out: 0 });
+  });
+
+  it('placed off its line when a shot is called, and the physics sees it there, either way up', () => {
+    for (const side of ['a', 'b'] as const) {
+      const m = call(playing({ turn: side, rule: '1', ball: side === 'a' ? { x: 32, y: 30 } : { x: 32, y: L - 30 } }));
+      const ready = pronto(m, 30, 2.5);
+      expect(ready.keepersOut[other(side)]).toBe(2.5);
+      expect(tableFor(ready).table.keeperOut).toBe(2.5);
+      expect(tableFor(ready).table.homeOut).toBe(0);
+      /* at 3 Toques the same Pronto keeps it on the line */
+      expect(pronto({ ...m, rule: '3' }, 30, 2.5).keepersOut[other(side)]).toBe(0);
+    }
+  });
+
+  it('moved by its own side on its turn, and only at 1 Toque, in play', () => {
+    const m = playing({ turn: 'a', rule: '1' });
+    expect(mayMoveGoleiro(m)).toBe(true);
+    const moved = moveGoleiro(m, 26, 3);
+    expect(moved.keepers.a).toBe(26);
+    expect(moved.keepersOut.a).toBe(3);
+    expect(moved.keepers.b).toBe(m.keepers.b);
+    expect(moveGoleiro({ ...m, rule: '3' }, 26, 3)).toEqual({ ...m, rule: '3' });
+    expect(moveGoleiro({ ...m, phase: 'shot' }, 26, 3)).toEqual({ ...m, phase: 'shot' });
+    /* back on the line at the next kick-off */
+    expect(newMatch(3, 'a', 4, '1').keepersOut).toEqual({ a: 0, b: 0 });
   });
 });
 

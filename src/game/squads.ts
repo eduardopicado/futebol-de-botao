@@ -2,8 +2,9 @@
  *
  * Every real team comes with six of its men's squad as of October 2026 (the
  * national teams from their September/October call-ups, the clubs from their
- * 2026–27 squads): the goleiro, two at the back, two in midfield and one up
- * front, each with his squad number. Squads change; anyone can put their own
+ * 2026–27 squads, checked against the clubs' own pages and announcements
+ * where they could be read): the goleiro, two at the back, two in midfield
+ * and one up front, each with his squad number. Squads change; anyone can put their own
  * names and numbers on any team in the settings, kept on this device, and
  * those win. You and the Rivals come with numbers only.
  *
@@ -38,10 +39,10 @@ export const SQUADS: Record<string, Player[]> = {
   barcelona: squad([1, 'Joan García'], [5, 'Pau Cubarsí'], [23, 'Jules Koundé'], [8, 'Pedri'], [21, 'Frenkie de Jong'], [10, 'Lamine Yamal']),
   bayern: squad([1, 'Manuel Neuer'], [3, 'Kim Min-jae'], [19, 'Alphonso Davies'], [6, 'Joshua Kimmich'], [10, 'Jamal Musiala'], [9, 'Harry Kane']),
   psg: squad([39, 'Matvey Safonov'], [2, 'Achraf Hakimi'], [5, 'Marquinhos'], [17, 'Vitinha'], [87, 'João Neves'], [10, 'Ousmane Dembélé']),
-  'man-united': squad([1, 'Senne Lammens'], [4, 'Matthijs de Ligt'], [6, 'Lisandro Martínez'], [8, 'Bruno Fernandes'], [37, 'Kobbie Mainoo'], [9, 'Marcus Rashford']),
-  'man-city': squad([1, 'Gianluigi Donnarumma'], [3, 'Rúben Dias'], [6, 'Marc Guéhi'], [17, 'Enzo Fernández'], [47, 'Phil Foden'], [9, 'Erling Haaland']),
+  'man-united': squad([1, 'Senne Lammens'], [4, 'Matthijs de Ligt'], [6, 'Lisandro Martínez'], [8, 'Bruno Fernandes'], [37, 'Kobbie Mainoo'], [10, 'Matheus Cunha']),
+  'man-city': squad([1, 'Gianluigi Donnarumma'], [3, 'Rúben Dias'], [6, 'Marc Guéhi'], [5, 'Elliot Anderson'], [47, 'Phil Foden'], [9, 'Erling Haaland']),
   liverpool: squad([1, 'Alisson Becker'], [4, 'Virgil van Dijk'], [30, 'Jeremie Frimpong'], [8, 'Dominik Szoboszlai'], [7, 'Florian Wirtz'], [9, 'Alexander Isak']),
-  chelsea: squad([1, 'Emiliano Martínez'], [24, 'Reece James'], [6, 'Levi Colwill'], [10, 'Cole Palmer'], [25, 'Moisés Caicedo'], [7, 'Pedro Neto']),
+  chelsea: squad([1, 'Robert Sánchez'], [24, 'Reece James'], [6, 'Levi Colwill'], [10, 'Cole Palmer'], [25, 'Moisés Caicedo'], [7, 'Pedro Neto']),
   arsenal: squad([1, 'David Raya'], [2, 'William Saliba'], [6, 'Gabriel Magalhães'], [8, 'Martin Ødegaard'], [41, 'Declan Rice'], [7, 'Bukayo Saka']),
   juventus: squad([1, 'Kamil Grabara'], [3, 'Bremer'], [20, 'Andrea Cambiaso'], [5, 'Manuel Locatelli'], [8, 'Teun Koopmeiners'], [10, 'Kenan Yıldız']),
 };

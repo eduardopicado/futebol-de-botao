@@ -52,8 +52,9 @@ shows a **New version! Tap to update** button.
   it, and a goal says who scored, the commentator too.
 
 The rules are a simple version of the CBFM's 3 Toques (the regra carioca),
-or of its 1 Toque (once the regra baiana): one flick a turn, and no parking
-the ball between your own buttons.
+or of its 1 Toque (once the regra baiana): one flick a turn, the goleiro free
+to move anywhere in its small area, and no parking the ball between your own
+buttons.
 [`src/content/match.ts`](src/content/match.ts) lists them.
 
 ## Develop
