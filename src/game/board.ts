@@ -134,6 +134,8 @@ export function makeBoard(life: Life, label: string): Board {
         const p = s[side][i];
         const out = benched.findIndex((b) => b.side === side && b.index === i);
         g.classList.toggle('out', !p);
+        /* not playing and not on the bench (a shootout's other buttons): not drawn */
+        g.style.display = !p && out < 0 ? 'none' : '';
         if (p) {
           at(g, p);
           g.dataset.x = p.x.toFixed(3);

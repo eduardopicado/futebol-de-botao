@@ -74,9 +74,10 @@ src/content/botao.ts      the table, the physics of a flick, the three-touch rul
 src/content/match.ts      a match: turns (three free touches, or one at 1 Toque),
                           "A gol!" and the goleiro, fouls and penalties, the
                           parked ball (1 Toque), kick-off, buttons in a net,
-                          winning
+                          winning; and a penalty shootout
 src/content/computer.ts   the computer: its moves, when it calls "A gol!", where it
-                          stands its goleiro, and how far off it is at each level
+                          stands its goleiro (a guess, in a shootout), and how far
+                          off it is at each level
 src/content/treino.ts     Treino's set-ups, each with a way to score from it
 src/content/commentary.ts what the commentator shouts, both languages
 src/game/table.ts         the table drawn: tray, felt, lines, goals, buttons
@@ -86,11 +87,14 @@ src/game/partida.ts       a match on the screen, two players or one against the
                           computer: the toss, the note that turns to face whoever
                           has to act, "A gol!" and Pronto, the goal replayed,
                           full time
+src/game/penaltis.ts      Pênaltis: a penalty shootout, two players or one
+                          against the computer
 src/game/treino.ts        Treino: three touches, free shooting, Show me
 src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
 src/game/choices.ts       what the settings chose, read where a game needs it
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
-src/game/home.ts          the start screen: 1 player, 2 players, Treino, and ⚙
+src/game/home.ts          the start screen: 1 player, 2 players, Pênaltis, Treino,
+                          and ⚙
 src/game/pick.ts          picking the teams before a match, kept for next time,
                           and a crest for the team picked
 src/game/shirts.ts        a team as a shirt to tap, and the button that gives a
