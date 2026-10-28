@@ -13,9 +13,9 @@ import { el } from '../lib/dom';
 import { go } from '../lib/router';
 import { setSfxEnabled } from '../lib/sfx';
 import { write } from '../lib/storage';
-import { LEVELS, type Level } from '../content/computer';
+import { LEVELS } from '../content/computer';
 import { GOALS, RULES, SIZES } from '../content/match';
-import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, readAloud, soundsOn } from './choices';
+import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, readAloud, soundsOn } from './choices';
 import { narrationSelect } from './narration';
 import { crestButton, redrawShirts, shirtTile } from './shirts';
 import { POSITIONS, SQUADS, changedSquad, resetSquad, setPlayer, squadOf } from './squads';
@@ -41,8 +41,6 @@ function toggle(text: string, now: boolean, set: (on: boolean) => void): HTMLEle
   box.addEventListener('change', () => set(box.checked));
   return el('label', { class: 'check' }, box, text);
 }
-
-const LEVEL_NAMES: Record<Level, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 
 export function mount(root: HTMLElement): void {
   const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Back to the start', text: '←' });
