@@ -233,9 +233,9 @@ select {
    a flick. So the game screen is exactly the screen's height, and the table
    is as big as the room left for it (container units: the stage is the
    container). svh where there is one, so an iPhone's toolbar is counted. */
-body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"], body[data-route="penaltis-1"], body[data-route="penaltis-2"], body[data-route="copa-jogo"] { overflow: hidden; }
+body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"], body[data-route="penaltis-1"], body[data-route="penaltis-2"], body[data-route="copa-jogo"], body[data-route="how-to-play"] { overflow: hidden; }
 body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route="computador"] .app, body[data-route="goleiro"] .app,
-body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[data-route="copa-jogo"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[data-route="copa-jogo"] .app, body[data-route="how-to-play"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
 .game {
   height: 100%; margin: 0 auto;
   display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 6px;
@@ -418,6 +418,8 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .home h1 { font-size: clamp(38px, 10vw, 64px); }
 .home-tag { margin: -6px 0 6px; font: 700 clamp(16px, 4vw, 20px) var(--reading); color: var(--on-deep-soft); }
 .home .settings-btn { position: absolute; top: 0; right: 0; }
+.home-how { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; font: 700 17px var(--reading); }
+.home-how.offer { width: min(100%, 340px); padding: 8px 14px; border-radius: var(--radius); background: rgba(8, 32, 28, .78); border: 2px solid rgba(243, 178, 41, .5); }
 .home .modes { display: grid; gap: 14px; width: min(100%, 340px); }
 .btn.big { font-size: 26px; padding: 16px 40px; min-height: 64px; text-decoration: none; display: grid; place-items: center; }
 .btn.big.ghost { box-shadow: none; background: rgba(8, 32, 28, .6); }
@@ -504,3 +506,11 @@ label.btn input[type="file"] { position: absolute; top: 0; left: 0; width: 1px; 
 .copa-trophy .trophy { font-size: 84px; line-height: 1; margin: 0; }
 .copa-trophy p, .copa-out p { margin: 0; }
 .copa-again, .copa-tally { justify-content: center; text-align: center; margin-top: 10px; }
+
+/* ── How to play: a step's words on the note, and the table showing them ── */
+.guide-note { display: grid; justify-items: center; gap: 6px; padding: 10px 16px; }
+.guide-title { margin: 0; font: 800 clamp(20px, 4.4vw, 26px) / 1.1 var(--display); color: var(--ink); }
+.guide-words { margin: 0; font: 700 clamp(14px, 3.4vw, 18px) / 1.3 var(--reading); }
+.guide-now { margin: 0; min-height: 1.3em; font: 800 clamp(15px, 3.6vw, 19px) / 1.3 var(--display); color: #8A4B00; }
+.guide-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.guide-count { margin: 0; font: 700 14px var(--reading); color: var(--on-deep-soft); }

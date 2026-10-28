@@ -40,4 +40,10 @@ export const PACE = {
   shotAim: 550,
   pass: 600,
   result: 1300,
+  /** How to play: before a demo starts, a flick's arrow shown, a goleiro
+      sliding across, and after each thing it shows */
+  demoStart: 900,
+  demoAim: 1200,
+  demoSlide: 600,
+  demoAfter: 900,
 } as const;
