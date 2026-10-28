@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 /** Collects console errors and any request that leaves the app's own origin.
  *  Both are failures: the definition of done says zero console errors and no
  *  network requests to any other domain. */
-export function watchPage(page: Page): { errors: string[]; external: string[] } {
+export function watchPage(page: Page, origin = 'http://localhost:4173'): { errors: string[]; external: string[] } {
   const errors: string[] = [];
   const external: string[] = [];
   /* with the address it was about, since "Failed to load resource" alone
@@ -16,7 +16,7 @@ export function watchPage(page: Page): { errors: string[]; external: string[] } 
   page.on('pageerror', (e) => errors.push(String(e.message)));
   page.on('request', (r) => {
     const url = r.url();
-    if (!url.startsWith('http://localhost:4173') && !url.startsWith('data:') && !url.startsWith('blob:')) {
+    if (!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:')) {
       external.push(url);
     }
   });
