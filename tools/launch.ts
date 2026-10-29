@@ -69,6 +69,39 @@ export const mediaOf = (d: Device, o: Orientation): string =>
 export const launchLinks = (): string =>
   DEVICES.flatMap((d) => ORIENTATIONS.map((o) => `<link rel="apple-touch-startup-image" media="${mediaOf(d, o)}" href="./${launchFile(d, o)}">`)).join('\n  ');
 
+/** where make:launch keeps what each image shows, for the launch test to compare */
+export const DRAWN = 'tools/launch-drawn.json';
+
+/**
+ * What the start screen draws, and where: every visible thing on the board,
+ * the desk and the title, as its box to the pixel, its words, its colours
+ * and font, and the pictures it shows. Run in the page (so it uses nothing
+ * from outside it). Unlike the pixels, which differ a little from one build
+ * of Chromium to the next, this is the same wherever it is rendered, and it
+ * changes when the screen does: a word, a colour, a picture, a move.
+ */
+export function drawn(): string[] {
+  const out: string[] = [];
+  const name = (url: string): string => url.replace(/^url\(["']?|["']?\)$/g, '').replace(/^.*\//, '');
+  for (const e of document.querySelectorAll('.scene, .scene *, .app, .app *')) {
+    const s = getComputedStyle(e);
+    const box = e.getBoundingClientRect();
+    if (s.display === 'none' || s.visibility === 'hidden' || Number(s.opacity) === 0 || box.width === 0 || box.height === 0) continue;
+    const words = [...e.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent?.trim()).filter(Boolean).join(' ');
+    const pictures = [s.backgroundImage, e.getAttribute('href') ?? '', e.getAttribute('src') ?? '']
+      .filter((p) => p && p !== 'none').map(name).join(' ');
+    /* the words with their colour and font; a background only where there is one */
+    const background = s.backgroundColor === 'rgba(0, 0, 0, 0)' ? '' : s.backgroundColor;
+    out.push([
+      `${e.tagName.toLowerCase()}${e.getAttribute('class') ? `.${e.getAttribute('class')!.trim().split(/\s+/).join('.')}` : ''}`,
+      [box.x, box.y, box.width, box.height].map(Math.round).join(','),
+      words ? `"${words}" ${s.color} ${s.fontFamily.split(',')[0]} ${s.fontWeight} ${s.fontSize}` : '',
+      background, pictures,
+    ].filter(Boolean).join(' | '));
+  }
+  return out;
+}
+
 /** the start screen made into a launch image: nothing to tap, and the space iOS keeps clear */
 export function launchStyle(d: Device, o: Orientation): string {
   /* an iPad keeps its status bar held sideways; an iPhone hides it, and its notch goes to the side */
