@@ -18,5 +18,5 @@
     "noUncheckedIndexedAccess": false,
     "types": ["vite/client", "vite-plugin-pwa/client", "vitest/globals"]
   },
-  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts"]
+  "include": ["src", "tests", "tools", "vite.config.ts", "playwright.config.ts"]
 }
