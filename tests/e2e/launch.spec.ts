@@ -4,11 +4,28 @@
  * (tools/launch-drawn.json), so a changed start screen fails here until they
  * are made again (npm run build && npm run make:launch). Compared that way,
  * not by the pixels, which differ a little from one build of Chromium to the
- * next. */
+ * next; and the boxes within a few pixels, since a build's text can come out
+ * a few pixels wider or narrower than another's. The words, colours, fonts
+ * and pictures must be the same. */
 
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { DEVICES, DRAWN, ORIENTATIONS, drawn, launchFile, launchStyle, mediaOf, screenOf } from '../../tools/launch.ts';
+
+/** how far a box may be from where it was, in points: CI's Chromium sets text up to 5 wider */
+const NEAR = 6;
+
+/** what differs between two lists of things drawn: anything but a box a few points out */
+function differences(now: string[], then: string[]): string[] {
+  if (now.length !== then.length) return [`${then.length} things drawn, now ${now.length}`];
+  return now.flatMap((row, i) => {
+    const [a, b] = [row.split(' | '), then[i].split(' | ')];
+    const [boxA, boxB] = [a[1].split(',').map(Number), b[1].split(',').map(Number)];
+    const same = a.length === b.length && a.every((part, k) => k === 1 || part === b[k])
+      && boxA.every((n, k) => Math.abs(n - boxB[k]) <= NEAR);
+    return same ? [] : [`was: ${then[i]}`, `now: ${row}`];
+  });
+}
 
 test.describe('Launch images', () => {
   test('every one is linked, for its own screen held its own way, and is that screen\'s exact size', async ({ page }) => {
@@ -45,7 +62,7 @@ test.describe('Launch images', () => {
         await page.evaluate(() => document.fonts.ready);
         const now = await page.evaluate(drawn);
         await context.close();
-        expect(now, `${launchFile(d, o)} no longer shows the start screen as it is: npm run build && npm run make:launch`).toEqual(saved[launchFile(d, o)]);
+        expect(differences(now, saved[launchFile(d, o)]), `${launchFile(d, o)} no longer shows the start screen as it is: npm run build && npm run make:launch`).toEqual([]);
       }
     }
   });
