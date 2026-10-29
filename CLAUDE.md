@@ -122,6 +122,8 @@ src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
 src/assets/tray.webp      the wooden tray, cut from the design handoff
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
                           squads, the Copa, the guide's demos, storage, sfx, speech, crests
-tests/e2e/                Playwright, real finger drags through the table's viewBox
+tests/e2e/                Playwright, real finger drags through the table's viewBox;
+                          a screen that will not open (router), and a new version
+                          found and swapped in by the real offline worker (update)
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```
