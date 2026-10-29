@@ -6,14 +6,19 @@
  * them. */
 
 import { el } from '../lib/dom';
+import { lifetime } from '../lib/life';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 
+/** the app opened on the start screen, and it has not been shown yet: the flick plays then (intro.ts) */
+let opening = (location.hash.replace(/^#\/?/, '') || 'home') === 'home';
+
 /** the guide has been opened, or turned down, on this device */
 export const GUIDE_SEEN = 'guide-seen';
 
-export function mount(root: HTMLElement): void {
+export function mount(root: HTMLElement): () => void {
+  const life = lifetime();
   const one = el('a', { class: 'btn big', href: '#/teams-1', text: '🤖 1 player' });
   const two = el('a', { class: 'btn big', href: '#/teams-2', text: '👥 2 players' });
   const cup = el('a', { class: 'btn big', href: '#/copa', text: '🏆 Copa' });
@@ -39,9 +44,14 @@ export function mount(root: HTMLElement): void {
     modes.after(later);
   });
   offer.append(no);
+  const title = el('h1', {}, 'Futebol de ', el('span', { class: 'swash', text: 'Botão' }));
   root.append(el('div', { class: 'home' },
     settings,
-    el('h1', {}, 'Futebol de ', el('span', { class: 'swash', text: 'Botão' })),
+    title,
     el('p', { class: 'home-tag', text: 'Flick your buttons. Three touches a turn. Call "A gol!" to shoot.' }),
     ...(seen ? [modes, later] : [offer, modes])));
+  /* the flick, as the app opens (intro.ts): fetched after the screen is up, so nothing waits for it */
+  if (opening) void import('./intro').then((intro) => intro.flick(title, life)).catch(() => undefined);
+  opening = false;
+  return () => life.end();
 }
