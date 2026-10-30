@@ -47,6 +47,9 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
   router also cancels speech and stops sound effects on the way out.
 - Test at iPad Safari sizes (820×1180 both ways) and 375px wide. Zero console
   errors.
+- The launch images (what iOS shows while the app starts) are the start
+  screen with nothing to tap. Change the start screen and make them again:
+  `npm run build && npm run make:launch`; the launch test fails until then.
 
 ## Commands
 
@@ -55,9 +58,10 @@ npm run dev        # local dev server
 npm run build      # typecheck, then build to dist/
 npm run test:unit  # physics, planner, the match's rules, set-ups, shared code
 npm test           # unit tests, then the Playwright suite
+npm run make:launch  # by hand: the launch images, from the built app, into public/launch/
 ```
 
-CI runs all of these on every pull request and push, the browser tests as one
+CI runs all of these but make:launch on every pull request and push, the browser tests as one
 job per device (WebKit too). GitHub Pages deploys only after CI has passed on
 a push to `main` (`.github/workflows/deploy.yml`).
 
@@ -125,5 +129,8 @@ tests/unit/               physics, planner, the match's rules, the computer, set
 tests/e2e/                Playwright, real finger drags through the table's viewBox;
                           a screen that will not open (router), and a new version
                           found and swapped in by the real offline worker (update)
+tools/launch.ts           the launch images: each iPad's and iPhone's screen, and
+                          the links to them (the build puts them in index.html)
+tools/make-launch.ts      renders them from the built app into public/launch/
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```

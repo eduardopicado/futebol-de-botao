@@ -15,6 +15,10 @@ The iPad keeps running the old version of an app added this way until it is
 closed and opened again, sometimes twice. When a new version is ready the app
 shows a **New version! Tap to update** button.
 
+While it starts, the iPad shows the start screen until the buttons appear.
+An iPad that had the app before shows it once the app is removed and added
+to the Home Screen again: iOS keeps the picture it was given then.
+
 ## What is here so far
 
 - **1 player:** a match against the computer, which thinks, shows its arrow

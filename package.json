@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test:unit": "vitest run tests/unit",
     "test": "vitest run tests/unit && playwright test",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "make:launch": "node --experimental-strip-types --no-warnings=ExperimentalWarning tools/make-launch.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

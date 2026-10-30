@@ -1,6 +1,7 @@
 /* vitest's defineConfig is vite's with the `test` block typed as well */
 import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
+import { launchLinks } from './tools/launch.ts';
 
 /**
  * The rule "nothing leaves the device" made a promise the browser keeps.
@@ -35,12 +36,19 @@ const contentSecurityPolicy = {
     html.replace('<meta charset="utf-8">', `<meta charset="utf-8">\n  <meta http-equiv="Content-Security-Policy" content="${POLICY}">`),
 };
 
+/** the launch images (tools/launch.ts), linked from index.html for iOS to find */
+const launchImages = {
+  name: 'launch-images',
+  transformIndexHtml: (html: string): string => html.replace('<!-- launch images -->', launchLinks()),
+};
+
 export default defineConfig({
   /* relative, so the same build works from a domain root, a GitHub Pages
      project path or a folder on a USB stick */
   base: './',
   plugins: [
     contentSecurityPolicy,
+    launchImages,
     VitePWA({
       /* the iPad keeps the old version until the app is reopened, sometimes
          twice, so a new one says so and waits for a tap (src/lib/update.ts) */
