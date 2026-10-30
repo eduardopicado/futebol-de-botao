@@ -107,6 +107,8 @@ src/game/choices.ts       what the settings chose, read where a game needs it
 src/game/scene.ts         the desk round the table (the pictures in src/assets/)
 src/game/home.ts          the start screen: 1 player, 2 players, Copa, Pênaltis,
                           Treino, How to play (offered the first time), and ⚙
+src/game/intro.ts         the flick along the title's line as the app opens: once,
+                          never in the way, not under Reduce Motion
 src/game/pick.ts          picking the teams before a match (or your team for a
                           Copa), kept for next time, and a crest for the team picked
 src/game/shirts.ts        a team as a shirt to tap, and the button that gives a
