@@ -22,3 +22,15 @@ export const PT_CHAMPIONS = ['É campeão!', 'É campeão! É campeão!'];
 
 /** the match won, in English */
 export const enChampion = (team?: string): string => (team ? `${team} are the champions!` : 'Champions!');
+
+/** a shot off the post that stayed out, in Portuguese and in English */
+export const PT_POSTS = ['Na trave!', 'No pau!', 'Bateu na trave!'];
+export const EN_POSTS = ['Off the post!', 'Hit the post!'];
+
+/** a shot that just missed, in Portuguese and in English */
+export const PT_CLOSE = ['Quase!', 'Passou raspando!'];
+export const EN_CLOSE = ['So close!', 'Just wide!'];
+
+/** a goal into a side's own net, in Portuguese and in English */
+export const PT_OWN_GOALS = ['Gol contra!'];
+export const EN_OWN_GOALS = ['Own goal!'];

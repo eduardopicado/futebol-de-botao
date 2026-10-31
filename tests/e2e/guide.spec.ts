@@ -89,6 +89,8 @@ test.describe('How to play', () => {
   test('moving on in the middle of a demo stops it: nothing of it reaches the next step', async ({ page }) => {
     const watch = watchPage(page);
     await page.goto('/#/how-to-play');
+    /* the guide on the screen first: a key pressed before it is there goes nowhere */
+    await expect(page.locator('.guide-count')).toHaveText(/^1 of /);
     for (let i = 0; i < 4; i += 1) await page.keyboard.press('ArrowRight');
     await expect(page.locator('.guide-title')).toHaveText('Fouls');
     /* the foul under way: its arrow shown, then the flick playing */

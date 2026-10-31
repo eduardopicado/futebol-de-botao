@@ -33,7 +33,9 @@ import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clipId, speakable } from '../src/lib/clip-id.ts';
-import { EN_SAVES, PT_CHAMPIONS, PT_SAVES, enChampion, enGoal, ptGoals } from '../src/content/commentary.ts';
+import {
+  EN_CLOSE, EN_OWN_GOALS, EN_POSTS, EN_SAVES, PT_CHAMPIONS, PT_CLOSE, PT_OWN_GOALS, PT_POSTS, PT_SAVES, enChampion, enGoal, ptGoals,
+} from '../src/content/commentary.ts';
 import { TEAMS, real } from '../src/game/teams.ts';
 
 const OUT = join(process.cwd(), 'public', 'audio');
@@ -60,10 +62,10 @@ export function clips(): Clip[] {
     if (key && !out.has(key)) out.set(key, { text: text.trim(), voice });
   };
   /* in English a real team is named, a made-up side is not */
-  for (const line of [...EN_SAVES, enGoal(), enChampion()]) add(line, 'en');
+  for (const line of [...EN_SAVES, ...EN_POSTS, ...EN_CLOSE, ...EN_OWN_GOALS, enGoal(), enChampion()]) add(line, 'en');
   for (const t of TEAMS.filter(real)) for (const line of [enGoal(t.name), enChampion(t.name)]) add(line, 'en');
   /* in Portuguese a team with its article ("do Brasil"), or none */
-  for (const line of [...PT_SAVES, ...ptGoals(), ...PT_CHAMPIONS]) add(line, 'pt-commentator');
+  for (const line of [...PT_SAVES, ...PT_POSTS, ...PT_CLOSE, ...PT_OWN_GOALS, ...ptGoals(), ...PT_CHAMPIONS]) add(line, 'pt-commentator');
   for (const t of TEAMS) if (t.pt) for (const line of ptGoals(t.pt)) add(line, 'pt-commentator');
   return [...out.values()].sort((a, b) => speakable(a.text).localeCompare(speakable(b.text)));
 }

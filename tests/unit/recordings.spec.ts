@@ -7,6 +7,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { MODEL, VOICES, brazilianProblem, clips, fetchRetrying, ttsRequest } from '../../tools/make-audio';
 import { clipId } from '../../src/lib/clip-id';
 import { EN_SAVES, PT_SAVES, enGoal, ptGoals } from '../../src/content/commentary';
+import { callFor, type Moment } from '../../src/game/narration';
+import { TEAMS } from '../../src/game/teams';
 
 const AUDIO = 'public/audio';
 const mp3s = (dir: string): string[] => readdirSync(dir).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).sort();
@@ -23,11 +25,26 @@ describe('the commentator\'s recordings', () => {
     expect(mp3s(AUDIO).filter((id) => !ids.has(id))).toEqual([]);
   });
 
-  it('every goal and save is recorded, for every team, both ways; the champions not yet', () => {
+  it('every line he says is recorded, for every team, both ways', () => {
     const have = new Set(mp3s(AUDIO));
-    const missing = clips().filter((c) => !have.has(clipId(c.text))).map((c) => c.text);
-    expect(missing.filter((line) => !/campeão|champions/i.test(line))).toEqual([]);
+    expect(clips().filter((c) => !have.has(clipId(c.text))).map((c) => c.text)).toEqual([]);
     for (const line of [...ptGoals('do Brasil'), ...ptGoals(), enGoal('Brazil'), enGoal(), ...PT_SAVES, ...EN_SAVES]) expect(have.has(clipId(line)), line).toBe(true);
+  });
+
+  it('the tool knows every line the game can have him say, so none is left to the device voice', () => {
+    const known = new Set(clips().map((c) => c.text));
+    const moments: Moment[] = ['goal', 'save', 'champion', 'post', 'close', 'own-goal'];
+    const unknown = new Set<string>();
+    /* each of up to four lines a moment picks from, for every team, both ways */
+    for (const r of [0.1, 0.4, 0.7, 0.95]) {
+      vi.spyOn(Math, 'random').mockReturnValue(r);
+      for (const moment of moments) for (const team of TEAMS) for (const lang of ['pt', 'en'] as const) {
+        const line = callFor(moment, team, lang);
+        if (!known.has(line)) unknown.add(line);
+      }
+    }
+    vi.restoreAllMocks();
+    expect([...unknown]).toEqual([]);
   });
 
   it('English in English, Portuguese in the commentator\'s Brazilian voice', () => {

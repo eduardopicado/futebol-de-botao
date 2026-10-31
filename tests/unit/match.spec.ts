@@ -6,7 +6,7 @@ import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouc
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
-  kicked, newShootout, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
+  kicked, missed, newShootout, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
   type Match, type Shootout, type Side,
 } from '../../src/content/match';
 
@@ -461,4 +461,50 @@ describe('a penalty shootout', () => {
       expect(scoredFrom(flick(ready, 0, 0, taker === 'a' ? 30 : -30), taker)).toBe(false);
     }
   });
+});
+
+describe('a shot that missed, for the commentator', () => {
+  /** side's shot called from the edge of the area, the ball sent towards x on
+      the end line it attacks, the goleiro by the far post */
+  function shotAt(side: Side, x: number): ReturnType<typeof flick> {
+    const a = side === 'a';
+    const put = a ? (p: Point): Point => p : turned;
+    const ball = { x: W / 2, y: 26 };
+    const d = dist(ball, { x, y: 0 });
+    const dir = { x: (x - ball.x) / d, y: -ball.y / d };
+    const me = { x: ball.x - dir.x * (R + BALL + 4), y: ball.y - dir.y * (R + BALL + 4) };
+    const m = call(playing({
+      turn: side, ball: put(ball),
+      a: a ? [me, ...parked('a').slice(1)] : parked('a'),
+      b: a ? parked('b') : [turned(me), ...parked('b').slice(1)],
+    }));
+    const keeper = MOUTH[1] - KEEPER_W / 2;
+    return flick(pronto(m, a ? keeper : W - keeper), 0, (a ? 1 : -1) * dir.x * 80, (a ? 1 : -1) * dir.y * 80);
+  }
+
+  for (const side of ['a', 'b'] as const) {
+    it(`side ${side}: off the post and out is the post; in off the post is a goal, no miss at all`, () => {
+      const out = shotAt(side, MOUTH[0] - 1);
+      expect(out.goal).toBe(false);
+      expect(missed(out, side)).toBe('post');
+      const inOff = shotAt(side, MOUTH[0] + 2);
+      expect(inOff.bumps.map((b) => b.what)).toContain('post');
+      expect(inOff.goal).toBe(true);
+      expect(missed(inOff, side)).toBeNull();
+    });
+
+    it(`side ${side}: just outside a post is close; further out is not, and nor is a ball back from the corner`, () => {
+      expect(missed(shotAt(side, MOUTH[0] - 4), side)).toBe('close');
+      expect(missed(shotAt(side, MOUTH[0] - 9), side)).toBeNull();
+      /* into the corner, back along the end past the post */
+      const corner = shotAt(side, MOUTH[0] - 15);
+      const seen = corner.frames.map((f) => (side === 'a' ? f.ball : turned(f.ball)));
+      expect(seen.some((p) => p.y <= BALL * 2 && p.x > MOUTH[0] - 6 && p.x < MOUTH[0])).toBe(true);
+      expect(missed(corner, side)).toBeNull();
+    });
+
+    it(`side ${side}: at the goleiro is a save`, () => {
+      expect(missed(shotAt(side, MOUTH[1] - 3), side)).toBe('save');
+    });
+  }
 });

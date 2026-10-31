@@ -572,3 +572,27 @@ export function penaltyFor(taker: Side): Match {
 /** did this flick at a shootout kick score? */
 export const scoredFrom = (play: Play, taker: Side): boolean =>
   (play.event.kind === 'goal' || play.event.kind === 'champion') && play.event.side === taker && !play.event.own;
+
+/** how far outside a post a shot can reach the end and still be close, in units (about two balls across) */
+const CLOSE = 6;
+
+/**
+ * What a shot by `side` that did not go in was, for the commentator: saved
+ * by the goleiro, off a post, close (where the ball first reached the end it
+ * attacks was just outside a post), or none of those. Only where it first
+ * got there: a ball sent into the corner that comes back along the end
+ * passes the posts too, and that was no near thing.
+ */
+export function missed(play: Play, side: Side): 'save' | 'post' | 'close' | null {
+  if (play.goal) return null;
+  const hit = (what: Bump): boolean => play.bumps.some((b) => b.what === what);
+  if (hit('keeper')) return 'save';
+  if (hit('post')) return 'post';
+  const end = side === 'a' ? 0 : L;
+  const first = play.frames.findIndex((f) => Math.abs(f.ball.y - end) <= BALL * 2);
+  /* never there, or there already before the flick */
+  if (first <= 0) return null;
+  const { x } = play.frames[first].ball;
+  const out = x < MOUTH[0] ? MOUTH[0] - x : x > MOUTH[1] ? x - MOUTH[1] : 0;
+  return out > 0 && out <= CLOSE ? 'close' : null;
+}

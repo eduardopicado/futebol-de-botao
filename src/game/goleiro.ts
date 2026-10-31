@@ -134,7 +134,9 @@ export function mount(root: HTMLElement): () => void {
     } else {
       saves += 1;
       savesEl.textContent = String(saves);
-      narrate('save', us, () => undefined, life.later);
+      /* off the post, he says so; anything else that stayed out is your save */
+      const post = shot.bumps.some((b) => b.what === 'post') && !shot.bumps.some((b) => b.what === 'home');
+      narrate(post ? 'post' : 'save', post ? them : us, () => undefined, life.later);
       sfx.right();
       tell(shot.bumps.some((b) => b.what === 'home') ? 'Defendeu! What a save!' : 'Saved! It did not go in.');
       node.dataset.result = 'save';

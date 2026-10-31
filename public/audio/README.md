@@ -2,9 +2,10 @@
 
 ## What is here
 
-- **The commentator** (`*.mp3`, listed in `clips.json`): every goal and save
-  he shouts, for every team, in Portuguese and in English. "É campeão!" and
-  "… are the champions!" are not recorded yet.
+- **The commentator** (`*.mp3`, listed in `clips.json`): everything he
+  shouts, in Portuguese and in English. That is every goal, for every team;
+  the saves; "Na trave!" off the post; "Quase!" just wide; "Gol contra!";
+  and "É campeão!".
 - **The sound effects** (`sfx/*.mp3`, listed in `sfx/sfx.json` with how loud
   each one plays): cheer, win, whistle, crowd, kick, clack, post, move, take
   and roll.

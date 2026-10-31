@@ -89,7 +89,9 @@ src/content/botao.ts      the table, the physics of a flick, the three-touch rul
 src/content/match.ts      a match: turns (three free touches, or one at 1 Toque),
                           "A gol!" and the goleiro, fouls and penalties, the
                           parked ball (1 Toque), kick-off, buttons in a net,
-                          winning; and a penalty shootout
+                          winning; a penalty shootout; and what a shot that
+                          missed was (saved, off the post, close), for the
+                          commentator
 src/content/computer.ts   the computer: its moves, when it calls "A gol!", where it
                           stands its goleiro (a guess, in a shootout), and how far
                           off it is at each level
@@ -129,7 +131,7 @@ src/game/settings.ts      the settings: goals to win, the rule, buttons a side,
 src/game/teams.ts         the teams, their flags and kits; rivalFor picks the opponent
 src/game/squads.ts        the players: each real team's six (men's squads, October
                           2026), numbers and names, changed by anyone on the device
-src/game/narration.ts     the commentator ("Goooool do Brasil!")
+src/game/narration.ts     the commentator ("Goooool do Brasil!", "Na trave!")
 src/game/confetti.ts      confetti in the winners' colours, over a win
 src/game/pace.ts          how long the game waits between things, in one place
 src/lib/                  speech, sfx, audio (the commentator's recorded lines),
