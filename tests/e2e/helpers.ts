@@ -57,6 +57,8 @@ export async function recordSpeech(page: Page, langs: string[] = []): Promise<vo
   await page.addInitScript((extra) => {
     const spoken: { text: string; lang: string }[] = [];
     (window as unknown as { __said: typeof spoken }).__said = spoken;
+    const w = window as unknown as { __heard?: string[] };
+    const order = (w.__heard ??= []);
     class FakeUtterance {
       text: string; lang = ''; rate = 1; pitch = 1; volume = 1; voice: { lang: string } | null = null;
       onend: (() => void) | null = null; onerror: (() => void) | null = null;
@@ -71,7 +73,7 @@ export async function recordSpeech(page: Page, langs: string[] = []): Promise<vo
       value: {
         getVoices: () => voices,
         speak: (u: FakeUtterance) => {
-          if (u.text) spoken.push({ text: u.text, lang: u.voice?.lang ?? u.lang });
+          if (u.text) { spoken.push({ text: u.text, lang: u.voice?.lang ?? u.lang }); order.push(u.text); }
           current = u;
           window.setTimeout(() => { if (current === u) { current = null; u.onend?.(); } }, 0);
         },
@@ -91,24 +93,33 @@ export const said = async (page: Page): Promise<string[]> => (await heard(page))
 export const heard = (page: Page): Promise<{ text: string; lang: string }[]> =>
   page.evaluate(() => [...(window as unknown as { __said: { text: string; lang: string }[] }).__said]);
 
-/** a recording played is written down, by the file asked for, and ends at once */
-export async function recordPlays(page: Page): Promise<void> {
-  await page.addInitScript(() => {
+/** a recording played is written down, by the file asked for, and ends at
+    once, or after `ms` as a real one would */
+export async function recordPlays(page: Page, ms = 20): Promise<void> {
+  await page.addInitScript((lasts) => {
     const plays: string[] = [];
     (window as unknown as { __plays: string[] }).__plays = plays;
+    const w = window as unknown as { __heard?: string[] };
+    const order = (w.__heard ??= []);
     HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
       /* src, the file just asked for: currentSrc still names the last one
          until the new one loads */
       plays.push(this.src || this.currentSrc);
-      window.setTimeout(() => this.dispatchEvent(new Event('ended')), 20);
+      if (this.src) order.push(this.src);
+      window.setTimeout(() => this.dispatchEvent(new Event('ended')), lasts);
       return Promise.resolve();
     };
-  });
+  }, ms);
 }
 
 /** the recordings played so far, by the address of each */
 export const plays = (page: Page): Promise<string[]> =>
   page.evaluate(() => [...(window as unknown as { __plays: string[] }).__plays]);
+
+/** what was said and played so far, in the order it was: the words said, and
+    the address of each recording played (with recordSpeech and recordPlays) */
+export const inOrder = (page: Page): Promise<string[]> =>
+  page.evaluate(() => [...((window as unknown as { __heard?: string[] }).__heard ?? [])]);
 
 /** save these on the device before the app starts, once per tab: the offline
  *  worker reloads the page when it first takes over, and a seed that ran

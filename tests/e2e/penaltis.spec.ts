@@ -5,10 +5,10 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { expectTapTargets, heard, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
+import { expectTapTargets, heard, inOrder, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
 import { KEEPER_Y, L, MARKS, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
 import type { Shootout, Side } from '../../src/content/match';
-import { enGoal, ptGoals } from '../../src/content/commentary';
+import { PT_CHAMPIONS, enGoal, ptGoals } from '../../src/content/commentary';
 import { clipId } from '../../src/lib/clip-id';
 import { SQUADS } from '../../src/game/squads';
 
@@ -209,7 +209,8 @@ test.describe('Pênaltis', () => {
     test('on the deciding kick: his goal, the name, and then "É campeão!", none cut short', async ({ page }) => {
       const watch = watchPage(page);
       await recordSpeech(page, ['pt-BR']);
-      await recordPlays(page);
+      /* each recording as long as a real goal, longer than the pause after a kick */
+      await recordPlays(page, 2500);
       /* as above: 3 – 1 after four each, the computer's goleiro by its left post */
       await page.addInitScript(() => { Math.random = () => 0.1; });
       await seed(page, { 'team-a': 'brazil', 'team-b': 'argentina', 'shootout-setup': partWay('a', [true, false, true, true, false, false, true, false]) });
@@ -220,7 +221,13 @@ test.describe('Pênaltis', () => {
       await expect(game(page)).toHaveAttribute('data-winner', 'a', { timeout: 10000 });
       await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
       const { text } = (await name(page))!;
-      await expect.poll(async () => (await said(page)).slice(-2)).toEqual([text, 'É campeão!']);
+      /* "É campeão!" recorded where it was, and said where not; after the
+         name, with nothing in between */
+      const champion = (s: string): boolean => PT_CHAMPIONS.some((line) => s === line || s.endsWith(`/audio/${clipId(line)}.mp3`));
+      await expect.poll(async () => champion((await inOrder(page)).at(-1) ?? '')).toBe(true);
+      const all = await inOrder(page);
+      expect(all.at(-2)).toBe(text);
+      expect(ptGoals('do Brasil').some((line) => all.at(-3)?.endsWith(`/audio/${clipId(line)}.mp3`))).toBe(true);
       noProblems(watch);
     });
   });
