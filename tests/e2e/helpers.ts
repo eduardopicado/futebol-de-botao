@@ -51,24 +51,27 @@ export async function expectTapTargets(page: Page, selector: string): Promise<vo
   expect(small, 'tap targets under 40px').toEqual([]);
 }
 
-/** a speech engine that writes down what it says, so a test can hear it too */
-export async function recordSpeech(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const spoken: string[] = [];
-    (window as unknown as { __said: string[] }).__said = spoken;
+/** a speech engine that writes down what it says, so a test can hear it too:
+ *  an Australian voice, and one for each of `langs` as well */
+export async function recordSpeech(page: Page, langs: string[] = []): Promise<void> {
+  await page.addInitScript((extra) => {
+    const spoken: { text: string; lang: string }[] = [];
+    (window as unknown as { __said: typeof spoken }).__said = spoken;
     class FakeUtterance {
-      text: string; lang = ''; rate = 1; pitch = 1; volume = 1; voice: unknown = null;
+      text: string; lang = ''; rate = 1; pitch = 1; volume = 1; voice: { lang: string } | null = null;
       onend: (() => void) | null = null; onerror: (() => void) | null = null;
       constructor(text: string) { this.text = text; }
     }
+    const voices = [{ name: 'Karen', lang: 'en-AU', localService: true, default: true, voiceURI: 'karen' },
+      ...extra.map((lang) => ({ name: lang, lang, localService: true, default: false, voiceURI: lang }))];
     Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: FakeUtterance });
     let current: FakeUtterance | null = null;
     Object.defineProperty(window, 'speechSynthesis', {
       configurable: true,
       value: {
-        getVoices: () => [{ name: 'Karen', lang: 'en-AU', localService: true, default: true, voiceURI: 'karen' }],
+        getVoices: () => voices,
         speak: (u: FakeUtterance) => {
-          if (u.text) spoken.push(u.text);
+          if (u.text) spoken.push({ text: u.text, lang: u.voice?.lang ?? u.lang });
           current = u;
           window.setTimeout(() => { if (current === u) { current = null; u.onend?.(); } }, 0);
         },
@@ -78,12 +81,34 @@ export async function recordSpeech(page: Page): Promise<void> {
         addEventListener: () => undefined,
       },
     });
-  });
+  }, langs);
 }
 
 /** everything said so far */
-export const said = (page: Page): Promise<string[]> =>
-  page.evaluate(() => [...(window as unknown as { __said: string[] }).__said]);
+export const said = async (page: Page): Promise<string[]> => (await heard(page)).map((s) => s.text);
+
+/** everything said so far, with the language of the voice that said it */
+export const heard = (page: Page): Promise<{ text: string; lang: string }[]> =>
+  page.evaluate(() => [...(window as unknown as { __said: { text: string; lang: string }[] }).__said]);
+
+/** a recording played is written down, by the file asked for, and ends at once */
+export async function recordPlays(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const plays: string[] = [];
+    (window as unknown as { __plays: string[] }).__plays = plays;
+    HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
+      /* src, the file just asked for: currentSrc still names the last one
+         until the new one loads */
+      plays.push(this.src || this.currentSrc);
+      window.setTimeout(() => this.dispatchEvent(new Event('ended')), 20);
+      return Promise.resolve();
+    };
+  });
+}
+
+/** the recordings played so far, by the address of each */
+export const plays = (page: Page): Promise<string[]> =>
+  page.evaluate(() => [...(window as unknown as { __plays: string[] }).__plays]);
 
 /** save these on the device before the app starts, once per tab: the offline
  *  worker reloads the page when it first takes over, and a seed that ran

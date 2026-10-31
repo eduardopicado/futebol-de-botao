@@ -100,8 +100,9 @@ describe('recorded sounds', () => {
 
   it('plays the recording where one was made, and the made sound where not', async () => {
     serve({ 'sfx.json': { cheer: 0.5 }, 'cheer.mp3': { seconds: 1.5 } });
-    const { sfx, loadSfx } = await import('../../src/lib/sfx');
+    const { sfx, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
     await loadSfx();
+    await unlockSfx();
     sfx.cheer();
     expect(FakeSource.made).toHaveLength(1);
     expect(FakeSource.made[0].buffer).toEqual({ duration: 1.5 });
@@ -113,8 +114,9 @@ describe('recorded sounds', () => {
 
   it('loops the crowd for as long as asked, and leaving the game stops it', async () => {
     serve({ 'sfx.json': { crowd: 0.25 }, 'crowd.mp3': { seconds: 8 } });
-    const { sfx, loadSfx, hushSfx } = await import('../../src/lib/sfx');
+    const { sfx, loadSfx, hushSfx, unlockSfx } = await import('../../src/lib/sfx');
     await loadSfx();
+    await unlockSfx();
     sfx.crowd(5);
     const [crowd] = FakeSource.made;
     expect(crowd.loop).toBe(true);
@@ -123,10 +125,35 @@ describe('recorded sounds', () => {
     expect(crowd.cut).toBe(true);
   });
 
+  it('fetches the files as the app starts, and makes them ready on the first tap, which fetches nothing', async () => {
+    const asked = serve({ 'sfx.json': { cheer: 0.5 }, 'cheer.mp3': { seconds: 1.5 } });
+    const made = vi.fn();
+    vi.stubGlobal('window', { AudioContext: class extends FakeContext { constructor() { super(); made(); } }, localStorage: { getItem: () => null, setItem: () => undefined } });
+    const { sfx, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
+    await loadSfx();
+    expect(asked).toEqual(['sfx.json', 'cheer.mp3']);
+    /* no sound before the tap, so no context to decode with yet */
+    expect(made).not.toHaveBeenCalled();
+    await unlockSfx();
+    expect(asked).toHaveLength(2);
+    sfx.cheer();
+    expect(FakeSource.made.map((s) => s.buffer)).toEqual([{ duration: 1.5 }]);
+  });
+
+  it('a tap before the files have come: they are made ready as they come', async () => {
+    serve({ 'sfx.json': { cheer: 0.5 }, 'cheer.mp3': { seconds: 1.5 } });
+    const { sfx, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
+    await unlockSfx();
+    await loadSfx();
+    sfx.cheer();
+    expect(FakeSource.made.map((s) => s.buffer)).toEqual([{ duration: 1.5 }]);
+  });
+
   it('makes every sound itself when the build has no recordings', async () => {
     vi.stubGlobal('fetch', async () => { throw new Error('offline and never cached'); });
-    const { sfx, loadSfx } = await import('../../src/lib/sfx');
+    const { sfx, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
     await loadSfx();
+    await unlockSfx();
     sfx.cheer();
     /* the crowd's noise and the rising third */
     expect(FakeSource.made.map((s) => s.kind)).toEqual(['noise', 'tone', 'tone']);
@@ -135,8 +162,9 @@ describe('recorded sounds', () => {
 
   it('keeps a sound made when its file will not load or decode', async () => {
     serve({ 'sfx.json': { kick: 0.8, roll: 0.7, whistle: 0.3 }, 'kick.mp3': 'broken', 'roll.mp3': { seconds: 1 } });
-    const { sfx, loadSfx } = await import('../../src/lib/sfx');
+    const { sfx, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
     await loadSfx();
+    await unlockSfx();
     sfx.kick();
     sfx.whistle();
     expect(FakeSource.made.every((s) => s.kind === 'tone')).toBe(true);
@@ -147,8 +175,9 @@ describe('recorded sounds', () => {
 
   it('fetches only names it knows the shape of, and is quiet when sound effects are off', async () => {
     const asked = serve({ 'sfx.json': { '../../secret': 1, cheer: 'loud', win: 0.5 }, 'win.mp3': { seconds: 2 } });
-    const { sfx, loadSfx, setSfxEnabled } = await import('../../src/lib/sfx');
+    const { sfx, loadSfx, setSfxEnabled, unlockSfx } = await import('../../src/lib/sfx');
     await loadSfx();
+    await unlockSfx();
     expect(asked).toEqual(['sfx.json', 'win.mp3']);
     setSfxEnabled(false);
     sfx.win();

@@ -3,7 +3,7 @@ import './styles/app.css';
 import { startRouter, type Route } from './lib/router';
 import { unlockSpeech, watchVoices } from './lib/speech';
 import { loadClips, unlockClips } from './lib/audio';
-import { setSfxEnabled, unlockSfx, wakeSfx } from './lib/sfx';
+import { loadSfx, setSfxEnabled, unlockSfx, wakeSfx } from './lib/sfx';
 import { watchForUpdates } from './lib/update';
 import { soundsOn } from './game/choices';
 import * as home from './game/home';
@@ -35,7 +35,7 @@ const routes: Route[] = [
 function unlockOnFirstTap(): void {
   const once = () => {
     unlockSpeech();
-    unlockSfx();
+    void unlockSfx();
     document.removeEventListener('pointerdown', once);
     document.removeEventListener('keydown', once);
   };
@@ -52,8 +52,10 @@ function unlockOnFirstTap(): void {
 
 setSfxEnabled(soundsOn());
 watchVoices();
-/* recorded lines if this build shipped any; harmless and silent if not */
+/* recorded lines and sounds if this build shipped any; harmless and silent
+   if not. Fetched now, not on the first tap (src/lib/sfx.ts says why) */
 void loadClips();
+void loadSfx();
 unlockOnFirstTap();
 watchForUpdates();
 

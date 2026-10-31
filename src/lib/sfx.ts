@@ -5,12 +5,15 @@
  * request-free. Kept gentle: a rising third for right, a soft low thud for
  * wrong — never a buzzer.
  *
- * The big moments can also be recorded (tools/make-sfx.ts): a crowd, the
+ * The big moments can also be recorded (public/audio/README.md): a crowd, the
  * referee's whistle, a boot on the ball, a chess piece set down. The files
  * come from the app's own origin, listed in audio/sfx/sfx.json with how loud
- * each one plays, and load on the first tap. A sound plays its recording
- * once that has loaded; until then, and for every sound without one, the
- * made one plays as before. */
+ * each one plays. They are fetched as the app starts and made ready on the
+ * first tap, which fetches nothing: a tap that also asked the offline worker
+ * for files could leave a new version waiting for good in Chrome, and the
+ * first tap may be the one on "New version". A sound plays its recording
+ * once that is ready; until then, and for every sound without one, the made
+ * one plays as before. */
 
 let ctx: AudioContext | null = null;
 /* on or off is a setting (src/game/settings.ts), which sets
@@ -34,21 +37,25 @@ export function setSfxEnabled(on: boolean): void {
 }
 
 /** browsers suspend audio until a gesture, same as speech. The first tap
-    also loads the recordings, now that there is a context to decode them */
-export function unlockSfx(): void {
+    also makes the recordings ready, now that there is a context to decode
+    them with; done when they are */
+export function unlockSfx(): Promise<void> {
+  const ac = audio();
   try {
-    void audio()?.resume();
+    void ac?.resume();
   } catch {
     /* ignore */
   }
-  void loadSfx();
+  return ac ? decodeAll(ac) : Promise.resolve();
 }
 
-/** the sounds that can be recorded; tools/make-sfx.ts says what each one is */
+/** the sounds that can be recorded (made by sounds-of-reading's tools/make-sfx.ts, which says what each one is) */
 export type Recordable = 'cheer' | 'win' | 'whistle' | 'crowd' | 'kick' | 'clack' | 'post' | 'move' | 'take' | 'roll';
 
-/** the recordings that have loaded, with how loud each one plays */
+/** the recordings that are ready, with how loud each one plays */
 const recorded = new Map<string, { buffer: AudioBuffer; gain: number }>();
+/** and the files fetched, not decoded yet */
+const fetched = new Map<string, { data: ArrayBuffer; gain: number }>();
 let loading: Promise<void> | null = null;
 
 /** the callback form, which every Safari has; newer engines also return a
@@ -64,7 +71,8 @@ function decode(ac: AudioContext, data: ArrayBuffer): Promise<AudioBuffer> {
 }
 
 /**
- * Loads the recorded sounds listed in sfx.json.
+ * Fetches the recorded sounds listed in sfx.json, as the app starts; they
+ * are decoded once there is a context (unlockSfx), or here if there already is.
  *
  * A missing or unreadable list means this build has no recordings, and a
  * file that will not load or decode leaves that one sound made here: none of
@@ -72,8 +80,6 @@ function decode(ac: AudioContext, data: ArrayBuffer): Promise<AudioBuffer> {
  */
 export function loadSfx(url = './audio/sfx/sfx.json'): Promise<void> {
   if (loading) return loading;
-  const ac = audio();
-  if (!ac) return Promise.resolve();
   const dir = url.replace(/\/[^/]*$/, '');
   loading = (async () => {
     try {
@@ -86,8 +92,7 @@ export function loadSfx(url = './audio/sfx/sfx.json'): Promise<void> {
         try {
           const file = await fetch(`${dir}/${name}.mp3`, { cache: 'force-cache' });
           if (!file.ok) return;
-          const buffer = await decode(ac, await file.arrayBuffer());
-          recorded.set(name, { buffer, gain: Math.min(1, Math.max(0.01, gain)) });
+          fetched.set(name, { data: await file.arrayBuffer(), gain: Math.min(1, Math.max(0.01, gain)) });
         } catch {
           /* this one stays made here */
         }
@@ -95,8 +100,22 @@ export function loadSfx(url = './audio/sfx/sfx.json'): Promise<void> {
     } catch {
       /* no recordings: every sound is made here */
     }
+    /* a tap before they had all come has made the context already */
+    if (ctx) await decodeAll(ctx);
   })();
   return loading;
+}
+
+/** the files fetched, made into sounds to play: each one once */
+async function decodeAll(ac: AudioContext): Promise<void> {
+  await Promise.all([...fetched].map(async ([name, { data, gain }]) => {
+    fetched.delete(name);
+    try {
+      recorded.set(name, { buffer: await decode(ac, data), gain });
+    } catch {
+      /* this one stays made here */
+    }
+  }));
 }
 
 /**
