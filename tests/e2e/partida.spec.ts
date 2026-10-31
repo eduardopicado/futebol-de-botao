@@ -4,9 +4,11 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { expectTapTargets, noProblems, seed, watchPage } from './helpers';
-import { KEEPER_Y, L, PULL, VIEW, oneTouch, type Flick, type Point } from '../../src/content/botao';
+import { expectTapTargets, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
+import { BALL, KEEPER_W, KEEPER_Y, L, MOUTH, PULL, R, VIEW, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
 import type { Match, Side } from '../../src/content/match';
+import { PT_POSTS } from '../../src/content/commentary';
+import { clipId } from '../../src/lib/clip-id';
 
 const sel = (side: Side, i: number): string => (side === 'a' ? `.bt-btn.us.b${i}` : `.bt-btn.them.t${i}`);
 
@@ -332,6 +334,33 @@ test.describe('Partida', () => {
     await page.mouse.up();
     await expect(page.locator('.bt-keeper.home')).toHaveAttribute('data-x', '32.00');
     await expect(page.locator('.bt-keeper.home')).toHaveAttribute('data-out', '0.00');
+  });
+
+  test('the commentator: a called shot off the post that stays out is "Na trave!"', async ({ page }) => {
+    const watch = watchPage(page);
+    await recordSpeech(page, ['pt-BR']);
+    await recordPlays(page);
+    /* the ball at the edge of the area, the button lined up behind it at the near post, the goleiro by the far one */
+    const ball = { x: 32, y: 26 };
+    const at = { x: MOUTH[0] - 1, y: 0 };
+    const d = Math.sqrt((at.x - ball.x) ** 2 + (at.y - ball.y) ** 2);
+    const dir = { x: (at.x - ball.x) / d, y: (at.y - ball.y) / d };
+    const me = { x: ball.x - dir.x * (R + BALL + 4), y: ball.y - dir.y * (R + BALL + 4) };
+    const keeper = MOUTH[1] - KEEPER_W / 2;
+    const f = { vx: dir.x * 80, vy: dir.y * 80 };
+    const shot = simulate({ ball, us: [me], them: parked('b'), keeper }, { button: 0, ...f });
+    expect(shot.goal).toBe(false);
+    expect(shot.bumps.map((b) => b.what)).toContain('post');
+    await open(page, chance({ ball, a: [me, ...parked('a').slice(1)], keepers: { a: 32, b: keeper } }));
+    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await flick(page, 'a', 0, f.vx, f.vy);
+    await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 10000 });
+    /* his recording where one was made, and the device's Portuguese voice where not */
+    const called = async (): Promise<boolean> => (await said(page)).some((t) => PT_POSTS.includes(t))
+      || (await plays(page)).some((src) => PT_POSTS.some((line) => src.endsWith(`/audio/${clipId(line)}.mp3`)));
+    await expect.poll(called).toBe(true);
+    noProblems(watch);
   });
 
   test('has no accessibility violations', async ({ page }) => {

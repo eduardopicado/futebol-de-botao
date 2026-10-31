@@ -18,7 +18,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, guessKeeper } from '../content/computer';
 import {
-  SHOOTOUT_KICKS, clampKeeper, flick, kicked, mayFlick, newShootout, other, penaltyFor, pronto, scoredFrom,
+  SHOOTOUT_KICKS, clampKeeper, flick, kicked, mayFlick, missed, newShootout, other, penaltyFor, pronto, scoredFrom,
   shootoutGoals, shootoutTaken, type Match, type Shootout, type Side,
 } from '../content/match';
 import { type Keepers, makeBoard, SHAPE } from './board';
@@ -150,12 +150,14 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     showKicks();
     /* the commentator first, and the words read aloud once he has finished,
        so neither talks over the other; on the deciding kick, his "É campeão!" */
+    const miss = scored ? null : missed(play, taker);
     const called = new Promise<void>((done) => {
-      if (scored) { sfx.cheer(); narrate('goal', teams[taker], done, life.later, who.name); } else if (saved) narrate('save', teams[other(taker)], done, life.later);
+      if (scored) { sfx.cheer(); narrate('goal', teams[taker], done, life.later, who.name); } else if (miss) narrate(miss, teams[miss === 'save' ? other(taker) : taker], done, life.later);
       else { sfx.wrong(); done(); }
     });
     const by = who.name || `Number ${who.n}`;
-    const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!` : `${by} misses for ${name(taker)}!`;
+    const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!`
+      : `${miss === 'post' ? 'Off the post! ' : ''}${by} misses for ${name(taker)}!`;
     tell(said, 'a');
     if (!s.winner) void called.then(() => speak(said));
     await wait(PACE.kick);

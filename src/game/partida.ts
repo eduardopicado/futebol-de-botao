@@ -33,7 +33,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, call, flick, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
+  KICKOFF_TOUCHES, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
@@ -240,7 +240,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     switch (event.kind) {
       case 'goal': {
         sfx.cheer();
-        narrate('goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
+        narrate(event.own ? 'own-goal' : 'goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
         node.dataset.goal = event.side;
         showScore();
         const by = scorer ? ` ${scorer.name ? `${scorer.name} (${scorer.n})` : `Number ${scorer.n}`},` : '';
@@ -320,7 +320,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     m = play.next;
     node.dataset.event = play.event.kind;
     const saved = play.bumps.some((b) => b.what === 'keeper');
-    if (saved && called) narrate('save', teams[other(before.turn)], () => undefined, life.later);
+    /* a called shot that did not go in: saved, off the post, or close */
+    const miss = called ? missed(play, before.turn) : null;
+    if (miss) narrate(miss, teams[miss === 'save' ? other(before.turn) : before.turn], () => undefined, life.later);
     await after(play.event, called, saved);
     if (m.phase === 'over') return;
     busy = false;

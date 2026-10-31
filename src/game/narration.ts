@@ -1,8 +1,9 @@
 /* The commentator in the football games, the way it sounds at home.
  *
  * A goal is "Goooool do Brasil!" and a save is "Defendeu o goleiro!", shouted
- * in Portuguese by a Portuguese voice: the sound of football in Brazil. It
- * comes after the kick, as the celebration.
+ * in Portuguese by a Portuguese voice: the sound of football in Brazil; a
+ * shot off the post is "Na trave!", one just wide "Quase!", and an own goal
+ * "Gol contra!". It comes after the kick, as the celebration.
  *
  * With no Portuguese voice on the device and no recording of the line, the
  * English voice cannot say it, so it calls the moment in English instead.
@@ -13,11 +14,13 @@ import { pick } from '../lib/random';
 import { canSpeak, say } from '../lib/speech';
 import { hasClip } from '../lib/audio';
 import { read, write } from '../lib/storage';
-import { EN_SAVES, PT_CHAMPIONS, PT_SAVES, enChampion, enGoal, ptGoals } from '../content/commentary';
+import {
+  EN_CLOSE, EN_OWN_GOALS, EN_POSTS, EN_SAVES, PT_CHAMPIONS, PT_CLOSE, PT_OWN_GOALS, PT_POSTS, PT_SAVES, enChampion, enGoal, ptGoals,
+} from '../content/commentary';
 import { real, type Team } from './teams';
 
 export type Narration = 'pt' | 'en' | 'off';
-export type Moment = 'goal' | 'save' | 'champion';
+export type Moment = 'goal' | 'save' | 'champion' | 'post' | 'close' | 'own-goal';
 
 const KEY = 'football-narration';
 const PT = 'pt-BR';
@@ -28,10 +31,19 @@ export const narrationChoice = (): Narration => {
 };
 export const setNarration = (v: Narration): void => write(KEY, v);
 
-/** what the commentator shouts: a goal for `team`, or a save */
+/** the same moment, whoever it was for */
+const SAME: Record<'save' | 'post' | 'close' | 'own-goal', { pt: string[]; en: string[] }> = {
+  save: { pt: PT_SAVES, en: EN_SAVES },
+  post: { pt: PT_POSTS, en: EN_POSTS },
+  close: { pt: PT_CLOSE, en: EN_CLOSE },
+  'own-goal': { pt: PT_OWN_GOALS, en: EN_OWN_GOALS },
+};
+
+/** what the commentator shouts: a goal or the cup for `team`, or a moment
+    that is the same whoever it was for */
 export function callFor(moment: Moment, team: Team, lang: 'pt' | 'en'): string {
-  if (lang === 'pt') return pick(moment === 'save' ? PT_SAVES : moment === 'champion' ? PT_CHAMPIONS : ptGoals(team.pt));
-  if (moment === 'save') return pick(EN_SAVES);
+  if (moment !== 'goal' && moment !== 'champion') return pick(SAME[moment][lang]);
+  if (lang === 'pt') return pick(moment === 'champion' ? PT_CHAMPIONS : ptGoals(team.pt));
   if (moment === 'champion') return enChampion(real(team) ? team.name : undefined);
   return enGoal(real(team) ? team.name : undefined);
 }

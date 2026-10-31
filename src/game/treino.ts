@@ -185,9 +185,11 @@ export function mount(root: HTMLElement): () => void {
       : bumped.includes('keeper') ? 'The goleiro saved it!'
         : bumped.includes('post') ? 'Off the post!'
           : bumped.includes('block') ? 'A defender blocked it.' : 'Good touch.';
-    if (bumped.includes('keeper')) narrate('save', rival, () => undefined, life.later);
+    /* the commentator calls a save or a shot off the post, and the words wait */
+    const call = bumped.includes('keeper') ? 'save' : bumped.includes('post') ? 'post' : null;
+    if (call) narrate(call, call === 'save' ? rival : us, () => undefined, life.later);
     if (touches >= TOUCHES) {
-      tell(`${what} No touches left. Here is a new one.`, !bumped.includes('keeper'));
+      tell(`${what} No touches left. Here is a new one.`, !call);
       await wait(PACE.newSetUp);
       next();
       return;
