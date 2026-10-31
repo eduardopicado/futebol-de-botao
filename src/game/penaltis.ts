@@ -148,14 +148,18 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     s = kicked(s, scored);
     node.dataset.kick = scored ? 'goal' : saved ? 'saved' : 'missed';
     showKicks();
-    if (scored) { sfx.cheer(); narrate('goal', teams[taker], () => undefined, life.later, who.name); } else if (saved) narrate('save', teams[other(taker)], () => undefined, life.later);
-    else sfx.wrong();
+    /* the commentator first, and the words read aloud once he has finished,
+       so neither talks over the other; on the deciding kick, his "É campeão!" */
+    const called = new Promise<void>((done) => {
+      if (scored) { sfx.cheer(); narrate('goal', teams[taker], done, life.later, who.name); } else if (saved) narrate('save', teams[other(taker)], done, life.later);
+      else { sfx.wrong(); done(); }
+    });
     const by = who.name || `Number ${who.n}`;
     const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!` : `${by} misses for ${name(taker)}!`;
     tell(said, 'a');
-    speak(said);
+    if (!s.winner) void called.then(() => speak(said));
     await wait(PACE.kick);
-    if (s.winner) { champion(s.winner); return; }
+    if (s.winner) { await called; champion(s.winner); return; }
     m = penaltyFor(s.turn);
     setUpKick();
     busy = false;

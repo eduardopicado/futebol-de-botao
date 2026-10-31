@@ -41,7 +41,15 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
 - Andika for anything a player reads (its single-storey a and g read well at
   any age); Baloo 2 for the big titles.
 - Speech: every call wrapped in try/catch; unlocked on the first tap for iOS.
-  The commentator is Portuguese by default, English or off by choice.
+  The commentator is Portuguese by default, English or off by choice. His
+  lines are recorded (`public/audio/README.md`): a line added to
+  `src/content/commentary.ts` is said by the device voice until
+  `npm run make:audio` has recorded it, in the same voice. The scorer's
+  name after a goal is never recorded: it can be changed on the device.
+- The first tap fetches nothing. The recorded sound effects are fetched as
+  the app starts and only decoded on the tap; in Chrome, a tap that also
+  asks the offline worker for files can leave a new version waiting for
+  good, and that tap may be the one on "New version".
 - A screen schedules its timers through `lifetime()` (`src/lib/life.ts`) and
   ends it on unmount, so nothing it planned happens after it has been left. The
   router also cancels speech and stops sound effects on the way out.
@@ -59,11 +67,13 @@ npm run build      # typecheck, then build to dist/
 npm run test:unit  # physics, planner, the match's rules, set-ups, shared code
 npm test           # unit tests, then the Playwright suite
 npm run make:launch  # by hand: the launch images, from the built app, into public/launch/
+npm run make:audio   # by hand, with ELEVENLABS_API_KEY: the commentator's lines, into public/audio/
 ```
 
-CI runs all of these but make:launch on every pull request and push, the browser tests as one
-job per device (WebKit too). GitHub Pages deploys only after CI has passed on
-a push to `main` (`.github/workflows/deploy.yml`).
+CI runs all of these but make:launch and make:audio on every pull request and
+push, the browser tests as one job per device (WebKit too). GitHub Pages
+deploys only after CI has passed on a push to `main`
+(`.github/workflows/deploy.yml`).
 
 In a cloud session whose Playwright browser does not match the installed
 `@playwright/test`, point it at the pre-installed one:
@@ -122,17 +132,21 @@ src/game/squads.ts        the players: each real team's six (men's squads, Octob
 src/game/narration.ts     the commentator ("Goooool do Brasil!")
 src/game/confetti.ts      confetti in the winners' colours, over a win
 src/game/pace.ts          how long the game waits between things, in one place
-src/lib/                  speech, sfx, audio (recorded lines; none ship yet),
+src/lib/                  speech, sfx, audio (the commentator's recorded lines),
                           storage, crests, life, router, dom, update (the
                           "new version, tap to update" button)
 src/assets/tray.webp      the wooden tray, cut from the design handoff
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
-                          squads, the Copa, the guide's demos, storage, sfx, speech, crests
+                          squads, the Copa, the guide's demos, storage, sfx, speech, crests,
+                          the recordings
 tests/e2e/                Playwright, real finger drags through the table's viewBox;
                           a screen that will not open (router), and a new version
                           found and swapped in by the real offline worker (update)
 tools/launch.ts           the launch images: each iPad's and iPhone's screen, and
                           the links to them (the build puts them in index.html)
 tools/make-launch.ts      renders them from the built app into public/launch/
+tools/make-audio.ts       records the commentator's lines with ElevenLabs into
+                          public/audio/ (its README says what is there)
+tools/ts-imports.ts       lets node run a tool that imports from src/
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```

@@ -49,12 +49,25 @@ export function narrate(moment: Moment, team: Team, then: () => void, later: (fn
   const next = (): void => { if (!done) { done = true; then(); } };
   /* in Portuguese when there is a recording of the line or a voice to say it,
      and in English otherwise */
-  const named = (line: string): string => (moment === 'goal' && scorer ? `${line} ${scorer}!` : line);
   const pt = choice === 'pt' ? callFor(moment, team, 'pt') : '';
-  if (pt && (hasClip(pt) || canSpeak(PT))) say(named(pt), { lang: PT, onEnd: next });
-  else say(named(callFor(moment, team, 'en')), { onEnd: next });
-  later(next, 2400);
+  const [call, lang] = pt && (hasClip(pt) || canSpeak(PT)) ? [pt, PT] : [callFor(moment, team, 'en'), undefined];
+  /* the name on its own, after the call: the call is recorded (public/audio),
+     a name the players can change never is. In Portuguese where the device
+     can say it, and otherwise in the voice it has, as a name still sounds */
+  const name = moment === 'goal' && scorer ? `${scorer}!` : '';
+  const sayName = (): void => say(name, { lang: lang && canSpeak(lang) ? lang : undefined, onEnd: next });
+  say(call, { lang, onEnd: name ? sayName : next });
+  later(next, (hasClip(call) ? RECORDED : SPOKEN) + (name ? NAME : 0));
 }
+
+/* how long to give the call before going on regardless, in milliseconds: a
+   recording reports its end, and this only covers one that fails without
+   saying so, so it is longer than the longest of them ("Goooool do
+   Manchester United!", 3.3 s); the device voice, which may never report it,
+   gets less; and a name after the call, a little more */
+const RECORDED = 4000;
+const SPOKEN = 2400;
+const NAME = 1500;
 
 /** the setup row: who does the commentary */
 export function narrationSelect(onChange?: () => void): HTMLSelectElement {

@@ -10,6 +10,7 @@
     "test:unit": "vitest run tests/unit",
     "test": "vitest run tests/unit && playwright test",
     "test:e2e": "playwright test",
+    "make:audio": "node --experimental-strip-types --no-warnings=ExperimentalWarning --import ./tools/ts-imports.ts tools/make-audio.ts",
     "make:launch": "node --experimental-strip-types --no-warnings=ExperimentalWarning tools/make-launch.ts"
   },
   "devDependencies": {

@@ -5,9 +5,12 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { expectTapTargets, noProblems, seed, watchPage } from './helpers';
+import { expectTapTargets, heard, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
 import { KEEPER_Y, L, MARKS, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
 import type { Shootout, Side } from '../../src/content/match';
+import { enGoal, ptGoals } from '../../src/content/commentary';
+import { clipId } from '../../src/lib/clip-id';
+import { SQUADS } from '../../src/game/squads';
 
 async function screen(page: Page, p: Point): Promise<{ x: number; y: number; scale: number }> {
   const box = (await page.locator('.bt-table').boundingBox())!;
@@ -139,5 +142,86 @@ test.describe('Pênaltis', () => {
     await expect(game(page)).toHaveAttribute('data-phase', 'placing');
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+
+  test.describe('the commentator', () => {
+    /** Brazil's first kick, against Argentina, scored; with these settings too */
+    async function brazilScores(page: Page, settings: Record<string, unknown> = {}): Promise<void> {
+      await seed(page, { 'team-a': 'brazil', 'team-b': 'argentina', 'shootout-setup': partWay('a', []), ...settings });
+      await page.goto('/#/penaltis-2');
+      /* Argentina's goleiro off to one side, to leave room for a shot */
+      const from = await screen(page, { x: 32, y: (KEEPER_Y[0] + KEEPER_Y[1]) / 2 });
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x - 8 * from.scale, from.y, { steps: 6 });
+      await page.mouse.up();
+      await page.getByRole('button', { name: '✋ Pronto' }).click();
+      const f = await aimed(page, 'a');
+      await kick(page, 'a', f.vx, f.vy);
+      await expect(game(page)).toHaveAttribute('data-kick', 'goal', { timeout: 10000 });
+    }
+    /** the recordings played of these lines (the silent one iOS needs first is none of them) */
+    const played = async (page: Page, lines: string[]): Promise<string[]> =>
+      (await plays(page)).filter((src) => lines.some((line) => src.endsWith(`/audio/${clipId(line)}.mp3`)));
+    /** the scorer's name, as it was said */
+    const name = async (page: Page): Promise<{ text: string; lang: string } | undefined> =>
+      (await heard(page)).find((s) => SQUADS.brazil.some((p) => s.text === `${p.name}!`));
+
+    test('shouts the goal in his own recorded voice, then the scorer\'s name in Portuguese', async ({ page }) => {
+      const watch = watchPage(page);
+      const asked: string[] = [];
+      page.on('request', (r) => asked.push(new URL(r.url()).pathname));
+      await recordSpeech(page, ['pt-BR']);
+      await recordPlays(page);
+      await brazilScores(page);
+      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      await expect.poll(() => name(page)).toEqual({ text: expect.any(String), lang: 'pt-BR' });
+      /* the call is the recording, never the device voice as well */
+      expect((await said(page)).filter((t) => ptGoals('do Brasil').includes(t))).toEqual([]);
+      /* and the words are read aloud once he has finished, not over him */
+      const { text } = (await name(page))!;
+      await expect.poll(async () => (await said(page)).slice(-2)).toEqual([text, `GOL! ${text.slice(0, -1)} scores for 🇧🇷 Brazil.`]);
+      /* and the whistle and the cheer are the recorded ones */
+      expect(asked).toEqual(expect.arrayContaining(['/audio/sfx/sfx.json', '/audio/sfx/whistle.mp3', '/audio/sfx/cheer.mp3']));
+      noProblems(watch);
+    });
+
+    test('with no Portuguese voice on the device: still the recording, then the name in the voice it has', async ({ page }) => {
+      const watch = watchPage(page);
+      await recordSpeech(page);
+      await recordPlays(page);
+      await brazilScores(page);
+      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      await expect.poll(() => name(page)).toEqual({ text: expect.any(String), lang: 'en-AU' });
+      noProblems(watch);
+    });
+
+    test('in English: "Goooal for Brazil!" recorded, then the name', async ({ page }) => {
+      const watch = watchPage(page);
+      await recordSpeech(page, ['pt-BR']);
+      await recordPlays(page);
+      await brazilScores(page, { 'football-narration': 'en' });
+      await expect.poll(() => played(page, [enGoal('Brazil')])).toHaveLength(1);
+      await expect.poll(() => name(page)).toEqual({ text: expect.any(String), lang: 'en-AU' });
+      noProblems(watch);
+    });
+
+    test('on the deciding kick: his goal, the name, and then "É campeão!", none cut short', async ({ page }) => {
+      const watch = watchPage(page);
+      await recordSpeech(page, ['pt-BR']);
+      await recordPlays(page);
+      /* as above: 3 – 1 after four each, the computer's goleiro by its left post */
+      await page.addInitScript(() => { Math.random = () => 0.1; });
+      await seed(page, { 'team-a': 'brazil', 'team-b': 'argentina', 'shootout-setup': partWay('a', [true, false, true, true, false, false, true, false]) });
+      await page.goto('/#/penaltis-1');
+      await expect(game(page)).toHaveAttribute('data-phase', 'penalty', { timeout: 8000 });
+      const f = await aimed(page, 'a');
+      await kick(page, 'a', f.vx, f.vy);
+      await expect(game(page)).toHaveAttribute('data-winner', 'a', { timeout: 10000 });
+      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      const { text } = (await name(page))!;
+      await expect.poll(async () => (await said(page)).slice(-2)).toEqual([text, 'É campeão!']);
+      noProblems(watch);
+    });
   });
 });

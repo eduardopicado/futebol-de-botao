@@ -1,1 +1,12 @@
-{}
+{
+  "cheer": 0.5,
+  "win": 0.55,
+  "whistle": 0.3,
+  "crowd": 0.25,
+  "kick": 0.8,
+  "clack": 0.7,
+  "post": 0.5,
+  "move": 0.8,
+  "take": 0.7,
+  "roll": 0.7
+}
