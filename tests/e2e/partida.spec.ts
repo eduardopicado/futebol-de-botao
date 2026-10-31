@@ -348,14 +348,21 @@ test.describe('Partida', () => {
     const me = { x: ball.x - dir.x * (R + BALL + 4), y: ball.y - dir.y * (R + BALL + 4) };
     const keeper = MOUTH[1] - KEEPER_W / 2;
     const f = { vx: dir.x * 80, vy: dir.y * 80 };
-    const shot = simulate({ ball, us: [me], them: parked('b'), keeper }, { button: 0, ...f });
-    expect(shot.goal).toBe(false);
-    expect(shot.bumps.map((b) => b.what)).toContain('post');
+    /* off the post and out, and still so a degree either way and 5% harder or
+       softer: a finger's drag comes out a little differently in each browser */
+    for (const a of [-0.02, 0, 0.02]) for (const k of [0.95, 1, 1.05]) {
+      const vx = (f.vx * Math.cos(a) - f.vy * Math.sin(a)) * k;
+      const vy = (f.vx * Math.sin(a) + f.vy * Math.cos(a)) * k;
+      const shot = simulate({ ball, us: [me], them: parked('b'), keeper }, { button: 0, vx, vy });
+      expect(shot.goal).toBe(false);
+      expect(shot.bumps.map((b) => b.what)).toContain('post');
+    }
     await open(page, chance({ ball, a: [me, ...parked('a').slice(1)], keepers: { a: 32, b: keeper } }));
     await page.getByRole('button', { name: '📣 A gol!' }).click();
     await page.getByRole('button', { name: '✋ Pronto' }).click();
     await flick(page, 'a', 0, f.vx, f.vy);
-    await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 10000 });
+    /* played out: whether the turn passes depends on where the ball ends up, not on the post */
+    await expect(game(page)).toHaveAttribute('data-event', /./, { timeout: 10000 });
     /* his recording where one was made, and the device's Portuguese voice where not */
     const called = async (): Promise<boolean> => (await said(page)).some((t) => PT_POSTS.includes(t))
       || (await plays(page)).some((src) => PT_POSTS.some((line) => src.endsWith(`/audio/${clipId(line)}.mp3`)));
