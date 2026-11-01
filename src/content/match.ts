@@ -28,8 +28,9 @@
  *   turn of its side, then comes back on that goal line where the penalty
  *   area meets it, on the right as its own side sees it, once that spot is
  *   free (Art. 28, 29).
- * - A goal: the whole ball over the line between the posts, or a ball that
- *   stops with its middle over it there (the physics, botao.ts).
+ * - A goal: the whole of the ball over the line, between the posts, as in
+ *   football. A slow ball can stop across the line, part of it still on it:
+ *   it is in play, to be cleared, or called and put in.
  * - The ball never goes out: the rim keeps it in. No offside.
  *
  * A penalty shootout, its own way to play, is at the end of this file.
@@ -598,3 +599,11 @@ export function missed(play: Play, side: Side): 'save' | 'post' | 'close' | null
   const out = x < MOUTH[0] ? MOUTH[0] - x : x > MOUTH[1] ? x - MOUTH[1] : 0;
   return out > 0 && out <= CLOSE ? 'close' : null;
 }
+
+/** the ball stopped across a goal line between the posts, not all of it
+    over: no goal, as in football, and still in play */
+export const onTheLine = (ball: Point): boolean =>
+  ball.x > MOUTH[0] && ball.x < MOUTH[1] && (Math.abs(ball.y) < BALL || Math.abs(ball.y - L) < BALL);
+
+/** and what the screens say when it does */
+export const ON_THE_LINE = 'On the line! The whole ball has to cross it.';

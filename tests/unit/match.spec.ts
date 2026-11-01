@@ -6,7 +6,7 @@ import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouc
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
-  kicked, missed, newShootout, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
+  kicked, missed, newShootout, onTheLine, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
   type Match, type Shootout, type Side,
 } from '../../src/content/match';
 
@@ -511,8 +511,9 @@ describe('a shot that missed, for the commentator', () => {
 
 describe('a slow shot that stops across the line', () => {
   /* side a's button behind the ball, straight at the middle of the goal, just
-     hard enough for the ball to stop with its middle over the line (the
-     physics, botao.spec); b's goleiro out of the way by the left post */
+     hard enough for the ball to stop with its middle over the line but not
+     all of it (the physics, botao.spec); b's goleiro out of the way by the
+     left post */
   const MID = (MOUTH[0] + MOUTH[1]) / 2;
   const slow = (m: Match) => flick(m, 0, 0, -28);
   const setUp = (): Match => playing({
@@ -520,18 +521,28 @@ describe('a slow shot that stops across the line', () => {
     keepers: { a: W / 2, b: MOUTH[0] + KEEPER_W / 2 },
   });
 
-  it('is a goal when it was called', () => {
-    const m = pronto(call(setUp()), MOUTH[0] + KEEPER_W / 2);
-    const play = slow(m);
-    expect(play.frames.at(-1)!.ball.y).toBeLessThan(0);
-    expect(play.frames.at(-1)!.ball.y).toBeGreaterThan(-BALL);
-    expect(play.event).toEqual({ kind: 'goal', side: 'a', own: false });
-    expect(play.next.ball).toEqual({ x: W / 2, y: L / 2 });
+  it('is no goal, called or not: the ball stays on the line, in play', () => {
+    const called = slow(pronto(call(setUp()), MOUTH[0] + KEEPER_W / 2));
+    const free = slow(setUp());
+    for (const play of [called, free]) {
+      const at = play.frames.at(-1)!.ball;
+      expect(at.y).toBeLessThan(0);
+      expect(at.y).toBeGreaterThan(-BALL);
+      expect(['goal', 'champion', 'uncalled']).not.toContain(play.event.kind);
+      expect(play.next.score).toEqual({ a: 0, b: 0 });
+      expect(play.next.ball).toEqual(at);
+      /* and the screens say so: it looks in, and is not */
+      expect(onTheLine(play.next.ball)).toBe(true);
+    }
   });
 
-  it('is a goal kick when it was not: either way the ball is not left in the goal mouth', () => {
-    const play = slow(setUp());
-    expect(play.event).toEqual({ kind: 'uncalled', side: 'a', couldCall: true });
-    expect(play.next.ball.y).toBeGreaterThan(BALL);
+  it('on the line: across a goal line between the posts, either end, not all of it over', () => {
+    for (const [y, on] of [[-1.2, true], [-BALL + 0.05, true], [1, true], [BALL - 0.05, true], [-BALL - 0.05, false], [BALL + 0.05, false], [10, false]] as const) {
+      expect(onTheLine({ x: MID, y }), `top, ${y}`).toBe(on);
+      expect(onTheLine({ x: MID, y: L - y }), `bottom, ${L - y}`).toBe(on);
+    }
+    /* beside the goal, against the rim, is just the edge of the table */
+    expect(onTheLine({ x: MOUTH[0] - BALL, y: BALL - 0.5 })).toBe(false);
+    expect(onTheLine({ x: MOUTH[1] + BALL, y: L - BALL + 0.5 })).toBe(false);
   });
 });

@@ -33,7 +33,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
+  KICKOFF_TOUCHES, ON_THE_LINE, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
@@ -289,16 +289,19 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         return;
       case 'turn': {
         const shotWords = event.why === 'penalty' ? (saved ? 'Saved!' : 'Missed!') : called ? (saved ? 'Saved!' : 'No goal.') : event.why === 'touches' && m.rule === '1' ? '' : WHY[event.why];
-        render(shotWords);
+        render(`${lineWords()}${shotWords}`.trim());
         /* the handover: nothing can be flicked for a moment */
         await wait(PACE.handover);
         return;
       }
       case 'on':
-        render(called ? (saved ? 'Saved! Play on.' : 'No goal. Play on.') : '');
+        render(`${lineWords()}${called ? (saved ? 'Saved! Play on.' : 'No goal. Play on.') : ''}`.trim());
         return;
     }
   }
+
+  /** a ball stopped across a goal line looks in and is not: say so */
+  const lineWords = (): string => (onTheLine(m.ball) ? `${ON_THE_LINE} ` : '');
 
   async function shoot(side: Side, index: number, vx: number, vy: number, byComputer = false): Promise<void> {
     if ((busy && !byComputer) || side !== m.turn || !mayFlick(m, index)) return;

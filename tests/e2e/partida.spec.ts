@@ -6,7 +6,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
 import { BALL, KEEPER_W, KEEPER_Y, L, MOUTH, PULL, R, VIEW, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
-import type { Match, Side } from '../../src/content/match';
+import { onTheLine, type Match, type Side } from '../../src/content/match';
 import { PT_POSTS } from '../../src/content/commentary';
 import { clipId } from '../../src/lib/clip-id';
 
@@ -368,6 +368,53 @@ test.describe('Partida', () => {
       || (await plays(page)).some((src) => PT_POSTS.some((line) => src.endsWith(`/audio/${clipId(line)}.mp3`)));
     await expect.poll(called).toBe(true);
     noProblems(watch);
+  });
+
+  test('a slow shot that stops across the line: no goal, the ball touches the line drawn, and the note says it is on the line', async ({ page }) => {
+    const watch = watchPage(page);
+    /* straight at the middle of the goal, just hard enough to stop across
+       the line, and still so a degree either way and 5% harder or softer */
+    const ball = { x: 32, y: 14 };
+    const me = { x: 32, y: 14 + R + BALL + 3 };
+    const keeper = MOUTH[0] + KEEPER_W / 2;
+    for (const a of [-0.02, 0, 0.02]) for (const k of [0.95, 1, 1.05]) {
+      const shot = simulate({ ball, us: [me], them: parked('b'), keeper }, { button: 0, vx: 29 * Math.sin(a) * k, vy: -29 * Math.cos(a) * k });
+      expect(shot.goal).toBe(false);
+      expect(onTheLine(shot.end.ball)).toBe(true);
+    }
+    await open(page, chance({ ball, a: [me, ...parked('a').slice(1)], keepers: { a: 32, b: keeper } }));
+    await flick(page, 'a', 0, 0, -29);
+    await expect(page.locator('.say-words')).toContainText('On the line! The whole ball has to cross it.', { timeout: 10000 });
+    await expect(game(page)).toHaveAttribute('data-score', '0-0');
+    /* what is seen is what counts: the ball's edge is still on the goal line drawn */
+    const { ballEdge, lineOuter, lineInner } = await page.evaluate(() => {
+      const border = [...document.querySelectorAll<SVGRectElement>('.bt-table rect.bt-line')].find((r) => Number(r.getAttribute('height')) > 50)!;
+      const half = parseFloat(getComputedStyle(border).strokeWidth) / 2;
+      const top = Number(border.getAttribute('y'));
+      const b = document.querySelector('.bt-ball-face')!.getBoundingClientRect();
+      const t = document.querySelector('.bt-table')!.getBoundingClientRect();
+      const view = (document.querySelector('.bt-table') as SVGSVGElement).viewBox.baseVal;
+      /* the ball's bottom edge, the one nearest the pitch, in table units */
+      return { ballEdge: view.y + ((b.bottom - t.top) / t.height) * view.height, lineOuter: top - half, lineInner: top + half };
+    });
+    expect(lineOuter).toBeCloseTo(0, 3);
+    expect(ballEdge).toBeGreaterThan(lineOuter + 0.05);
+    /* at the line, not out on the pitch */
+    expect(ballEdge).toBeLessThan(lineInner + 2 * BALL);
+    noProblems(watch);
+  });
+
+  test('the goal lines drawn are the ones that count: the outer edge of the paint on the line the posts stand on, both ends', async ({ page }) => {
+    await open(page, chance());
+    const edges = await page.evaluate(() => {
+      const border = [...document.querySelectorAll<SVGRectElement>('.bt-table rect.bt-line')].find((r) => Number(r.getAttribute('height')) > 50)!;
+      const half = parseFloat(getComputedStyle(border).strokeWidth) / 2;
+      const y = Number(border.getAttribute('y'));
+      const h = Number(border.getAttribute('height'));
+      return [y - half, y + h + half];
+    });
+    expect(edges[0]).toBeCloseTo(0, 3);
+    expect(edges[1]).toBeCloseTo(L, 3);
   });
 
   test('has no accessibility violations', async ({ page }) => {

@@ -113,6 +113,15 @@ function goalNet(): SVGGElement {
   return net;
 }
 
+/* The lines: the touchlines a little in from the rim, and the goal lines on
+   the line the posts stand on, the physics' goal line (y = 0 and L,
+   botao.ts), with the outer edge of the paint (.bt-line is .43 wide, app.css)
+   on it. A goal is the whole ball over that line, as in football, so a ball
+   wholly past the line drawn is a goal and one still touching it is not:
+   what a player sees is what counts. */
+const SIDE_LINE = 0.6;
+export const GOAL_LINE = 0.43 / 2;
+
 export function pitch(): SVGGElement {
   const line = (attrs: Record<string, string | number>): SVGElement => svg('rect', { ...attrs, class: 'bt-line' });
   const [left, right] = MOUTH;
@@ -136,9 +145,9 @@ export function pitch(): SVGGElement {
     svg('rect', { x: 0, y: 0, width: 2.4, height: L, fill: 'url(#bt-rimright)' }),
     net,
     theirs,
-    line({ x: 0.6, y: 0.6, width: W - 1.2, height: L - 1.2 }),
+    line({ x: SIDE_LINE, y: GOAL_LINE, width: W - 2 * SIDE_LINE, height: L - 2 * GOAL_LINE }),
     ...ends(),
-    svg('line', { x1: 0.6, y1: L / 2, x2: W - 0.6, y2: L / 2, class: 'bt-line' }),
+    svg('line', { x1: SIDE_LINE, y1: L / 2, x2: W - SIDE_LINE, y2: L / 2, class: 'bt-line' }),
     svg('circle', { cx: W / 2, cy: L / 2, r: 8, class: 'bt-line' }),
     svg('circle', { cx: W / 2, cy: L / 2, r: 0.6, class: 'bt-spot' }),
     /* the frame's shadow on the felt in front of the goal */
@@ -149,7 +158,6 @@ export function pitch(): SVGGElement {
 /** the markings at each end: the penalty area with the arc on its edge, the
     small area, the spot, and the quarter circles in the corners */
 function ends(): SVGElement[] {
-  const edge = 0.6;
   const [boxW, boxD] = MARKS.box;
   const [penW, penD] = MARKS.penalty;
   const { spot, arc } = MARKS;
@@ -158,15 +166,15 @@ function ends(): SVGElement[] {
   const corner = 1.6;
   return [0, 1].flatMap((end) => {
     /* the top end as drawn, and the bottom one turned round */
-    const y = (d: number): number => (end === 0 ? edge + d : L - edge - d);
+    const y = (d: number): number => (end === 0 ? GOAL_LINE + d : L - GOAL_LINE - d);
     const sweep = end === 0 ? 0 : 1;
     return [
       svg('rect', { class: 'bt-line', x: (W - penW) / 2, y: Math.min(y(0), y(penD)), width: penW, height: penD }),
       svg('rect', { class: 'bt-line', x: (W - boxW) / 2, y: Math.min(y(0), y(boxD)), width: boxW, height: boxD }),
       svg('circle', { class: 'bt-spot', cx: W / 2, cy: y(spot), r: 0.6 }),
       svg('path', { class: 'bt-line', d: `M${W / 2 - half} ${y(penD)} A${arc} ${arc} 0 0 ${sweep} ${W / 2 + half} ${y(penD)}` }),
-      svg('path', { class: 'bt-line', d: `M${edge + corner} ${y(0)} A${corner} ${corner} 0 0 ${1 - sweep} ${edge} ${y(corner)}` }),
-      svg('path', { class: 'bt-line', d: `M${W - edge - corner} ${y(0)} A${corner} ${corner} 0 0 ${sweep} ${W - edge} ${y(corner)}` }),
+      svg('path', { class: 'bt-line', d: `M${SIDE_LINE + corner} ${y(0)} A${corner} ${corner} 0 0 ${1 - sweep} ${SIDE_LINE} ${y(corner)}` }),
+      svg('path', { class: 'bt-line', d: `M${W - SIDE_LINE - corner} ${y(0)} A${corner} ${corner} 0 0 ${sweep} ${W - SIDE_LINE} ${y(corner)}` }),
     ];
   });
 }

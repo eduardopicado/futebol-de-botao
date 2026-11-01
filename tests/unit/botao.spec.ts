@@ -181,9 +181,10 @@ describe('the table', () => {
     expect(alone.own).toBe(false);
   });
 
-  it('counts a ball that stops with its middle over the line between the posts: in, not left in the goal mouth', () => {
+  it('counts a goal only when the whole ball is over the line: one that stops across it is still in play', () => {
     /* softer and softer at the middle of the goal: some stop short, some
-       across the line, some go all the way in */
+       across the line, some go all the way in. As in football (and the CBFM
+       rulebook), only the last are goals */
     const at = (v: number, end: 'top' | 'bottom') => {
       const [by, my, vy] = end === 'top' ? [14, 14 + R + BALL + 3, -v] : [L - 14, L - 14 - R - BALL - 3, v];
       return simulate(table({ x: MID, y: by }, [{ x: MID, y: my }]), { button: 0, vx: 0, vy });
@@ -194,14 +195,13 @@ describe('the table', () => {
       for (const end of ['top', 'bottom'] as const) {
         const shot = at(v, end);
         const y = end === 'top' ? shot.end.ball.y : L - shot.end.ball.y;
-        const over = y < 0;
-        if (over && y > -BALL) across += 1;
-        if (!over) short += 1;
-        /* in if its middle is over, wherever the rest of it is; not if not */
-        expect(end === 'top' ? shot.goal : shot.own, `${end}, ${v}: the ball at ${y.toFixed(2)}`).toBe(over);
+        if (y < 0 && y > -BALL) across += 1;
+        if (y >= 0) short += 1;
+        /* in only if all of it went over */
+        expect(end === 'top' ? shot.goal : shot.own, `${end}, ${v}: the ball at ${y.toFixed(2)}`).toBe(y < -BALL);
       }
     }
-    /* there were some of each, both ends */
+    /* there were some of each, both ends: balls do stop across the line */
     expect(across).toBeGreaterThan(4);
     expect(short).toBeGreaterThan(4);
   });

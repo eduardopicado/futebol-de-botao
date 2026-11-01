@@ -18,7 +18,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, guessKeeper } from '../content/computer';
 import {
-  SHOOTOUT_KICKS, clampKeeper, flick, kicked, mayFlick, missed, newShootout, other, penaltyFor, pronto, scoredFrom,
+  ON_THE_LINE, SHOOTOUT_KICKS, clampKeeper, flick, kicked, mayFlick, missed, newShootout, onTheLine, other, penaltyFor, pronto, scoredFrom,
   shootoutGoals, shootoutTaken, type Match, type Shootout, type Side,
 } from '../content/match';
 import { type Keepers, makeBoard, SHAPE } from './board';
@@ -157,7 +157,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     });
     const by = who.name || `Number ${who.n}`;
     const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!`
-      : `${miss === 'post' ? 'Off the post! ' : ''}${by} misses for ${name(taker)}!`;
+      : `${miss === 'post' ? 'Off the post! ' : ''}${onTheLine(play.frames.at(-1)!.ball) ? `${ON_THE_LINE} ` : ''}${by} misses for ${name(taker)}!`;
     tell(said, 'a');
     if (!s.winner) void called.then(() => speak(said));
     await wait(PACE.kick);
