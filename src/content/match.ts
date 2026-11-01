@@ -28,6 +28,8 @@
  *   turn of its side, then comes back on that goal line where the penalty
  *   area meets it, on the right as its own side sees it, once that spot is
  *   free (Art. 28, 29).
+ * - A goal: the whole ball over the line between the posts, or a ball that
+ *   stops with its middle over it there (the physics, botao.ts).
  * - The ball never goes out: the rim keeps it in. No offside.
  *
  * A penalty shootout, its own way to play, is at the end of this file.

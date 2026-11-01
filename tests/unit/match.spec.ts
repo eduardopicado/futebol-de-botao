@@ -508,3 +508,30 @@ describe('a shot that missed, for the commentator', () => {
     });
   }
 });
+
+describe('a slow shot that stops across the line', () => {
+  /* side a's button behind the ball, straight at the middle of the goal, just
+     hard enough for the ball to stop with its middle over the line (the
+     physics, botao.spec); b's goleiro out of the way by the left post */
+  const MID = (MOUTH[0] + MOUTH[1]) / 2;
+  const slow = (m: Match) => flick(m, 0, 0, -28);
+  const setUp = (): Match => playing({
+    turn: 'a', ball: { x: MID, y: 14 }, a: [{ x: MID, y: 14 + R + BALL + 3 }, ...parked('a').slice(1)], b: parked('b'),
+    keepers: { a: W / 2, b: MOUTH[0] + KEEPER_W / 2 },
+  });
+
+  it('is a goal when it was called', () => {
+    const m = pronto(call(setUp()), MOUTH[0] + KEEPER_W / 2);
+    const play = slow(m);
+    expect(play.frames.at(-1)!.ball.y).toBeLessThan(0);
+    expect(play.frames.at(-1)!.ball.y).toBeGreaterThan(-BALL);
+    expect(play.event).toEqual({ kind: 'goal', side: 'a', own: false });
+    expect(play.next.ball).toEqual({ x: W / 2, y: L / 2 });
+  });
+
+  it('is a goal kick when it was not: either way the ball is not left in the goal mouth', () => {
+    const play = slow(setUp());
+    expect(play.event).toEqual({ kind: 'uncalled', side: 'a', couldCall: true });
+    expect(play.next.ball.y).toBeGreaterThan(BALL);
+  });
+});

@@ -252,6 +252,14 @@ export function simulate(table: Table, flick: Flick): Shot {
     if (step % PER_FRAME === 0 || done) frames.push(snap());
     if (done) break;
   }
+  /* a ball that stops with its middle over the line, between the posts, has
+     gone in: a slow one can come to rest across the line, and would sit in
+     the goal mouth, in the net to look at and not a goal, while play went
+     on round it (a button half over the line is in the net too, match.ts) */
+  if (!goal && !own && ball.x > MOUTH[0] && ball.x < MOUTH[1]) {
+    if (ball.y < 0) goal = true;
+    else if (ball.y > L) own = true;
+  }
   const at = (d: Disc): Point => ({ x: d.x, y: d.y });
   return {
     frames,

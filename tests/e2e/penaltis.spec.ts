@@ -230,5 +230,42 @@ test.describe('Pênaltis', () => {
       expect(ptGoals('do Brasil').some((line) => all.at(-3)?.endsWith(`/audio/${clipId(line)}.mp3`))).toBe(true);
       noProblems(watch);
     });
+
+    test('after his recording, the next tap starts the sound effects afresh, and after the app was away: iOS can silence them', async ({ page }) => {
+      const watch = watchPage(page);
+      /* how many audio contexts the sound effects have made */
+      await page.addInitScript(() => {
+        const w = window as unknown as { __contexts: number };
+        w.__contexts = 0;
+        const Real = window.AudioContext;
+        window.AudioContext = class extends Real {
+          constructor(options?: AudioContextOptions) { super(options); w.__contexts += 1; }
+        };
+      });
+      const contexts = (): Promise<number> => page.evaluate(() => (window as unknown as { __contexts: number }).__contexts);
+      /* a tap on the desk, clear of everything */
+      const tap = (): Promise<void> => page.mouse.click(3, 3);
+      await recordSpeech(page, ['pt-BR']);
+      await recordPlays(page);
+      await brazilScores(page);
+      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      const before = await contexts();
+      expect(before).toBeGreaterThan(0);
+      await tap();
+      expect(await contexts()).toBe(before + 1);
+      /* once is enough */
+      await tap();
+      expect(await contexts()).toBe(before + 1);
+      /* away and back, as when the iPad sleeps or another app is opened */
+      await page.evaluate(() => {
+        for (const hidden of [true, false]) {
+          Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+          document.dispatchEvent(new Event('visibilitychange'));
+        }
+      });
+      await tap();
+      expect(await contexts()).toBe(before + 2);
+      noProblems(watch);
+    });
   });
 });

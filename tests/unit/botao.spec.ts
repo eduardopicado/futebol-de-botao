@@ -181,6 +181,38 @@ describe('the table', () => {
     expect(alone.own).toBe(false);
   });
 
+  it('counts a ball that stops with its middle over the line between the posts: in, not left in the goal mouth', () => {
+    /* softer and softer at the middle of the goal: some stop short, some
+       across the line, some go all the way in */
+    const at = (v: number, end: 'top' | 'bottom') => {
+      const [by, my, vy] = end === 'top' ? [14, 14 + R + BALL + 3, -v] : [L - 14, L - 14 - R - BALL - 3, v];
+      return simulate(table({ x: MID, y: by }, [{ x: MID, y: my }]), { button: 0, vx: 0, vy });
+    };
+    let across = 0;
+    let short = 0;
+    for (let v = 20; v <= 40; v += 0.25) {
+      for (const end of ['top', 'bottom'] as const) {
+        const shot = at(v, end);
+        const y = end === 'top' ? shot.end.ball.y : L - shot.end.ball.y;
+        const over = y < 0;
+        if (over && y > -BALL) across += 1;
+        if (!over) short += 1;
+        /* in if its middle is over, wherever the rest of it is; not if not */
+        expect(end === 'top' ? shot.goal : shot.own, `${end}, ${v}: the ball at ${y.toFixed(2)}`).toBe(over);
+      }
+    }
+    /* there were some of each, both ends */
+    expect(across).toBeGreaterThan(4);
+    expect(short).toBeGreaterThan(4);
+  });
+
+  it('leaves a ball that stops on the line with its middle in front of it in play', () => {
+    const shot = simulate(table({ x: MID, y: 14 }, [{ x: MID, y: 14 + R + BALL + 3 }]), { button: 0, vx: 0, vy: -26.5 });
+    expect(shot.end.ball.y).toBeGreaterThan(0);
+    expect(shot.end.ball.y).toBeLessThan(BALL);
+    expect(shot.goal).toBe(false);
+  });
+
   it('scores no own goal from a shot at his own end that misses the mouth', () => {
     const t = table({ x: 10, y: 80 }, [{ x: 10, y: 68 }]);
     const shot = simulate(t, { button: 0, vx: 0, vy: 100 });

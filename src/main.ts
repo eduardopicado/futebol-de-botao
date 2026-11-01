@@ -3,7 +3,7 @@ import './styles/app.css';
 import { startRouter, type Route } from './lib/router';
 import { unlockSpeech, watchVoices } from './lib/speech';
 import { loadClips, unlockClips } from './lib/audio';
-import { loadSfx, setSfxEnabled, unlockSfx, wakeSfx } from './lib/sfx';
+import { loadSfx, setSfxEnabled, staleSfx, unlockSfx, wakeSfx } from './lib/sfx';
 import { watchForUpdates } from './lib/update';
 import { soundsOn } from './game/choices';
 import * as home from './game/home';
@@ -48,6 +48,9 @@ function unlockOnFirstTap(): void {
   for (const type of ['pointerdown', 'pointerup', 'keydown']) document.addEventListener(type, unlockClips);
   document.addEventListener('pointerdown', wakeSfx);
   document.addEventListener('pointerup', wakeSfx);
+  /* back from the background, iOS may have silenced them for good: the next
+     tap starts them afresh (src/lib/sfx.ts) */
+  document.addEventListener('visibilitychange', () => { if (document.hidden) staleSfx(); });
 }
 
 setSfxEnabled(soundsOn());
