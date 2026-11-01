@@ -158,17 +158,24 @@ function advance(m: Match, level: Level, rand: Rand): Move {
   return onScreen(m, f, ours[f.button]);
 }
 
-/** the kick-off: the button beside the ball sends it out of the circle; then
-    another, that is not near it, makes the second flick */
+/** the kick-off: the nearest button that can send the ball forward does,
+    straight up the table or across it; then another, that is not near it,
+    makes the second flick */
 function kickoff(m: Match): Move {
   const { table: t, ours } = tableFor(m);
   const order = ours.map((index, k) => ({ index, k })).sort((p, q) => dist(t.us[p.k], t.ball) - dist(t.us[q.k], t.ball));
   if (m.touches === 0) {
-    /* the second nearest is beside the ball, level with it: it sends the ball out sideways */
-    const kicker = order[1] ?? order[0];
-    const p = t.us[kicker.k];
+    const ahead = [0, -10, 10].map((dx) => ({ x: t.ball.x + dx, y: t.ball.y - 16 }));
+    for (const o of order.slice(0, 2)) {
+      for (const to of ahead) {
+        const aim = aimAt(t, o.k, to);
+        if (aim && aim.cut > 0.6) return onScreen(m, { button: o.k, vx: aim.x * 40, vy: aim.y * 40 }, o.index);
+      }
+    }
+    /* none lines up: the nearest, straight at it */
+    const p = t.us[order[0].k];
     const d = dist(p, t.ball) || 1;
-    return onScreen(m, { button: kicker.k, vx: (t.ball.x - p.x) / d * 70, vy: (t.ball.y - p.y) / d * 70 }, kicker.index);
+    return onScreen(m, { button: order[0].k, vx: (t.ball.x - p.x) / d * 40, vy: (t.ball.y - p.y) / d * 40 }, order[0].index);
   }
   const spare = [...order].reverse().find((o) => mayFlick(m, o.index))!;
   /* back towards its own goal, away from everything */

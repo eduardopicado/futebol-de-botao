@@ -82,7 +82,7 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
-  test('kick-off: the second flick is by another button, and a ball left in the circle is kicked off again', async ({ page }) => {
+  test('kick-off: the second flick is by another button, and a ball that did not go forward is kicked off again', async ({ page }) => {
     const watch = watchPage(page);
     await open(page);
     await expect(game(page)).toHaveAttribute('data-phase', 'kickoff', { timeout: 6000 });

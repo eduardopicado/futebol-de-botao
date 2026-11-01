@@ -96,7 +96,7 @@ describe('kick-off', () => {
     expect(mayFlick(first.next, 3)).toBe(true);
   });
 
-  it('is taken again when the ball stays in the circle', () => {
+  it('is taken again when the ball does not go forward: still', () => {
     const m = newMatch(3, 'b');
     /* two of b's back buttons, nudged back towards their own goal: the ball never moves */
     const once = flick(m, 0, 0, -10);
@@ -107,13 +107,30 @@ describe('kick-off', () => {
     expect(twice.next.ball).toEqual(MIDDLE);
   });
 
-  it('passes to the other side once the ball is out of the circle', () => {
-    const m = newMatch(3, 'a');
-    /* the midfielder beside the ball, through it, out to the left */
+  /* the midfielder beside the ball, straight through it: out to the side,
+     well clear of the circle, and not forward */
+  const sideways = (m: Match) => {
     const [kicker, ball] = [m.a[3]!, m.ball];
     const d = dist(kicker, ball);
-    const once = flick(m, 3, (ball.x - kicker.x) / d * 70, (ball.y - kicker.y) / d * 70);
+    return flick(m, 3, (ball.x - kicker.x) / d * 70, (ball.y - kicker.y) / d * 70);
+  };
+
+  it('is taken again when the ball does not go forward: out to the side', () => {
+    const once = sideways(newMatch(3, 'a'));
     expect(dist(once.next.ball, MIDDLE)).toBeGreaterThan(CIRCLE);
+    expect(once.next.ball.y).toBeGreaterThanOrEqual(MIDDLE.y - 0.3);
+    const twice = flick(once.next, 0, 0, 10);
+    expect(twice.event).toEqual({ kind: 'retake', side: 'a' });
+  });
+
+  it('passes to the other side once the ball has gone forward, however little', () => {
+    const m = newMatch(3, 'a');
+    /* the button behind the ball, straight up the table, softly */
+    const k = m.a.findIndex((p) => p !== null && p.x === m.ball.x && p.y > m.ball.y);
+    expect(k).toBeGreaterThanOrEqual(0);
+    const once = flick(m, k, 0, -15);
+    expect(once.next.ball.y).toBeLessThan(MIDDLE.y);
+    expect(dist(once.next.ball, MIDDLE)).toBeLessThan(CIRCLE);
     const twice = flick(once.next, 0, 0, 10);
     expect(twice.event).toEqual({ kind: 'turn', side: 'b', why: 'kickoff' });
     expect(twice.next.phase).toBe('play');

@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { guideSteps, played, told } from '../../src/content/guide';
-import { CIRCLE, GOALS, RULES, type Event, type Match } from '../../src/content/match';
+import { GOALS, RULES, type Event, type Match } from '../../src/content/match';
 import { L, W, type Bump } from '../../src/content/botao';
 
 const ids = (rule: '3' | '1') => guideSteps(rule, 3).map((s) => s.id);
@@ -75,14 +75,15 @@ describe('How to play', () => {
         expect(play.bumps.some((b) => b.what === 'touch')).toBe(false);
       });
 
-      it('the kick-off: two different buttons, and the ball leaves the circle', () => {
+      it('the kick-off: two different buttons, and the ball goes forward', () => {
         const d = step(rule, 'kickoff').demo;
         expect(d.start.phase).toBe('kickoff');
         expect(new Set(d.flicks.map((f) => f.button)).size).toBe(2);
         const plays = played(d);
         expect(plays[1].play.event).toEqual({ kind: 'turn', side: 'b', why: 'kickoff' });
         const ball = plays[1].play.next.ball;
-        expect(Math.hypot(ball.x - W / 2, ball.y - L / 2)).toBeGreaterThan(CIRCLE);
+        /* side a kicks off up the table */
+        expect(ball.y).toBeLessThan(L / 2);
       });
     });
   }
@@ -102,13 +103,13 @@ describe('How to play', () => {
     expect(t({ kind: 'foul', side: 'a', penalty: true })).toBe('Foul! A penalty to you.');
     expect(t({ kind: 'parked', side: 'a' }, '1')).toBe('Parked! A free kick to you.');
     expect(t({ kind: 'uncalled', side: 'a', couldCall: true })).toBe('Not called: no goal.');
-    expect(t({ kind: 'retake', side: 'a' })).toBe('Still in the circle: again.');
+    expect(t({ kind: 'retake', side: 'a' })).toBe('Not forward: again.');
     expect(t({ kind: 'on', left: 1 })).toBe('1 touch left.');
     expect(t({ kind: 'on', left: 2 })).toBe('2 touches left.');
     expect(t({ kind: 'turn', side: 'a', why: 'theirs' }, '3', ['touch', 'block', 'keeper'])).toBe('Saved! Your turn now.');
     expect(t({ kind: 'turn', side: 'b', why: 'theirs' }, '3', ['touch', 'keeper', 'block', 'wall'])).toBe('Blocked! Their turn now.');
     expect(t({ kind: 'turn', side: 'b', why: 'still' })).toBe('Missed the ball: their turn now.');
-    expect(t({ kind: 'turn', side: 'a', why: 'kickoff' })).toBe('Out of the circle. Your turn now.');
+    expect(t({ kind: 'turn', side: 'a', why: 'kickoff' })).toBe('Forward. Your turn now.');
     expect(t({ kind: 'turn', side: 'b', why: 'penalty' })).toBe('Penalty taken. Their turn now.');
     expect(t({ kind: 'turn', side: 'b', why: 'touches' })).toBe('No touches left: their turn now.');
     expect(t({ kind: 'turn', side: 'b', why: 'touches' }, '1')).toBe('One flick: their turn now.');

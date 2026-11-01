@@ -33,7 +33,7 @@ test.describe('How to play', () => {
       'A gol!': 'GOL!',
       'Your goleiro': 'Saved! Your turn now.',
       Fouls: 'Foul! A free kick to them.',
-      'Kick-off': 'Out of the circle. Their turn now.',
+      'Kick-off': 'Forward. Their turn now.',
     };
     for (const [title, end] of Object.entries(shown)) {
       await page.getByRole('button', { name: 'Next →' }).click();
@@ -109,7 +109,7 @@ test.describe('How to play', () => {
     await watched(page, 'Kick-off');
     await expect(page.locator('.bt-table')).toHaveCount(1);
     const seen = await page.evaluate(() => (window as unknown as { __seen: string[] }).__seen.filter((t) => t !== ''));
-    expect(seen).toEqual(['demo: playing', '1 touch left.', 'Out of the circle. Their turn now.', 'demo: done']);
+    expect(seen).toEqual(['demo: playing', '1 touch left.', 'Forward. Their turn now.', 'demo: done']);
     /* ↺ Again starts it over */
     await page.getByRole('button', { name: '↺ Again' }).click();
     await expect(now(page)).toHaveText('');
