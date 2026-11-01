@@ -2,7 +2,7 @@
    and winning, for both sides. */
 
 import { describe, expect, it } from 'vitest';
-import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
+import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, LINE, MARKS, MOUTH, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
@@ -178,8 +178,12 @@ describe('"A gol!"', () => {
   it('may only be called in a turn that started in the attacking half', () => {
     expect(mayCall(chance('a'))).toBe(true);
     expect(mayCall(playing({ turn: 'a', ball: { x: 32, y: 70 } }))).toBe(false);
-    /* touching the halfway line is in neither half */
+    /* touching the halfway line is in neither half: touching its paint, as it is drawn */
     expect(inAttack({ x: 32, y: L / 2 - BALL + 0.1 }, 'a')).toBe(false);
+    expect(inAttack({ x: 32, y: L / 2 - BALL - LINE / 2 + 0.05 }, 'a')).toBe(false);
+    expect(inAttack({ x: 32, y: L / 2 - BALL - LINE / 2 - 0.05 }, 'a')).toBe(true);
+    expect(inAttack({ x: 32, y: L / 2 + BALL + LINE / 2 - 0.05 }, 'b')).toBe(false);
+    expect(inAttack({ x: 32, y: L / 2 + BALL + LINE / 2 + 0.05 }, 'b')).toBe(true);
     expect(mayCall({ ...chance('a'), phase: 'kickoff' })).toBe(false);
   });
 

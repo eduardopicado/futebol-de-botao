@@ -108,9 +108,19 @@ test.describe('Pênaltis', () => {
        guess the same every time: near its left post */
     await page.addInitScript(() => { Math.random = () => 0.1; });
     await seed(page, { 'shootout-setup': partWay('a', [true, false, true, true, false, false, true, false]) });
+    /* every note shown, as the computer's is there only while it places its goleiro */
+    await page.addInitScript(() => {
+      const notes: string[] = [];
+      (window as unknown as { __notes: string[] }).__notes = notes;
+      new MutationObserver(() => {
+        const words = document.querySelector('.say-words')?.textContent ?? '';
+        if (words && notes.at(-1) !== words) notes.push(words);
+      }).observe(document, { childList: true, characterData: true, subtree: true });
+    });
     await page.goto('/#/penaltis-1');
     await expect(game(page)).toHaveAttribute('data-score', '3-1');
-    await expect(page.locator('.say-words')).toContainText('places its goleiro');
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __notes: string[] }).__notes.join(' | ')))
+      .toContain('places its goleiro');
     await expect(game(page)).toHaveAttribute('data-phase', 'penalty', { timeout: 8000 });
     const f = await aimed(page, 'a');
     await kick(page, 'a', f.vx, f.vy);

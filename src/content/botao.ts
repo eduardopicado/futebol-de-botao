@@ -26,8 +26,15 @@ export const BALL = 1.6;
 export const MOUTH: readonly [number, number] = [21, 43];
 export const NET = 5;
 export const POST = 0.8;
-/** the goleiro: a block this wide, just in front of the line */
+/** how wide the lines are painted (table.ts and app.css draw them so). A
+    rule about a line counts its paint: the goal lines have their outer edge
+    on y = 0 and L, the line the posts stand on, and an area's line belongs
+    to the area; touching the halfway line means touching its paint */
+export const LINE = 0.43;
+/** the goleiro: a block this wide, just in front of the line, with its
+    corners rounded as it is drawn (board.ts) */
 export const KEEPER_W = 6;
+export const KEEPER_RX = 0.8;
 /** the markings at each end, across and deep: the small area (the goal
     area), the penalty area, the spot, and the radius of the arc on the
     penalty area's edge. As on a real table the goal is clearly narrower
@@ -145,12 +152,15 @@ function offRim(d: Disc): Point | null {
   return hit;
 }
 
-/** off a goleiro's block: theirs at the top, or our own at the bottom */
+/** off a goleiro's block: theirs at the top, or our own at the bottom. Its
+    corners are rounded, as drawn: the nearest point of the block shrunk by
+    the rounding, and that much more */
 function offKeeper(d: Disc, keeper: number, bottom = false, out = 0): boolean {
-  const cx = Math.min(keeper + KEEPER_W / 2, Math.max(keeper - KEEPER_W / 2, d.x));
+  const k = KEEPER_RX;
+  const cx = Math.min(keeper + KEEPER_W / 2 - k, Math.max(keeper - KEEPER_W / 2 + k, d.x));
   const [lo, hi] = bottom ? [L - KEEPER_Y[1] - out, L - KEEPER_Y[0] - out] : [KEEPER_Y[0] + out, KEEPER_Y[1] + out];
-  const cy = Math.min(hi, Math.max(lo, d.y));
-  return offPoint(d, cx, cy);
+  const cy = Math.min(hi - k, Math.max(lo + k, d.y));
+  return offPoint(d, cx, cy, k);
 }
 
 function slow(d: Disc): void {

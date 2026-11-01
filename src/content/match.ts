@@ -48,7 +48,7 @@
  *   boxing it in, after your flick: straight away. Either way, a free kick
  *   to the other side from where the ball is (Art. 8 §10–12, Art. 63). */
 
-import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
+import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, LINE, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
 
 export type Side = 'a' | 'b';
 export const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
@@ -148,7 +148,7 @@ export const clampKeeper = (x: number): number =>
 
 /** is the ball in this side's attacking half (touching the halfway line is in neither) */
 export const inAttack = (ball: Point, side: Side): boolean =>
-  (side === 'a' ? ball.y + BALL < L / 2 : ball.y - BALL > L / 2);
+  (side === 'a' ? ball.y + BALL < L / 2 - LINE / 2 : ball.y - BALL > L / 2 + LINE / 2);
 
 /**
  * Where a side lines up: two at the back, two in midfield (one, with four

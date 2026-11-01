@@ -9,7 +9,7 @@
 import tray from '../assets/tray.webp';
 import { crestOf } from '../lib/crests';
 import { svg } from '../lib/dom';
-import { L, MARKS, MOUTH, NET, POST, R, VIEW, W, type Point } from '../content/botao';
+import { L, LINE, MARKS, MOUTH, NET, POST, R, VIEW, W, type Point } from '../content/botao';
 import type { Team } from './teams';
 
 export const at = (g: SVGGraphicsElement, p: Point): void => g.setAttribute('transform', `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
@@ -113,14 +113,14 @@ function goalNet(): SVGGElement {
   return net;
 }
 
-/* The lines: the touchlines a little in from the rim, and the goal lines on
-   the line the posts stand on, the physics' goal line (y = 0 and L,
-   botao.ts), with the outer edge of the paint (.bt-line is .43 wide, app.css)
-   on it. A goal is the whole ball over that line, as in football, so a ball
-   wholly past the line drawn is a goal and one still touching it is not:
-   what a player sees is what counts. */
+/* The lines, drawn where the rules have them (LINE, botao.ts): the
+   touchlines a little in from the rim, which no rule uses, and the goal
+   lines on the line the posts stand on, the physics' goal line (y = 0 and
+   L), with the outer edge of the paint on it. A goal is the whole ball over
+   that line, as in football, so a ball wholly past the line drawn is a goal
+   and one still touching it is not: what a player sees is what counts. */
 const SIDE_LINE = 0.6;
-export const GOAL_LINE = 0.43 / 2;
+export const GOAL_LINE = LINE / 2;
 
 export function pitch(): SVGGElement {
   const line = (attrs: Record<string, string | number>): SVGElement => svg('rect', { ...attrs, class: 'bt-line' });
@@ -156,23 +156,32 @@ export function pitch(): SVGGElement {
 }
 
 /** the markings at each end: the penalty area with the arc on its edge, the
-    small area, the spot, and the quarter circles in the corners */
+    small area, the spot, and the quarter circles in the corners. The areas
+    as the rules have them (MARKS, botao.ts; a foul in the penalty area and
+    the goleiro's small area, match.ts), measured from the goal line that
+    counts, with the outer edge of their lines on the edge, as a line belongs
+    to the area it marks; the spot where the ball is put for a penalty */
 function ends(): SVGElement[] {
   const [boxW, boxD] = MARKS.box;
   const [penW, penD] = MARKS.penalty;
   const { spot, arc } = MARKS;
-  /* where the arc round the spot meets the penalty area's edge */
-  const half = Math.sqrt(arc * arc - (penD - spot) ** 2);
+  /* the middle of the penalty area's line across, and where the arc round
+     the spot meets it */
+  const edge = penD - LINE / 2;
+  const half = Math.sqrt(arc * arc - (edge - spot) ** 2);
   const corner = 1.6;
   return [0, 1].flatMap((end) => {
     /* the top end as drawn, and the bottom one turned round */
-    const y = (d: number): number => (end === 0 ? GOAL_LINE + d : L - GOAL_LINE - d);
+    const at = (d: number): number => (end === 0 ? d : L - d);
+    const y = (d: number): number => at(GOAL_LINE + d);
+    const area = (w: number, d: number): SVGElement =>
+      svg('rect', { class: 'bt-line', x: (W - w) / 2 + LINE / 2, y: Math.min(at(LINE / 2), at(d - LINE / 2)), width: w - LINE, height: d - LINE });
     const sweep = end === 0 ? 0 : 1;
     return [
-      svg('rect', { class: 'bt-line', x: (W - penW) / 2, y: Math.min(y(0), y(penD)), width: penW, height: penD }),
-      svg('rect', { class: 'bt-line', x: (W - boxW) / 2, y: Math.min(y(0), y(boxD)), width: boxW, height: boxD }),
-      svg('circle', { class: 'bt-spot', cx: W / 2, cy: y(spot), r: 0.6 }),
-      svg('path', { class: 'bt-line', d: `M${W / 2 - half} ${y(penD)} A${arc} ${arc} 0 0 ${sweep} ${W / 2 + half} ${y(penD)}` }),
+      area(penW, penD),
+      area(boxW, boxD),
+      svg('circle', { class: 'bt-spot', cx: W / 2, cy: at(spot), r: 0.6 }),
+      svg('path', { class: 'bt-line', d: `M${W / 2 - half} ${at(edge)} A${arc} ${arc} 0 0 ${sweep} ${W / 2 + half} ${at(edge)}` }),
       svg('path', { class: 'bt-line', d: `M${SIDE_LINE + corner} ${y(0)} A${corner} ${corner} 0 0 ${1 - sweep} ${SIDE_LINE} ${y(corner)}` }),
       svg('path', { class: 'bt-line', d: `M${W - SIDE_LINE - corner} ${y(0)} A${corner} ${corner} 0 0 ${sweep} ${W - SIDE_LINE} ${y(corner)}` }),
     ];

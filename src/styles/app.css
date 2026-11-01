@@ -350,6 +350,7 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .bt-felt { fill: #369658; }
 .bt-stripe { fill: rgba(0, 0, 0, .12); }
 .bt-stripe.down { fill: rgba(0, 0, 0, .08); }
+/* as wide as the rules count a line (LINE, botao.ts) */
 .bt-line { fill: none; stroke: #E8EEE2; stroke-width: .43; }
 .bt-spot { fill: #E8EEE2; }
 /* the goal: the inside of the net darker towards the back, the frame
