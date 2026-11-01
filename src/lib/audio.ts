@@ -16,6 +16,7 @@
  * clips or fifteen hundred and the app works either way. */
 
 import { clipId, speakable } from './clip-id';
+import { staleSfx } from './sfx';
 
 /** ids we have a file for; empty until the manifest loads, or if it never does */
 let have: Set<string> | null = null;
@@ -133,6 +134,8 @@ export async function playClip(
     audio.onended = options.onEnd ? () => { if (!ended) { ended = true; options.onEnd?.(); } } : null;
     await audio.play();
     unlocked = true;
+    /* iOS can silence the sound effects once this has played (src/lib/sfx.ts) */
+    staleSfx();
     return true;
   } catch {
     /* cut short: the next word, or leaving the game, has taken over */

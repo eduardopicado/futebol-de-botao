@@ -20,7 +20,7 @@ import { lifetime } from '../lib/life';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
 import { keeperFor, simulate, type Flick, type Point, type Shot, type Table } from '../content/botao';
-import { TOUCHES, type Scene } from '../content/match';
+import { ON_THE_LINE, TOUCHES, onTheLine, type Scene } from '../content/match';
 import { drill, type Drill } from '../content/treino';
 import { type Keepers, makeBoard, SHAPE } from './board';
 import { speak } from './choices';
@@ -183,6 +183,7 @@ export function mount(root: HTMLElement): () => void {
     const bumped = shot.bumps.map((b) => b.what);
     const what = !shot.touched ? 'You missed the ball.'
       : bumped.includes('keeper') ? 'The goleiro saved it!'
+        : onTheLine(shot.end.ball) ? ON_THE_LINE
         : bumped.includes('post') ? 'Off the post!'
           : bumped.includes('block') ? 'A defender blocked it.' : 'Good touch.';
     /* the commentator calls a save or a shot off the post, and the words wait */

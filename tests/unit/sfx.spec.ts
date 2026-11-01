@@ -17,6 +17,8 @@ class FakeSource {
   frequency = { value: 0 };
   type = '';
   buffer: unknown = null;
+  /** the context it plays in, for one from a buffer */
+  on: unknown = null;
   constructor(kind: string) { this.kind = kind; FakeSource.made.push(this); }
   connect<T>(next: T): T { return next; }
   start(): void { /* scheduled */ }
@@ -27,16 +29,21 @@ class FakeSource {
 const param = () => ({ value: 0, setValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined });
 
 class FakeContext {
+  static made: FakeContext[] = [];
   currentTime = 0;
   sampleRate = 8000;
   state = 'running';
   destination = {};
+  resumed = 0;
+  closed = false;
+  constructor() { FakeContext.made.push(this); }
   createOscillator() { return new FakeSource('tone'); }
-  createBufferSource() { return new FakeSource('noise'); }
+  createBufferSource() { const s = new FakeSource('noise'); s.on = this; return s; }
   createGain() { return { gain: param(), connect: <T>(n: T) => n }; }
   createBiquadFilter() { return { type: '', frequency: { value: 0 }, Q: { value: 0 }, connect: <T>(n: T) => n }; }
   createBuffer(_c: number, length: number) { return { getChannelData: () => new Float32Array(length) }; }
-  resume() { return Promise.resolve(); }
+  resume() { this.resumed += 1; return Promise.resolve(); }
+  close() { this.closed = true; this.state = 'closed'; return Promise.resolve(); }
   /** a file is a note of how long it lasts, or 'broken' for one that will not decode */
   decodeAudioData(data: unknown, done: (b: unknown) => void, fail: (e: Error) => void): void {
     if (data === 'broken') fail(new Error('EncodingError'));
@@ -183,5 +190,64 @@ describe('recorded sounds', () => {
     sfx.win();
     sfx.cheer();
     expect(FakeSource.made).toEqual([]);
+  });
+});
+
+describe('iOS silencing the sound effects', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    FakeSource.made = [];
+    FakeContext.made = [];
+    vi.stubGlobal('window', { AudioContext: FakeContext, localStorage: { getItem: () => null, setItem: () => undefined } });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('after other audio has played, the next tap makes a new context, and the recordings play in it', async () => {
+    serve({ 'sfx.json': { cheer: 0.5 }, 'cheer.mp3': { seconds: 1.5 } });
+    const { sfx, loadSfx, unlockSfx, staleSfx, wakeSfx } = await import('../../src/lib/sfx');
+    await loadSfx();
+    await unlockSfx();
+    const [first] = FakeContext.made;
+    staleSfx();
+    wakeSfx();
+    expect(FakeContext.made).toHaveLength(2);
+    expect(first.closed).toBe(true);
+    const fresh = FakeContext.made[1];
+    expect(fresh.resumed).toBe(1);
+    sfx.cheer();
+    expect(FakeSource.made.map((s) => [s.buffer, s.on === fresh])).toEqual([[{ duration: 1.5 }, true]]);
+    /* and only once: the tap after leaves it be */
+    wakeSfx();
+    expect(FakeContext.made).toHaveLength(2);
+  });
+
+  it('one iOS says is interrupted is made anew; a suspended one is only resumed', async () => {
+    const { sfx, wakeSfx } = await import('../../src/lib/sfx');
+    sfx.tap();
+    const [first] = FakeContext.made;
+    first.state = 'suspended';
+    wakeSfx();
+    expect(first.resumed).toBe(1);
+    expect(FakeContext.made).toHaveLength(1);
+    first.state = 'interrupted';
+    wakeSfx();
+    expect(FakeContext.made).toHaveLength(2);
+    expect(first.closed).toBe(true);
+  });
+
+  it('makes none before there is one, nor straight after the first: a new one has heard nothing yet', async () => {
+    serve({ 'sfx.json': { cheer: 0.5 }, 'cheer.mp3': { seconds: 1.5 } });
+    const { sfx, loadSfx, unlockSfx, staleSfx, wakeSfx } = await import('../../src/lib/sfx');
+    /* the app went into the background before the first tap */
+    staleSfx();
+    wakeSfx();
+    expect(FakeContext.made).toEqual([]);
+    /* the first tap makes one and its recordings ready in it, and keeps it */
+    await loadSfx();
+    await unlockSfx();
+    wakeSfx();
+    expect(FakeContext.made).toHaveLength(1);
+    sfx.cheer();
+    expect(FakeSource.made.map((s) => s.buffer)).toEqual([{ duration: 1.5 }]);
   });
 });

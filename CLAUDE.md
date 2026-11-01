@@ -50,6 +50,10 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
   the app starts and only decoded on the tap; in Chrome, a tap that also
   asks the offline worker for files can leave a new version waiting for
   good, and that tap may be the one on "New version".
+- iOS can silence the sound effects (Web Audio) while they say they are
+  running: after a recording of the commentator has played, or after the app
+  has been in the background. The next tap then gives them a new audio
+  context (`src/lib/sfx.ts`); the recordings themselves play on.
 - A screen schedules its timers through `lifetime()` (`src/lib/life.ts`) and
   ends it on unmount, so nothing it planned happens after it has been left. The
   router also cancels speech and stops sound effects on the way out.

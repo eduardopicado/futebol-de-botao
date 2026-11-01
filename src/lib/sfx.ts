@@ -19,6 +19,13 @@ let ctx: AudioContext | null = null;
 /* on or off is a setting (src/game/settings.ts), which sets
    this as the app starts */
 let enabled = true;
+/* iOS can silence the context while it still says it is running, and
+   resume() does not always bring it back: after the page's other audio has
+   played (a recording of the commentator, src/lib/audio.ts, which an audio
+   element plays and which carries on through it), or after the app has been
+   in the background. After either, the next tap makes a new context, as it
+   does for one iOS says is interrupted. */
+let stale = false;
 
 function audio(): AudioContext | null {
   if (ctx) return ctx;
@@ -26,6 +33,8 @@ function audio(): AudioContext | null {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
     ctx = new Ctor();
+    /* a new one has heard nothing yet */
+    stale = false;
     return ctx;
   } catch {
     return null;
@@ -118,17 +127,46 @@ async function decodeAll(ac: AudioContext): Promise<void> {
   }));
 }
 
+/** the context may have been silenced (see `stale`): make a new one at the next tap */
+export function staleSfx(): void {
+  stale = true;
+}
+
 /**
  * Wakes the sounds again after iOS has put them to sleep.
  *
  * The first tap is not enough on an iPad. When the screen locks, another app
  * plays audio, or the home-screen app is left and reopened, Safari moves the
  * audio context to "interrupted" (or "suspended") and it stays silent until
- * resumed inside another gesture. Cheap to ask, so every tap asks.
+ * resumed inside another gesture; or it says it is running and is silent all
+ * the same. Cheap to ask, so every tap asks: a suspended context is resumed,
+ * and one that is interrupted, or may have been silenced, is made anew.
  */
 export function wakeSfx(): void {
   try {
-    if (ctx && ctx.state !== 'running') void ctx.resume();
+    if (!ctx) return;
+    if (stale || (ctx.state as string) === 'interrupted') renew();
+    else if (ctx.state !== 'running') void ctx.resume();
+  } catch {
+    /* ignore */
+  }
+}
+
+/** a new context in place of the old, inside the tap that asked for it, so
+    iOS lets it start: what the old one was still playing stops with it, and
+    the recordings carry over, as a decoded sound belongs to no context */
+function renew(): void {
+  const old = ctx;
+  stale = false;
+  ctx = null;
+  playing.clear();
+  try {
+    void old?.close().catch(() => undefined);
+  } catch {
+    /* already closed */
+  }
+  try {
+    void audio()?.resume();
   } catch {
     /* ignore */
   }
