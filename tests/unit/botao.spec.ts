@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  BALL, KEEPER_OUT, KEEPER_W, KEEPER_Y, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
+  BALL, KEEPER_OUT, KEEPER_RX, KEEPER_W, KEEPER_Y, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
   angles, flickFor, keeperFor, oneTouch, passPlan, robust, shownBounce, simulate, slant,
   type Point, type Table,
 } from '../../src/content/botao';
@@ -234,12 +234,35 @@ describe('the goleiro', () => {
     }
   });
 
+  it('has the rounded corners it is drawn with: a ball aimed at a corner touches the drawn block, no sooner', () => {
+    /* straight at the bottom right corner of a goleiro on its line, along the diagonal */
+    const keeper = 32;
+    const corner = { x: keeper + KEEPER_W / 2 - KEEPER_RX, y: KEEPER_Y[1] - KEEPER_RX };
+    const [ux, uy] = [-Math.SQRT1_2, -Math.SQRT1_2];
+    const ball = { x: corner.x + 10, y: corner.y + 10 };
+    const button = { x: ball.x - ux * (R + BALL + 0.5), y: ball.y - uy * (R + BALL + 0.5) };
+    /* slow enough that the frames, a 60th of a second apart, catch it close */
+    const shot = simulate(table(ball, [button], { keeper }), { button: 0, vx: ux * 25, vy: uy * 25 });
+    expect(shot.bumps.map((b) => b.what)).toContain('keeper');
+    /* the closest it came to the block as drawn: a rectangle with corners rounded by KEEPER_RX */
+    const toBlock = (p: Point): number => {
+      const cx = Math.min(keeper + KEEPER_W / 2 - KEEPER_RX, Math.max(keeper - KEEPER_W / 2 + KEEPER_RX, p.x));
+      const cy = Math.min(KEEPER_Y[1] - KEEPER_RX, Math.max(KEEPER_Y[0] + KEEPER_RX, p.y));
+      return dist(p, { x: cx, y: cy }) - KEEPER_RX;
+    };
+    /* square corners would have turned it back a third of a unit before the drawn block */
+    const closest = Math.min(...shot.frames.map((f) => toBlock(f[0])));
+    expect(closest).toBeGreaterThan(BALL - 0.05);
+    expect(closest).toBeLessThan(BALL + 0.15);
+  });
+
   it('off its line, it stops a shot that would have gone past it on the line', () => {
     /* from the left, across the face of goal into the far side of the net */
     const ball = { x: 20, y: 20 };
     const [ux, uy] = [Math.SQRT1_2, -Math.SQRT1_2];
     const button = { x: ball.x - ux * (R + BALL + 0.5), y: ball.y - uy * (R + BALL + 0.5) };
-    const shot = (keeperOut: number) => simulate(table(ball, [button], { keeper: 28, keeperOut }), { button: 0, vx: ux * 100, vy: uy * 100 });
+    /* the goleiro where the shot meets the face of its block, off its line, not a corner */
+    const shot = (keeperOut: number) => simulate(table(ball, [button], { keeper: 30, keeperOut }), { button: 0, vx: ux * 100, vy: uy * 100 });
     expect(shot(0).goal).toBe(true);
     const out = shot(KEEPER_OUT);
     expect(out.goal).toBe(false);

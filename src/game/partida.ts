@@ -159,7 +159,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     }
     switch (m.phase) {
       case 'kickoff':
-        tell(`${lead}Kick-off: ${t}. Two flicks, by two different buttons, and the ball has to leave the circle.`, m.turn);
+        tell(`${lead}Kick-off: ${t}. Two flicks, by two different buttons, and the ball has to go forward.`, m.turn);
         break;
       case 'play': {
         const left = touchesFor(m.rule) - m.touches;
@@ -284,7 +284,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       }
       case 'retake':
         sfx.whistle();
-        render('The ball has to leave the circle: kick off again.');
+        render('The ball has to go forward: kick off again.');
         await wait(PACE.retake);
         return;
       case 'turn': {

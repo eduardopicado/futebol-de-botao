@@ -19,7 +19,7 @@
 import { el, svg } from '../lib/dom';
 import type { Life } from '../lib/life';
 import { sfx } from '../lib/sfx';
-import { BALL, KEEPER_W, KEEPER_Y, L, MOUTH, R, VIEW, W, flickFor, type Bump, type Flick, type Point } from '../content/botao';
+import { BALL, KEEPER_RX, KEEPER_W, KEEPER_Y, L, MOUTH, R, VIEW, W, flickFor, type Bump, type Flick, type Point } from '../content/botao';
 import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import { playerLabel, type Player } from './squads';
@@ -87,7 +87,7 @@ const line = (pts: Point[]): string => pts.map((p) => `${p.x.toFixed(2)},${p.y.t
 /** a goleiro's block, drawn round x = 0 and moved by a transform, so it can slide across */
 function keeperBlock(bottom: boolean): { g: SVGGElement; block: SVGRectElement } {
   const [lo, hi] = bottom ? [L - KEEPER_Y[1], L - KEEPER_Y[0]] : KEEPER_Y;
-  const shape = { x: -KEEPER_W / 2, y: lo, width: KEEPER_W, height: hi - lo, rx: 0.8 };
+  const shape = { x: -KEEPER_W / 2, y: lo, width: KEEPER_W, height: hi - lo, rx: KEEPER_RX };
   const block = svg('rect', { ...shape, class: 'bt-keeper-block' });
   const g = svg('g', { class: `bt-keeper ${bottom ? 'home' : 'away'}` },
     svg('rect', { ...shape, x: shape.x + SHADOW.x, y: shape.y + SHADOW.y, class: 'bt-shadow' }),

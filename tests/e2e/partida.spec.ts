@@ -5,7 +5,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
-import { BALL, KEEPER_W, KEEPER_Y, L, MOUTH, PULL, R, VIEW, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
+import { BALL, KEEPER_W, KEEPER_Y, L, LINE, MARKS, MOUTH, PULL, R, VIEW, W, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
 import { onTheLine, type Match, type Side } from '../../src/content/match';
 import { PT_POSTS } from '../../src/content/commentary';
 import { clipId } from '../../src/lib/clip-id';
@@ -82,7 +82,7 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
-  test('kick-off: the second flick is by another button, and a ball left in the circle is kicked off again', async ({ page }) => {
+  test('kick-off: the second flick is by another button, and a ball that did not go forward is kicked off again', async ({ page }) => {
     const watch = watchPage(page);
     await open(page);
     await expect(game(page)).toHaveAttribute('data-phase', 'kickoff', { timeout: 6000 });
@@ -404,17 +404,34 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
-  test('the goal lines drawn are the ones that count: the outer edge of the paint on the line the posts stand on, both ends', async ({ page }) => {
+  test('the lines drawn are where the rules have them: goal lines, areas, spots, as wide as the rules count them', async ({ page }) => {
     await open(page, chance());
-    const edges = await page.evaluate(() => {
-      const border = [...document.querySelectorAll<SVGRectElement>('.bt-table rect.bt-line')].find((r) => Number(r.getAttribute('height')) > 50)!;
-      const half = parseFloat(getComputedStyle(border).strokeWidth) / 2;
-      const y = Number(border.getAttribute('y'));
-      const h = Number(border.getAttribute('height'));
-      return [y - half, y + h + half];
+    const drawn = await page.evaluate(() => {
+      const rects = [...document.querySelectorAll<SVGRectElement>('.bt-table rect.bt-line')].map((r) => {
+        const half = parseFloat(getComputedStyle(r).strokeWidth) / 2;
+        const [x, y, w, h] = ['x', 'y', 'width', 'height'].map((a) => Number(r.getAttribute(a)));
+        /* the outer edges of the paint: left, top, right, bottom */
+        return { width: 2 * half, edges: [x - half, y - half, x + w + half, y + h + half] };
+      });
+      const spots = [...document.querySelectorAll<SVGCircleElement>('.bt-table circle.bt-spot')].map((c) => Number(c.getAttribute('cy')));
+      return { rects, spots };
     });
-    expect(edges[0]).toBeCloseTo(0, 3);
-    expect(edges[1]).toBeCloseTo(L, 3);
+    const close = (a: number[], b: number[]): boolean => a.every((n, i) => Math.abs(n - b[i]) < 0.001);
+    expect(drawn.rects.every((r) => Math.abs(r.width - LINE) < 0.001)).toBe(true);
+    const [penW, penD] = MARKS.penalty;
+    const [boxW, boxD] = MARKS.box;
+    const want = [
+      /* the goal lines' outer edges on the line the posts stand on */
+      ['the goal lines', (e: number[]) => Math.abs(e[1]) < 0.001 && Math.abs(e[3] - L) < 0.001],
+      /* each area's outer edges where the rules end it (a foul in the area; the goleiro's small area) */
+      ['the top penalty area', (e: number[]) => close(e, [(W - penW) / 2, 0, (W + penW) / 2, penD])],
+      ['the bottom penalty area', (e: number[]) => close(e, [(W - penW) / 2, L - penD, (W + penW) / 2, L])],
+      ['the top small area', (e: number[]) => close(e, [(W - boxW) / 2, 0, (W + boxW) / 2, boxD])],
+      ['the bottom small area', (e: number[]) => close(e, [(W - boxW) / 2, L - boxD, (W + boxW) / 2, L])],
+    ] as const;
+    for (const [what, fits] of want) expect(drawn.rects.some((r) => fits(r.edges)), what).toBe(true);
+    /* the spots where the ball is put for a penalty, and the middle */
+    expect(drawn.spots.sort((a, b) => a - b)).toEqual([MARKS.spot, L / 2, L - MARKS.spot]);
   });
 
   test('has no accessibility violations', async ({ page }) => {

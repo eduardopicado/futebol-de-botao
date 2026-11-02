@@ -21,8 +21,9 @@
  *   the ball (Art. 83). A free kick to them from there, or a penalty if it
  *   was in your own penalty area.
  * - Kick-off from the centre by the side that conceded, or by the toss: two
- *   flicks by different buttons, and the ball has to leave the centre circle
- *   (Art. 67), or it is taken again.
+ *   flicks by different buttons, and the ball has to go forward, past the
+ *   centre spot towards the goal it attacks, or it is taken again (agreed in
+ *   place of Art. 67's leaving the centre circle).
  * - A button that ends up in a net (half over the line, between the posts:
  *   the nets are no deeper than a button) is out of play: it sits out one whole
  *   turn of its side, then comes back on that goal line where the penalty
@@ -48,7 +49,7 @@
  *   boxing it in, after your flick: straight away. Either way, a free kick
  *   to the other side from where the ball is (Art. 8 §10–12, Art. 63). */
 
-import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
+import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, LINE, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
 
 export type Side = 'a' | 'b';
 export const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
@@ -59,7 +60,7 @@ export const BUTTONS = 5;
 /** flicks in a turn, and in a kick-off */
 export const TOUCHES = 3;
 export const KICKOFF_TOUCHES = 2;
-/** the centre circle the kick-off has to leave (the pitch's own, table.ts) */
+/** the centre circle (the pitch's own, table.ts): at a kick-off the other side stands outside it */
 export const CIRCLE = 8;
 /** how many goals win: the first is the one a match starts with */
 export const GOALS = [3, 5, 10] as const;
@@ -128,7 +129,7 @@ export type Event =
   | { kind: 'foul'; side: Side; penalty: boolean }
   /** 1 Toque: the other side parked the ball between its own buttons, and `side` has the free kick */
   | { kind: 'parked'; side: Side }
-  /** the kick-off did not leave the circle: again */
+  /** the kick-off did not send the ball forward: again */
   | { kind: 'retake'; side: Side }
   /** the turn passes to `side` */
   | { kind: 'turn'; side: Side; why: 'touches' | 'still' | 'theirs' | 'kickoff' | 'penalty' }
@@ -148,7 +149,7 @@ export const clampKeeper = (x: number): number =>
 
 /** is the ball in this side's attacking half (touching the halfway line is in neither) */
 export const inAttack = (ball: Point, side: Side): boolean =>
-  (side === 'a' ? ball.y + BALL < L / 2 : ball.y - BALL > L / 2);
+  (side === 'a' ? ball.y + BALL < L / 2 - LINE / 2 : ball.y - BALL > L / 2 + LINE / 2);
 
 /**
  * Where a side lines up: two at the back, two in midfield (one, with four
@@ -494,7 +495,9 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
   if (m.phase === 'kickoff') {
     if (theirsLast) { pass(next, you); return result({ kind: 'turn', side: you, why: 'theirs' }); }
     if (next.touches < KICKOFF_TOUCHES) { next.phase = 'kickoff'; return result({ kind: 'on', left: KICKOFF_TOUCHES - next.touches }); }
-    if (dist(next.ball, MIDDLE) <= CIRCLE) {
+    /* forward: past the centre spot, towards the goal it attacks */
+    const ahead = me === 'a' ? MIDDLE.y - next.ball.y : next.ball.y - MIDDLE.y;
+    if (ahead < STILL) {
       lineUp(next, me);
       return result({ kind: 'retake', side: me });
     }

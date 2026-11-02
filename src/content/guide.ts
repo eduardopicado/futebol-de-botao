@@ -132,7 +132,7 @@ export function guideSteps(rule: Rule, goals: number): Step[] {
   steps.push({
     id: 'kickoff',
     title: 'Kick-off',
-    words: `A match starts from the middle: two flicks by different buttons, and the ball has to leave the circle. After a goal, the side that let it in kicks off. First to ${goals} goals wins!`,
+    words: `A match starts from the middle: two flicks by different buttons, and the ball has to go forward. After a goal, the side that let it in kicks off. First to ${goals} goals wins!`,
     demo: {
       start: newMatch(goals, 'a', SIZE, rule),
       flicks: [{ button: 3, vx: 0, vy: -15 }, { button: 2, vx: -29.9, vy: -18.1 }],
@@ -164,7 +164,7 @@ export function told(play: Pick<Play, 'event' | 'bumps'>, rule: Rule): string {
     case 'foul': return `Foul! A ${e.penalty ? 'penalty' : 'free kick'} to ${to(e.side)}.`;
     case 'parked': return `Parked! A free kick to ${to(e.side)}.`;
     case 'uncalled': return 'Not called: no goal.';
-    case 'retake': return 'Still in the circle: again.';
+    case 'retake': return 'Not forward: again.';
     case 'on': return `${e.left} ${e.left === 1 ? 'touch' : 'touches'} left.`;
     case 'turn': {
       if (e.why === 'theirs') {
@@ -173,7 +173,7 @@ export function told(play: Pick<Play, 'event' | 'bumps'>, rule: Rule): string {
         return `${last?.what === 'keeper' ? 'Saved!' : 'Blocked!'} ${Turn(e.side)}`;
       }
       if (e.why === 'still') return `Missed the ball: ${turn(e.side)}`;
-      if (e.why === 'kickoff') return `Out of the circle. ${Turn(e.side)}`;
+      if (e.why === 'kickoff') return `Forward. ${Turn(e.side)}`;
       if (e.why === 'penalty') return `Penalty taken. ${Turn(e.side)}`;
       return `${rule === '1' ? 'One flick' : 'No touches left'}: ${turn(e.side)}`;
     }
