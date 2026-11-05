@@ -4,12 +4,12 @@
  * drawing's. The light comes from the top left, and everything is shapes and
  * gradients, never filters, so it stays at sixty frames a second on an iPad.
  * The tray is the design handoff's picture of it, its felt laid exactly over
- * the 64 × 98 pitch (TRAY and VIEW in botao.ts). */
+ * the 64 × 98 pitch (TRAY, TRAY_AT and VIEW in botao.ts). */
 
 import tray from '../assets/tray.webp';
 import { crestOf } from '../lib/crests';
 import { svg } from '../lib/dom';
-import { L, LINE, MARKS, MOUTH, NET, POST, R, VIEW, W, type Point } from '../content/botao';
+import { L, LINE, MARKS, MOUTH, NET, POST, R, TRAY_AT, W, type Point } from '../content/botao';
 import type { Team } from './teams';
 
 export const at = (g: SVGGraphicsElement, p: Point): void => g.setAttribute('transform', `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
@@ -136,8 +136,8 @@ export function pitch(): SVGGElement {
     ...Array.from({ length: 3 }, (_, i) => svg('rect', { x: (2 * i + 1) * (W / 6), y: 0, width: W / 6, height: L, class: 'bt-stripe down' })),
   ];
   return svg('g', {},
-    /* the wooden tray, the handoff's picture of it, its felt under ours (VIEW, botao.ts) */
-    svg('image', { href: tray, x: VIEW.x, y: VIEW.y, width: VIEW.w, height: VIEW.h, preserveAspectRatio: 'none', class: 'bt-tray' }),
+    /* the wooden tray, the handoff's picture of it, its felt under ours (TRAY_AT, botao.ts) */
+    svg('image', { href: tray, x: TRAY_AT.x, y: TRAY_AT.y, width: TRAY_AT.w, height: TRAY_AT.h, preserveAspectRatio: 'none', class: 'bt-tray' }),
     svg('rect', { x: 0, y: 0, width: W, height: L, class: 'bt-felt' }),
     ...stripes,
     svg('rect', { x: 0, y: 0, width: W, height: L, fill: 'url(#bt-feltlight)' }),

@@ -5,7 +5,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
-import { BALL, KEEPER_W, KEEPER_Y, L, LINE, MARKS, MOUTH, PULL, R, VIEW, W, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
+import { BALL, KEEPER_W, KEEPER_Y, L, LINE, MARKS, MOUTH, NET, PULL, R, VIEW, W, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
 import { onTheLine, type Match, type Side } from '../../src/content/match';
 import { PT_POSTS } from '../../src/content/commentary';
 import { clipId } from '../../src/lib/clip-id';
@@ -303,6 +303,53 @@ test.describe('Partida', () => {
     await expect(game(page)).toHaveAttribute('data-phase', 'shot');
     expect(Number(await keeper.getAttribute('data-out'))).toBeGreaterThan(2);
     noProblems(watch);
+  });
+
+  test('1 toque: for a called shot the goleiro may go back into the goal, no further than its front on the line, and is out again after it', async ({ page }) => {
+    const watch = watchPage(page);
+    await open(page, chance({ rule: '1' }));
+    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    /* b's goleiro, at the top, dragged back into its goal, further than it may go */
+    const from = await screen(page, { x: 32, y: (KEEPER_Y[0] + KEEPER_Y[1]) / 2 });
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x, from.y - 8 * from.scale, { steps: 8 });
+    await page.mouse.up();
+    const keeper = page.locator('.bt-keeper.away');
+    /* its front face on the goal line, the rest of it in the goal */
+    expect(Number(await keeper.getAttribute('data-out'))).toBeCloseTo(-KEEPER_Y[1], 1);
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect(game(page)).toHaveAttribute('data-phase', 'shot');
+    /* the shot: the button straight back down the table, nowhere near anything */
+    await flick(page, 'a', 0, 0, 20);
+    await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 10000 });
+    await expect(keeper).toHaveAttribute('data-out', '0.00');
+    noProblems(watch);
+  });
+
+  test('the goals are as deep as the nets the physics has, a whole button deep, and all of them on the screen', async ({ page }) => {
+    await open(page, chance());
+    const nets = await page.evaluate(() => {
+      const board = document.querySelector<SVGSVGElement>('.bt-table')!;
+      const view = board.viewBox.baseVal;
+      return [...board.querySelectorAll<SVGGraphicsElement>('.bt-net-floor')].map((n) => {
+        /* in the table's units, whichever end it is drawn at */
+        const r = n.getBoundingClientRect();
+        const b = board.getBoundingClientRect();
+        const k = view.height / b.height;
+        return { top: view.y + (r.top - b.top) * k, bottom: view.y + (r.bottom - b.top) * k, viewTop: view.y, viewBottom: view.y + view.height };
+      });
+    });
+    expect(nets).toHaveLength(2);
+    for (const n of nets) {
+      expect(n.bottom - n.top).toBeCloseTo(NET, 1);
+      expect(NET).toBeGreaterThan(2 * R);
+      expect(n.top).toBeGreaterThanOrEqual(n.viewTop);
+      expect(n.bottom).toBeLessThanOrEqual(n.viewBottom);
+    }
+    const [top, bottom] = [...nets].sort((p, q) => p.top - q.top);
+    expect(top.bottom).toBeCloseTo(0, 1);
+    expect(bottom.top).toBeCloseTo(L, 1);
   });
 
   test('1 toque: on your turn you may move your own goleiro before your flick', async ({ page }) => {

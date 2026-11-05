@@ -22,9 +22,11 @@ export const L = 98;
 /** a button's radius, and the ball's */
 export const R = 5;
 export const BALL = 1.6;
-/** the goal mouth, post to post, and how deep the net is */
+/** the goal mouth, post to post, and how deep the net is: a box behind the
+    line, as on a real table, that a whole button goes into with room to
+    spare, so the rulebooks' "all of it over the line" can be played */
 export const MOUTH: readonly [number, number] = [21, 43];
-export const NET = 5;
+export const NET = 12;
 export const POST = 0.8;
 /** how wide the lines are painted (table.ts and app.css draw them so). A
     rule about a line counts its paint: the goal lines have their outer edge
@@ -469,11 +471,17 @@ export const PULL = 5;
  * at the bottom than at the top.
  */
 export const TRAY = { w: 699, h: 987, felt: { x: 47, y: 58, w: 609, h: 838 } } as const;
-/** the table as drawn, in table units: the tray laid so its felt is exactly
-    ours, with a goal at each end on its rim */
-export const VIEW = (() => {
+/** where the tray's picture lies, in table units: laid so its felt is exactly ours */
+export const TRAY_AT = (() => {
   const [kx, ky] = [W / TRAY.felt.w, L / TRAY.felt.h];
   return { x: -TRAY.felt.x * kx, y: -TRAY.felt.y * ky, w: TRAY.w * kx, h: TRAY.h * ky } as const;
+})();
+/** the table as drawn: the tray, and a goal at each end standing on its rim,
+    out past it where the net is deeper than the rim is wide */
+export const VIEW = (() => {
+  const top = Math.min(TRAY_AT.y, -NET - 1);
+  const bottom = Math.max(TRAY_AT.y + TRAY_AT.h, L + NET + 1);
+  return { x: TRAY_AT.x, y: top, w: TRAY_AT.w, h: bottom - top } as const;
 })();
 
 /** the flick a pull back gives: the other way, harder the further it pulls */

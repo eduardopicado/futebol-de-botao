@@ -89,7 +89,7 @@ export function guideSteps(rule: Rule, goals: number): Step[] {
       id: 'goleiro',
       title: 'Your goleiro',
       words: one
-        ? 'When they call A gol!, move your goleiro anywhere in its small area and tap Pronto. Then they shoot. On your own turn you may move it too.'
+        ? 'When they call A gol!, move your goleiro anywhere in its small area, or back into the goal with its front on the line, and tap Pronto. Then they shoot. On your own turn you may move it in the small area too.'
         : 'When they call A gol!, slide your goleiro along its line with a finger and tap Pronto. Then they shoot.',
       demo: {
         start: at(rule, {
