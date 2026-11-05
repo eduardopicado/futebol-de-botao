@@ -19,7 +19,7 @@
 import { el, svg } from '../lib/dom';
 import type { Life } from '../lib/life';
 import { sfx } from '../lib/sfx';
-import { BALL, KEEPER_RX, KEEPER_W, KEEPER_Y, L, MOUTH, R, VIEW, W, flickFor, type Bump, type Flick, type Point } from '../content/botao';
+import { BALL, KEEPER_RX, KEEPER_W, KEEPER_Y, L, MOUTH, R, TRAY_AT, VIEW, W, flickFor, type Bump, type Flick, type Point } from '../content/botao';
 import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import { playerLabel, type Player } from './squads';
@@ -143,7 +143,7 @@ export function makeBoard(life: Life, label: string): Board {
   /** on the tray's rim beside a net, where a button out of play waits */
   const bench = (b: Benched, k: number): Point => ({
     x: MOUTH[1] + 7 + k * 6,
-    y: b.net === 'top' ? VIEW.y / 2 : L - VIEW.y / 2 + 1,
+    y: b.net === 'top' ? TRAY_AT.y / 2 : L - TRAY_AT.y / 2 + 1,
   });
 
   const draw = (s: Scene, keepers: Keepers, benched: Benched[] = []): void => {

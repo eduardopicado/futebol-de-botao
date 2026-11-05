@@ -24,11 +24,11 @@
  *   flicks by different buttons, and the ball has to go forward, past the
  *   centre spot towards the goal it attacks, or it is taken again (agreed in
  *   place of Art. 67's leaving the centre circle).
- * - A button that ends up in a net (half over the line, between the posts:
- *   the nets are no deeper than a button) is out of play: it sits out one whole
- *   turn of its side, then comes back on that goal line where the penalty
- *   area meets it, on the right as its own side sees it, once that spot is
- *   free (Art. 28, 29).
+ * - A button that goes wholly over a goal line, into the net, is out of play
+ *   (Art. 28); one only partly over it is still in play (Art. 27). It sits
+ *   out one whole turn of its side, then comes back on that goal line where
+ *   the penalty area meets it, on the right as its own side sees it, once
+ *   that spot is free (Art. 29).
  * - A goal: the whole of the ball over the line, between the posts, as in
  *   football. A slow ball can stop across the line, part of it still on it:
  *   it is in play, to be cleared, or called and put in.
@@ -43,13 +43,19 @@
  *   is still two (Art. 15). A shot is called as before, from a turn that
  *   starts with the ball in the attacking half (Art. 21 §3).
  * - The goleiro may stand anywhere in its small area, off its line too: placed
- *   when a shot is called, and moved on its own side's turn (Art. 10).
+ *   when a shot is called, and moved on its own side's turn (Art. 10). Placed
+ *   for a called shot it may also go back into the goal, its front face no
+ *   further back than the goal line, and it is back in its small area after
+ *   the shot (Art. 10).
+ * - A button that went into a net comes back after the other side's flick,
+ *   just outside the small area where it went in, once that spot is free, and
+ *   may not make its side's next flick (Art. 18).
  * - No parking the ball. Two of your buttons less than a button apart with
  *   the ball between them: your next flick has to free it. Three of yours
  *   boxing it in, after your flick: straight away. Either way, a free kick
  *   to the other side from where the ball is (Art. 8 §10–12, Art. 63). */
 
-import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, LINE, MARKS, MOUTH, R, W, simulate, type Bump, type Point, type Table } from './botao';
+import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, KEEPER_Y, L, LINE, MARKS, MOUTH, POST, R, W, simulate, type Bump, type Point, type Table } from './botao';
 
 export type Side = 'a' | 'b';
 export const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
@@ -86,7 +92,8 @@ export type Phase =
   | 'penalty'
   | 'over';
 
-export interface Out { side: Side; index: number; net: 'top' | 'bottom'; since: number }
+/** a button out of play: whose, which, the net it went into and where across (x), and the turn it went in */
+export interface Out { side: Side; index: number; net: 'top' | 'bottom'; at: number; since: number }
 
 export interface Match {
   ball: Point;
@@ -264,7 +271,7 @@ export const mustFree = (m: Match): boolean =>
 export const mayFlick = (m: Match, button: number): boolean =>
   (m.phase === 'kickoff' || m.phase === 'play' || m.phase === 'shot' || m.phase === 'penalty')
   && m[m.turn][button] !== null
-  && !(m.phase === 'kickoff' && m.used.includes(button));
+  && !((m.phase === 'kickoff' || m.rule === '1') && m.used.includes(button));
 
 /** may the side playing call "A gol!" now? */
 export const mayCall = (m: Match): boolean => m.phase === 'play' && m.attack;
@@ -276,16 +283,22 @@ export function call(m: Match): Match {
 }
 
 /** where a goleiro may stand: on its line between the posts, or at 1 Toque
-    anywhere in its small area (Art. 10) */
-export function placeGoleiro(rule: Rule, x: number, out = 0): { x: number; out: number } {
+    anywhere in its small area (Art. 10). Placed for a called shot at 1 Toque
+    (`forShot`), also back in the goal, its front face no further back than
+    the goal line, and between the posts while any of it is behind the line */
+export function placeGoleiro(rule: Rule, x: number, out = 0, forShot = false): { x: number; out: number } {
   if (rule === '3') return { x: clampKeeper(x), out: 0 };
-  return { x: Math.min(W / 2 + KEEPER_SPAN, Math.max(W / 2 - KEEPER_SPAN, x)), out: Math.min(KEEPER_OUT, Math.max(0, out)) };
+  const o = Math.min(KEEPER_OUT, Math.max(forShot ? -KEEPER_Y[1] : 0, out));
+  const [lo, hi] = KEEPER_Y[0] + o < 0
+    ? [MOUTH[0] + POST + KEEPER_W / 2, MOUTH[1] - POST - KEEPER_W / 2]
+    : [W / 2 - KEEPER_SPAN, W / 2 + KEEPER_SPAN];
+  return { x: Math.min(hi, Math.max(lo, x)), out: o };
 }
 
 /** Pronto: the defender's goleiro stands there, and the shot (or the penalty) may be taken */
 export function pronto(m: Match, x: number, out = 0): Match {
   if (m.phase !== 'placing') return m;
-  const at = placeGoleiro(m.rule, x, out);
+  const at = placeGoleiro(m.rule, x, out, true);
   const you = other(m.turn);
   return { ...m, keepers: { ...m.keepers, [you]: at.x }, keepersOut: { ...m.keepersOut, [you]: at.out }, phase: m.penalty ? 'penalty' : 'shot' };
 }
@@ -333,31 +346,45 @@ function settle(m: Match, fixed: Point[] = []): void {
   }
 }
 
-/** a button that went out comes back after a whole turn of its side, if its spot is free */
-function comeBack(m: Match, ended: Side): void {
+/**
+ * The buttons that went into a net come back, as each rulebook has it, once
+ * their spot is free; `ended` is the side whose turn has just ended. At 3
+ * Toques after a whole turn of its side, on that goal line where the penalty
+ * area meets it, on the right as its side sees it (Art. 29). At 1 Toque after
+ * the other side's flick, just outside the small area where it went in
+ * (Art. 18). Returns the ones back, by side.
+ */
+function comeBack(m: Match, ended: Side): Out[] {
+  const back: Out[] = [];
+  const half = MARKS.penalty[0] / 2;
+  const box = MARKS.box[1] + R;
   m.out = m.out.filter((o) => {
-    if (o.side !== ended || o.since >= m.turnNo) return true;
-    /* on the goal line where the penalty area meets it, on the right as its
-       side sees it: a looks up the table, b down it */
-    const half = MARKS.penalty[0] / 2;
-    const spot = { x: o.side === 'a' ? W / 2 + half : W / 2 - half, y: o.net === 'top' ? R + 0.5 : L - R - 0.5 };
+    const due = m.rule === '1' ? o.side !== ended : o.side === ended;
+    if (!due || o.since >= m.turnNo) return true;
+    const spot = m.rule === '1'
+      ? { x: o.at, y: o.net === 'top' ? box : L - box }
+      /* a looks up the table, b down it */
+      : { x: o.side === 'a' ? W / 2 + half : W / 2 - half, y: o.net === 'top' ? R + 0.5 : L - R - 0.5 };
     const taken = dist(spot, m.ball) < R + BALL + 0.2
       || (['a', 'b'] as const).some((s) => m[s].some((p) => p && dist(p, spot) < 2 * R + 0.2));
     if (taken) return true;
     m[o.side][o.index] = spot;
+    back.push(o);
     return false;
   });
+  return back;
 }
 
 /** the turn passes to `side` */
 function pass(m: Match, side: Side): void {
-  comeBack(m, m.turn);
+  const back = comeBack(m, m.turn);
   m.turn = side;
   m.turnNo += 1;
   m.phase = 'play';
   m.penalty = false;
   m.touches = 0;
-  m.used = [];
+  /* 1 Toque: one just back may not make this flick (Art. 18) */
+  m.used = m.rule === '1' ? back.filter((o) => o.side === side).map((o) => o.index) : [];
   m.attack = inAttack(m.ball, side);
 }
 
@@ -445,20 +472,21 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
   const next: Match = { ...m, ball: end.ball, a: end.a.map((p) => (p ? { ...p } : null)), b: end.b.map((p) => (p ? { ...p } : null)), out: [...m.out], used: [...m.used, button], touches: m.touches + 1, keepers: { ...m.keepers }, keepersOut: { ...m.keepersOut }, score: { ...m.score } };
   const result = (event: Event): Play => ({ frames, bumps: shot.bumps.map(({ what, frame }) => ({ what, frame })), goal: shot.goal || shot.own, next, event });
 
-  /* a button that went into a net is out of play. The nets are as deep as a
-     button is round, so one can only ever be half in: in, here, is between
-     the posts and more than half way over the line */
+  /* a button wholly over a goal line, in the net, is out of play (Art. 28);
+     one still touching the line is in play (Art. 27) */
   const between = (p: Point): boolean => p.x > MOUTH[0] && p.x < MOUTH[1];
   const into = (p: Point | null): 'top' | 'bottom' | null =>
-    (!p || !between(p) ? null : p.y < R / 2 ? 'top' : p.y > L - R / 2 ? 'bottom' : null);
+    (!p || !between(p) ? null : p.y < -R ? 'top' : p.y > L + R ? 'bottom' : null);
   for (const s of ['a', 'b'] as const) {
     next[s].forEach((p, i) => {
       const net = into(p);
-      if (!net) return;
+      if (!net || !p) return;
       next[s][i] = null;
-      next.out.push({ side: s, index: i, net, since: m.turnNo });
+      next.out.push({ side: s, index: i, net, at: p.x, since: m.turnNo });
     });
   }
+  /* 1 Toque: a goleiro back in the goal for the shot is in its small area again after it (Art. 10) */
+  if (m.phase === 'shot' || m.phase === 'penalty') next.keepersOut[you] = Math.max(0, next.keepersOut[you]);
 
   /* a foul comes first: play stopped there, whatever the ball did after */
   if (shot.foul) {

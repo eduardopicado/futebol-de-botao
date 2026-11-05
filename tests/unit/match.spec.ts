@@ -2,7 +2,7 @@
    and winning, for both sides. */
 
 import { describe, expect, it } from 'vitest';
-import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, L, LINE, MARKS, MOUTH, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
+import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, KEEPER_Y, L, LINE, MARKS, MOUTH, NET, POST, R, W, oneTouch, simulate, type Point } from '../../src/content/botao';
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
@@ -317,17 +317,35 @@ describe('fouls', () => {
 });
 
 describe('a button in a net', () => {
-  it('is out of play, sits out a whole turn of its side, and comes back on the goal line on its right', () => {
-    /* a's button sent into b's goal, the ball nowhere near */
-    /* nothing of b's on a's return spot, at the top on a's right */
-    const b = parked('b').map((p) => (p.x === 58 && p.y === 6 ? { x: 44, y: 14 } : p));
-    const m = playing({
-      turn: 'a', ball: { x: 6, y: 50 },
-      a: [{ x: 32, y: 30 }, ...parked('a').slice(1)], b, keepers: { a: 32, b: MOUTH[0] + KEEPER_W / 2 - 1 },
-    });
+  /* a's button straight at b's goal, the ball nowhere near; nothing of b's
+     on a's return spots, at the top on a's right or outside the small area */
+  const b = parked('b').map((p) => (p.x === 58 && p.y === 6 ? { x: 44, y: 14 } : p));
+  const shotAt = (rule: Match['rule']): Match => playing({
+    turn: 'a', rule, ball: { x: 6, y: 50 },
+    a: [{ x: 32, y: 30 }, ...parked('a').slice(1)], b, keepers: { a: 32, b: MOUTH[0] + KEEPER_W / 2 - 1 },
+  });
+
+  it('only partly over the goal line, in the goal mouth, is still in play (Art. 27)', () => {
+    const part = flick(shotAt('3'), 0, 0, -70);
+    const at = part.next.a[0]!;
+    expect(at.y).toBeLessThan(R);
+    expect(at.y).toBeGreaterThan(-R);
+    expect(part.next.out).toEqual([]);
+  });
+
+  it('wholly over it goes in, against the back of the net (Art. 28)', () => {
+    const sent = flick(shotAt('3'), 0, 0, -120);
+    const end = sent.frames.at(-1)!.a[0]!;
+    expect(end.y).toBeLessThan(-R);
+    expect(end.y).toBeGreaterThan(-NET);
+    expect(sent.next.a[0]).toBeNull();
+  });
+
+  it('3 Toques: out of play, sits out a whole turn of its side, and comes back on the goal line on its right (Art. 29)', () => {
+    const m = shotAt('3');
     const sent = flick(m, 0, 0, -120);
     expect(sent.next.a[0]).toBeNull();
-    expect(sent.next.out).toEqual([{ side: 'a', index: 0, net: 'top', since: m.turnNo }]);
+    expect(sent.next.out).toEqual([{ side: 'a', index: 0, net: 'top', at: expect.closeTo(32, 1), since: m.turnNo }]);
     /* the flick did not move the ball, so b's turn: b passes back without touching anything */
     expect(sent.next.turn).toBe('b');
     const b1 = flick(sent.next, 4, -10, 0);
@@ -342,6 +360,32 @@ describe('a button in a net', () => {
 
     /* with one of b's standing on that spot, it waits */
     const blocked = flick({ ...b1.next, b: b1.next.b.map((p, i) => (i === 1 ? { x: W / 2 + MARKS.penalty[0] / 2, y: R + 0.5 } : p)) }, 4, 10, 0);
+    expect(blocked.next.a[0]).toBeNull();
+    expect(blocked.next.out).toHaveLength(1);
+  });
+
+  it('1 Toque: comes back after the other side\'s flick, just outside the small area where it went in, and may not make its side\'s next flick (Art. 18)', () => {
+    const sent = flick(shotAt('1'), 0, 0, -120);
+    expect(sent.next.a[0]).toBeNull();
+    const [{ at }] = sent.next.out;
+    /* b's flick, then a's turn: it is back, touching the small area's line from outside */
+    expect(sent.next.turn).toBe('b');
+    const b1 = flick(sent.next, 4, -10, 0);
+    expect(b1.next.turn).toBe('a');
+    expect(b1.next.a[0]).toEqual({ x: at, y: MARKS.box[1] + R });
+    expect(b1.next.out).toEqual([]);
+    /* not this flick of a's; any other */
+    expect(mayFlick(b1.next, 0)).toBe(false);
+    expect(mayFlick(b1.next, 4)).toBe(true);
+    /* a's flick after the next, it may */
+    const a1 = flick(b1.next, 4, 10, 0);
+    const b2 = flick(a1.next, 4, 10, 0);
+    expect(b2.next.turn).toBe('a');
+    expect(mayFlick(b2.next, 0)).toBe(true);
+
+    /* with one of b's standing on that spot, it waits */
+    const spot = { x: at, y: MARKS.box[1] + R };
+    const blocked = flick({ ...sent.next, b: sent.next.b.map((p, i) => (i === 1 ? spot : p)) }, 4, -10, 0);
     expect(blocked.next.a[0]).toBeNull();
     expect(blocked.next.out).toHaveLength(1);
   });
@@ -406,6 +450,29 @@ describe('1 Toque', () => {
 });
 
 describe('the goleiro at 1 Toque', () => {
+  it('placed for a called shot, it may go back into the goal, its front face no further than the goal line, between the posts (Art. 10)', () => {
+    /* as far back as it may go: its front face on the line */
+    expect(placeGoleiro('1', 32, -10, true)).toEqual({ x: 32, out: -KEEPER_Y[1] });
+    /* any of it behind the line: between the posts */
+    expect(placeGoleiro('1', 0, -2, true)).toEqual({ x: MOUTH[0] + POST + KEEPER_W / 2, out: -2 });
+    expect(placeGoleiro('1', 99, -2, true)).toEqual({ x: MOUTH[1] - POST - KEEPER_W / 2, out: -2 });
+    /* moved on its own turn, not into the goal; at 3 Toques, on its line */
+    expect(placeGoleiro('1', 32, -2)).toEqual({ x: 32, out: 0 });
+    expect(placeGoleiro('3', 32, -2, true)).toEqual({ x: 32, out: 0 });
+  });
+
+  it('back in its small area after the shot', () => {
+    for (const side of ['a', 'b'] as const) {
+      const m = call(playing({ turn: side, rule: '1', ball: side === 'a' ? { x: 32, y: 30 } : { x: 32, y: L - 30 } }));
+      const ready = pronto(m, 32, -3);
+      expect(ready.keepersOut[other(side)]).toBe(-3);
+      expect(tableFor(ready).table.keeperOut).toBe(-3);
+      /* a shot straight back towards its own end: the goleiro is out of the goal again */
+      const after = flick(ready, 0, 0, side === 'a' ? 20 : -20);
+      expect(after.next.keepersOut[other(side)]).toBe(0);
+    }
+  });
+
   it('stands anywhere in its small area; at 3 Toques only on its line, between the posts', () => {
     expect(placeGoleiro('3', 2, 3)).toEqual({ x: clampKeeper(2), out: 0 });
     expect(placeGoleiro('1', 32, 2)).toEqual({ x: 32, out: 2 });

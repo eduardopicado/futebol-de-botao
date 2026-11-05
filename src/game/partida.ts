@@ -144,7 +144,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     const mover = placing && defender() !== cpu ? defender() : own ? m.turn : null;
     board.placing(mover ? keeperLine(mover) : null, (x, out) => {
       if (m.phase === 'placing') {
-        sliding = placeGoleiro(m.rule, x, out);
+        sliding = placeGoleiro(m.rule, x, out, true);
         m = { ...m, keepers: { ...m.keepers, [defender()]: sliding.x }, keepersOut: { ...m.keepersOut, [defender()]: sliding.out } };
       } else m = moveGoleiro(m, x, out);
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
@@ -169,7 +169,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         break;
       }
       case 'placing':
-        tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'A gol! '}${name(defender())}: ${m.rule === '1' ? 'move your goleiro anywhere in the small area' : 'slide your goleiro along the line'}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
+        tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'A gol! '}${name(defender())}: ${m.rule === '1' ? 'move your goleiro anywhere in the small area, or back into the goal' : 'slide your goleiro along the line'}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
         break;
       case 'shot':
         tell(`${lead}${t}: take your shot!`, m.turn);
