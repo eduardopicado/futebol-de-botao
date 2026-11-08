@@ -143,6 +143,55 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
+  for (const reduced of [false, true]) {
+    test(`a goal: slowed right down as it goes in, then GOOOL! in the scorer's colours${reduced ? ' (Reduce Motion: no flash, no shake)' : ' over a flash and a shaking table'}, all gone again`, async ({ page }) => {
+      const watch = watchPage(page);
+      if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+      await open(page, chance());
+      await page.getByRole('button', { name: '📣 Pro gol!' }).click();
+      /* their goleiro slid to its left post, and a's shot past him */
+      const from = await screen(page, { x: 32, y: (G3.y[0] + G3.y[1]) / 2 });
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x - 10 * from.scale, from.y, { steps: 6 });
+      await page.mouse.up();
+      const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
+      await page.getByRole('button', { name: '✋ Pronto' }).click();
+      const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
+      await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
+      await expect(page.locator('.bt-table')).toHaveAttribute('data-slow', '');
+      const banner = page.locator('.bt-gooool');
+      await expect(banner).toHaveText('GOOOL!');
+      const look = await banner.evaluate((b) => {
+        const span = b.querySelector('span')!;
+        const probe = document.createElement('i');
+        probe.style.color = getComputedStyle(b).getPropertyValue('--fill');
+        document.body.append(probe);
+        const want = getComputedStyle(probe).color;
+        probe.remove();
+        return {
+          colour: getComputedStyle(span).color, want,
+          shaking: getComputedStyle(document.querySelector('.bt-wrap')!).animationName,
+          flash: document.querySelector('.bt-flash') ? getComputedStyle(document.querySelector('.bt-flash')!).display : 'gone',
+        };
+      });
+      expect(look.colour).toBe(look.want);
+      if (reduced) {
+        expect(look.shaking).toBe('none');
+        expect(look.flash).not.toBe('block');
+      } else {
+        expect(look.shaking).toBe('bt-shake');
+      }
+      await expect(game(page)).toHaveAttribute('data-event', 'goal');
+      /* and nothing left on the table */
+      await expect(banner).toHaveCount(0, { timeout: 4000 });
+      await expect(page.locator('.bt-flash')).toHaveCount(0);
+      await expect(page.locator('.bt-stage')).not.toHaveClass(/shake/);
+      await expect(page.locator('.bt-table')).not.toHaveAttribute('data-slow');
+      noProblems(watch);
+    });
+  }
+
   test('a goal not called does not count: a goal kick to the other side', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ keepers: { a: 32, b: 23 } }));

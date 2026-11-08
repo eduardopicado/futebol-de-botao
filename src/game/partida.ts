@@ -33,7 +33,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
+  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, moment, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { GOLEIROS } from '../content/botao';
@@ -42,6 +42,7 @@ import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak
 import { confetti } from './confetti';
 import { cupShout, recordResult, tieNow } from './cup';
 import { narrate, shoutCall } from './narration';
+import { celebrate } from './moment';
 import { PACE } from './pace';
 import { buttonsOf, type Player } from './squads';
 import { label, ourTeam, rivalFor, type Team } from './teams';
@@ -247,6 +248,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     switch (event.kind) {
       case 'goal': {
         sfx.roar();
+        celebrate(stage, teams[event.side], life, event.own ? 'GOL CONTRA!' : 'GOOOL!');
         narrate(event.own ? 'own-goal' : 'goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
         node.dataset.goal = event.side;
         showScore();
@@ -326,12 +328,14 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       /* the scorer: the button that made the scoring flick (no one, for an own goal) */
       scorer = play.event.own ? null : buttonsOf(teams[before.turn], before.size)[index] ?? null;
     }
-    await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before));
+    /* a called shot that did not go in: saved, off the post, or close */
+    const miss = called ? missed(play, before.turn) : null;
+    /* a goal or a near miss is slowed right down as the ball gets there */
+    const big = play.event.kind === 'goal' || play.event.kind === 'champion' || miss !== null;
+    await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before), 1, big ? moment(play) : null);
     m = play.next;
     node.dataset.event = play.event.kind;
     const saved = play.bumps.some((b) => b.what === 'keeper');
-    /* a called shot that did not go in: saved, off the post, or close */
-    const miss = called ? missed(play, before.turn) : null;
     if (miss) {
       sfx.groan();
       narrate(miss, teams[miss === 'save' ? other(before.turn) : before.turn], () => undefined, life.later);
@@ -425,7 +429,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   }
 
   function champion(side: Side): void {
-    sfx.cheer();
+    sfx.roar();
     narrate('champion', teams[side], () => undefined, life.later);
     showScore();
     node.dataset.phase = 'over';

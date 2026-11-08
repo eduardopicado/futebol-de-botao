@@ -6,7 +6,7 @@ import { BALL, GOLEIROS, L, LINE, MARKS, MOUTH, NET, POST, R, W, keeperOut, keep
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
-  kicked, missed, newShootout, onTheLine, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
+  kicked, missed, moment, newShootout, onTheLine, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
   type Match, type Shootout, type Side,
 } from '../../src/content/match';
 
@@ -604,7 +604,35 @@ describe('a shot that missed, for the commentator', () => {
     it(`side ${side}: at the goleiro is a save`, () => {
       expect(missed(shotAt(side, MOUTH[1] - 3), side)).toBe('save');
     });
+
+    it(`side ${side}: its moment, for slow motion, is where the ball first gets near the goal line, in or out`, () => {
+      /* in, off the post, just wide: where it first comes within 5 of the line */
+      for (const x of [W / 2, MOUTH[0] - 1, MOUTH[0] - 4]) {
+        const shot = shotAt(side, x);
+        const at = moment(shot)!;
+        const ball = (i: number): Point => (side === 'a' ? shot.frames[i].ball : turned(shot.frames[i].ball));
+        expect(ball(at).y).toBeLessThan(5);
+        expect(ball(at - 1).y).toBeGreaterThanOrEqual(5);
+      }
+      /* at the goleiro on his line: no later than it hits him */
+      const saved = shotAt(side, MOUTH[1] - 3);
+      expect(moment(saved)!).toBeLessThanOrEqual(saved.bumps.find((b) => b.what === 'keeper')!.frame);
+      /* nowhere near: a pass back up its own half */
+      const m = playing({ turn: side, ball: side === 'a' ? { x: 32, y: 60 } : { x: 32, y: L - 60 }, a: side === 'a' ? [{ x: 32, y: 72 }, ...parked('a').slice(1)] : parked('a'), b: side === 'b' ? [{ x: 32, y: L - 72 }, ...parked('b').slice(1)] : parked('b') });
+      expect(moment(flick(m, 0, 0, side === 'a' ? -30 : 30))).toBeNull();
+    });
   }
+});
+
+describe('slow motion', () => {
+  it('a goleiro off his line who saves it far out: the moment is where it hits him', () => {
+    const m = call(playing({ turn: 'a', rule: '1', ball: { x: 32, y: 26 }, a: [{ x: 32, y: 38 }, ...parked('a').slice(1)] }));
+    const shot = flick(pronto(m, 32, 4), 0, 0, -90);
+    const hit = shot.bumps.find((b) => b.what === 'keeper')!.frame;
+    expect(shot.goal).toBe(false);
+    expect(Math.min(...shot.frames.map((f) => f.ball.y))).toBeGreaterThan(5);
+    expect(moment(shot)).toBe(hit);
+  });
 });
 
 describe('a slow shot that stops across the line', () => {
