@@ -1,5 +1,5 @@
 /* The computer: its aim and how far off it is at each level, its kick-off,
-   when it calls "A gol!", its shots, its goleiro, and a whole match of it
+   when it calls "Pro gol!", its shots, its goleiro, and a whole match of it
    against itself that ends with a winner. */
 
 import { describe, expect, it } from 'vitest';
@@ -75,7 +75,7 @@ describe('its turn', () => {
       expect(two.event).toEqual({ kind: 'turn', side: other(side), why: 'kickoff' });
     });
 
-    it(`side ${side}: calls "A gol!" with the ball in front of goal, and then scores past a goleiro standing aside`, () => {
+    it(`side ${side}: calls "Pro gol!" with the ball in front of goal, and then scores past a goleiro standing aside`, () => {
       const m = chance(side);
       expect(decide(m, 'hard', steady)).toEqual({ kind: 'call' });
       const keeperAside = side === 'a' ? MOUTH[0] + G3.w / 2 : W - MOUTH[0] - G3.w / 2;
@@ -164,7 +164,7 @@ describe('its goleiro', () => {
 });
 
 describe('a whole match, the computer against itself', () => {
-  for (const rule of RULES) it(`calls "A gol!" in a good share of the turns it may, and scores no goal it did not call, at ${rule} Toque${rule === '1' ? '' : 's'}`, () => {
+  for (const rule of RULES) it(`calls "Pro gol!" in a good share of the turns it may, and scores no goal it did not call, at ${rule} Toque${rule === '1' ? '' : 's'}`, () => {
     const rand = seeded(29);
     let [may, calls, uncalled] = [0, 0, 0];
     for (const first of ['a', 'b'] as const) {

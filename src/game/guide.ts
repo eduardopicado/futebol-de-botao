@@ -84,8 +84,8 @@ export function mount(root: HTMLElement): () => void {
     await wait(PACE.demoStart);
     const plays = played(d);
     if (d.pronto !== undefined) {
-      /* A gol! is called, and the other side's goleiro slides across */
-      now.textContent = 'A gol!';
+      /* Pro gol! is called, and the other side's goleiro slides across */
+      now.textContent = 'Pro gol!';
       sfx.whistle();
       await wait(PACE.demoAfter);
       const placed = plays[0].before;

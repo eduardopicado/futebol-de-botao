@@ -11,7 +11,7 @@
  * clears it again.
  *
  * The match's simple rule: three touches, with any of your buttons. Shooting
- * is free here, with no "A gol!" to call. A goal is shouted by the
+ * is free here, with no "Pro gol!" to call. A goal is shouted by the
  * commentator. The physics is in src/content/botao.ts, the set-ups in
  * src/content/treino.ts, the table on the screen in board.ts. */
 

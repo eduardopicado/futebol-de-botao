@@ -15,7 +15,7 @@ import { canSpeak, say } from '../lib/speech';
 import { hasClip } from '../lib/audio';
 import { read, write } from '../lib/storage';
 import {
-  EN_CLOSE, EN_OWN_GOALS, EN_POSTS, EN_SAVES, PT_CHAMPIONS, PT_CLOSE, PT_OWN_GOALS, PT_POSTS, PT_SAVES, enChampion, enGoal, ptGoals,
+  EN_CLOSE, EN_OWN_GOALS, EN_POSTS, EN_SAVES, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_OWN_GOALS, PT_POSTS, PT_SAVES, enChampion, enGoal, ptGoals,
 } from '../content/commentary';
 import { real, type Team } from './teams';
 
@@ -70,6 +70,15 @@ export function narrate(moment: Moment, team: Team, then: () => void, later: (fn
   const sayName = (): void => say(name, { lang: lang && canSpeak(lang) ? lang : undefined, onEnd: next });
   say(call, { lang, onEnd: name ? sayName : next });
   later(next, (hasClip(call) ? RECORDED : SPOKEN) + (name ? NAME : 0));
+}
+
+/** "Pro gol!": a shot called, by a player or the computer, shouted in the
+    Portuguese voice whichever commentator is chosen (it is the call's own
+    name), and not at all with no commentator. The recording, or the
+    device's Portuguese voice; with neither, nothing */
+export function shoutCall(): void {
+  if (narrationChoice() === 'off') return;
+  say(PT_CALL, { lang: PT });
 }
 
 /* how long to give the call before going on regardless, in milliseconds: a

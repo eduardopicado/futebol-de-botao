@@ -1,4 +1,4 @@
-/* A match: turns, "A gol!", fouls and penalties, kick-off, buttons in a net,
+/* A match: turns, "Pro gol!", fouls and penalties, kick-off, buttons in a net,
    and winning, for both sides. */
 
 import { describe, expect, it } from 'vitest';
@@ -180,7 +180,7 @@ describe('three free touches', () => {
   });
 });
 
-describe('"A gol!"', () => {
+describe('"Pro gol!"', () => {
   const MID = (MOUTH[0] + MOUTH[1]) / 2;
   const chance = (side: Side): Match => {
     const a = side === 'a';

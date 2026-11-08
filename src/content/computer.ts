@@ -1,4 +1,4 @@
-/* The computer: what it flicks, when it calls "A gol!", and where it stands
+/* The computer: what it flicks, when it calls "Pro gol!", and where it stands
  * its goleiro.
  *
  * It plays with the planner in botao.ts, and then misses by a little, more

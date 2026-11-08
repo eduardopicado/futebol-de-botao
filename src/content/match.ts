@@ -13,7 +13,7 @@
  * - Three free touches: a turn is up to three flicks, with any buttons. It
  *   passes to the other side after the third, straight away when a flick
  *   does not move the ball, or when the ball last touched one of theirs.
- * - "A gol!": a shot only counts when it was called, and it may only be
+ * - "Pro gol!": a shot only counts when it was called, and it may only be
  *   called in a turn that started with the ball in the attacking half
  *   (Art. 74). The defender then slides their goleiro along the line and
  *   says Pronto (Art. 77). A goal not called is a goal kick (Art. 78).
@@ -86,7 +86,7 @@ export type Phase =
   | 'kickoff'
   /** an ordinary turn */
   | 'play'
-  /** "A gol!" was called (or a penalty given): the defender places their goleiro */
+  /** "Pro gol!" was called (or a penalty given): the defender places their goleiro */
   | 'placing'
   /** Pronto: the called shot */
   | 'shot'
@@ -276,10 +276,10 @@ export const mayFlick = (m: Match, button: number): boolean =>
   && m[m.turn][button] !== null
   && !((m.phase === 'kickoff' || m.rule === '1') && m.used.includes(button));
 
-/** may the side playing call "A gol!" now? */
+/** may the side playing call "Pro gol!" now? */
 export const mayCall = (m: Match): boolean => m.phase === 'play' && m.attack;
 
-/** "A gol!": the defender places their goleiro */
+/** "Pro gol!": the defender places their goleiro */
 export function call(m: Match): Match {
   if (!mayCall(m)) return m;
   return { ...m, phase: 'placing' };

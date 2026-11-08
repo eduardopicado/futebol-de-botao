@@ -4,6 +4,12 @@
  * record every one of them: the game picks a line at random, and a line the
  * tool had never heard of would play in the device voice. */
 
+/** a shot called: "Pro gol!" (for "para o gol", at the goal), what a
+    player calls before shooting and the button says. It is shouted in
+    Portuguese whichever commentator speaks: it is the call's own name, like
+    Pronto */
+export const PT_CALL = 'Pro gol!';
+
 /** a save, in Portuguese */
 export const PT_SAVES = ['Defendeu o goleiro!', 'Que defesa!', 'Pegou o goleiro!'];
 

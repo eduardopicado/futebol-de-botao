@@ -16,7 +16,7 @@ export type StepId = 'flick' | 'touches' | 'call' | 'goleiro' | 'foul' | 'parked
 export interface Demo {
   /** the table at the start */
   start: Match;
-  /** "A gol!" is called first, and the other side's goleiro slides across to here and says Pronto */
+  /** "Pro gol!" is called first, and the other side's goleiro slides across to here and says Pronto */
   pronto?: number;
   flicks: { button: number; vx: number; vy: number }[];
   /** what the rules make of each flick */
@@ -72,8 +72,8 @@ export function guideSteps(rule: Rule, goals: number): Step[] {
     },
     {
       id: 'call',
-      title: 'A gol!',
-      words: 'To shoot, tap A gol! first, in a turn that starts with the ball in their half. A goal that was not called does not count.',
+      title: 'Pro gol!',
+      words: 'To shoot, tap Pro gol! first, in a turn that starts with the ball in their half. A goal that was not called does not count.',
       demo: {
         start: at(rule, {
           ball: { x: 32, y: 30 }, attack: true,
@@ -89,8 +89,8 @@ export function guideSteps(rule: Rule, goals: number): Step[] {
       id: 'goleiro',
       title: 'Your goleiro',
       words: one
-        ? 'When they call A gol!, move your goleiro anywhere in its small area, or back into the goal with its front on the line, and tap Pronto. Then they shoot. On your own turn you may move it in the small area too.'
-        : 'When they call A gol!, slide your goleiro along its line with a finger and tap Pronto. Then they shoot.',
+        ? 'When they call Pro gol!, move your goleiro anywhere in its small area, or back into the goal with its front on the line, and tap Pronto. Then they shoot. On your own turn you may move it in the small area too.'
+        : 'When they call Pro gol!, slide your goleiro along its line with a finger and tap Pronto. Then they shoot.',
       demo: {
         start: at(rule, {
           turn: 'b', ball: { x: 26, y: 74 }, attack: true, keepers: { a: 44, b: 32 },

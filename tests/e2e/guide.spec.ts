@@ -30,7 +30,7 @@ test.describe('How to play', () => {
     expect((await said(page)).some((w) => w.startsWith('Flick. Put a finger on one of your buttons'))).toBe(true);
     const shown: Record<string, string> = {
       'Three touches': 'No touches left: their turn now.',
-      'A gol!': 'GOL!',
+      'Pro gol!': 'GOL!',
       'Your goleiro': 'Saved! Your turn now.',
       Fouls: 'Foul! A free kick to them.',
       'Kick-off': 'Forward. Their turn now.',

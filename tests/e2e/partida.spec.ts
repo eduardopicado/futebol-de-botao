@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
 import { BALL, GOLEIROS, L, LINE, MARKS, MOUTH, NET, PULL, R, VIEW, W, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
 import { onTheLine, type Match, type Side } from '../../src/content/match';
-import { PT_POSTS } from '../../src/content/commentary';
+import { PT_CALL, PT_POSTS } from '../../src/content/commentary';
 import { clipId } from '../../src/lib/clip-id';
 
 const [G3, G1] = [GOLEIROS['3'], GOLEIROS['1']];
@@ -48,8 +48,8 @@ const chance = (extra: Partial<Match> = {}): Partial<Match> => ({
   keepers: { a: 32, b: 32 }, ...extra,
 });
 
-async function open(page: Page, setup?: Partial<Match>): Promise<void> {
-  if (setup) await seed(page, { 'match-setup': setup });
+async function open(page: Page, setup?: Partial<Match>, settings: Record<string, unknown> = {}): Promise<void> {
+  if (setup) await seed(page, { 'match-setup': setup, ...settings });
   await page.goto('/#/partida');
   await expect(page.locator('.bt-btn.us')).toHaveCount(setup?.a?.length ?? 4);
 }
@@ -111,10 +111,10 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
-  test('"A gol!": called, the goleiro slid along the line and Pronto, and the shot past him scores', async ({ page }) => {
+  test('"Pro gol!": called, the goleiro slid along the line and Pronto, and the shot past him scores', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance());
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await expect(game(page)).toHaveAttribute('data-phase', 'placing');
     /* the note turns to face the defender, at the top */
     await expect(page.locator('.bt-say')).toHaveClass(/flip/);
@@ -182,7 +182,7 @@ test.describe('Partida', () => {
   test('full time: ↺ Replay the goal plays the winning goal again, the table uncovered while it plays', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ score: { a: 2, b: 0 }, keepers: { a: 32, b: 23 } }));
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await page.getByRole('button', { name: '✋ Pronto' }).click();
     const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
     const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
@@ -199,7 +199,7 @@ test.describe('Partida', () => {
   test('after a goal, ↺ Replay holds the kick-off until it has played', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ keepers: { a: 32, b: 23 } }));
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await page.getByRole('button', { name: '✋ Pronto' }).click();
     const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
     const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
@@ -218,7 +218,7 @@ test.describe('Partida', () => {
   test('the last goal wins: É campeão!, and Play again starts a new match', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ score: { a: 2, b: 0 }, keepers: { a: 32, b: 23 } }));
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await page.getByRole('button', { name: '✋ Pronto' }).click();
     const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
     const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
@@ -277,7 +277,7 @@ test.describe('Partida', () => {
     await page.mouse.up();
     await expect(page.locator('.bt-tag')).toBeHidden();
     /* and when he scores, the note says so */
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await page.getByRole('button', { name: '✋ Pronto' }).click();
     const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
     const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
@@ -290,7 +290,7 @@ test.describe('Partida', () => {
   test('1 toque: when a shot is called, the goleiro may come off its line, anywhere in its small area', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ rule: '1' }));
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await expect(page.locator('.bt-say')).toContainText('move your goleiro anywhere in the small area');
     /* b's goleiro, at the top, dragged out towards the ball and across */
     const from = await screen(page, { x: 32, y: (G1.y[0] + G1.y[1]) / 2 });
@@ -310,7 +310,7 @@ test.describe('Partida', () => {
   test('1 toque: for a called shot the goleiro may go back into the goal, no further than its front on the line, and is out again after it', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ rule: '1' }));
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     /* b's goleiro, at the top, dragged back into its goal, further than it may go */
     const from = await screen(page, { x: 32, y: (G1.y[0] + G1.y[1]) / 2 });
     await page.mouse.move(from.x, from.y);
@@ -409,6 +409,28 @@ test.describe('Partida', () => {
     await expect(page.locator('.bt-keeper.home')).toHaveAttribute('data-out', '0.00');
   });
 
+  for (const narration of ['pt', 'en', 'off'] as const) {
+    test(`"Pro gol!" is shouted as it is called, in Portuguese whichever commentator speaks, and not with none (${narration})`, async ({ page }) => {
+      await recordSpeech(page, ['pt-BR']);
+      await recordPlays(page);
+      await open(page, chance(), { 'football-narration': narration });
+      const call = page.getByRole('button', { name: '📣 Pro gol!' });
+      /* red, and beating (still under Reduce Motion) */
+      expect(await call.evaluate((b) => getComputedStyle(b).backgroundColor)).toBe('rgb(199, 54, 26)');
+      await call.click();
+      await expect(game(page)).toHaveAttribute('data-phase', 'placing');
+      /* the recording where it was made, the device's Portuguese voice where not */
+      const shouted = async (): Promise<boolean> => (await said(page)).includes(PT_CALL)
+        || (await plays(page)).some((src) => src.endsWith(`/audio/${clipId(PT_CALL)}.mp3`));
+      if (narration === 'off') {
+        await page.waitForTimeout(500);
+        expect(await shouted()).toBe(false);
+      } else {
+        await expect.poll(shouted).toBe(true);
+      }
+    });
+  }
+
   test('the commentator: a called shot off the post that stays out is "Na trave!"', async ({ page }) => {
     const watch = watchPage(page);
     await recordSpeech(page, ['pt-BR']);
@@ -431,7 +453,7 @@ test.describe('Partida', () => {
       expect(shot.bumps.map((b) => b.what)).toContain('post');
     }
     await open(page, chance({ ball, a: [me, ...parked('a').slice(1)], keepers: { a: 32, b: keeper } }));
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await page.getByRole('button', { name: '✋ Pronto' }).click();
     await flick(page, 'a', 0, f.vx, f.vy);
     /* played out: whether the turn passes depends on where the ball ends up, not on the post */
