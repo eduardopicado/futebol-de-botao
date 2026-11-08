@@ -3,9 +3,11 @@
    against itself that ends with a winner. */
 
 import { describe, expect, it } from 'vitest';
-import { KEEPER_W, L, MOUTH, W, keeperFor, type Point } from '../../src/content/botao';
+import { GOLEIROS, L, MOUTH, W, keeperFor, type Point } from '../../src/content/botao';
 import { LEVELS, SKILL, decide, placeKeeper, shotFor, wobble, type Level } from '../../src/content/computer';
 import { RULES, SIZES, call, clampKeeper, flick, inAttack, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
+
+const G3 = GOLEIROS['3'];
 
 /* the same choices on every run */
 function seeded(seed: number): () => number {
@@ -76,7 +78,7 @@ describe('its turn', () => {
     it(`side ${side}: calls "A gol!" with the ball in front of goal, and then scores past a goleiro standing aside`, () => {
       const m = chance(side);
       expect(decide(m, 'hard', steady)).toEqual({ kind: 'call' });
-      const keeperAside = side === 'a' ? MOUTH[0] + KEEPER_W / 2 : W - MOUTH[0] - KEEPER_W / 2;
+      const keeperAside = side === 'a' ? MOUTH[0] + G3.w / 2 : W - MOUTH[0] - G3.w / 2;
       const ready = pronto(call(m), keeperAside);
       const move = decide(ready, 'hard', steady);
       if (move.kind !== 'flick') throw new Error('a shot is a flick');

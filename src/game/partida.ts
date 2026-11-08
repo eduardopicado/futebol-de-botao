@@ -33,9 +33,10 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, ON_THE_LINE, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
+  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
+import { GOLEIROS } from '../content/botao';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
 import { confetti } from './confetti';
@@ -81,7 +82,11 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const sayEl = el('div', { class: 'bt-say', 'aria-live': 'polite' }, words, actions);
   const whose = el('span', { class: 'whose' });
   const pips = el('span', { class: 'bt-pips', role: 'img' });
-  const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`);
+  /* a test (or someone debugging) can put a match on the device to start from */
+  const setup = read<Partial<Match> | null>('match-setup', null);
+  const start = setup && typeof setup === 'object' ? setup : null;
+  const rule = start?.rule && RULES.includes(start.rule) ? start.rule : matchRule();
+  const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`, GOLEIROS[rule]);
   const stage = el('div', { class: 'bt-stage' }, board.node);
   const node = el('div', { class: 'game', vars: SHAPE },
     el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, occasion.title), el('p', { class: 'bt-touches' }, whose, pips)), scoreEl),
@@ -91,7 +96,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const callBtn = el('button', { class: 'btn small call', type: 'button', text: '📣 A gol!' });
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 
-  let m: Match = newMatch(goalsToWin(), 'a', buttonsPerSide(), matchRule());
+  let m: Match = newMatch(goalsToWin(), 'a', buttonsPerSide(), rule);
   /* a flick, a pause or the toss is under way: no finger does anything */
   let busy = true;
   /* the goleiro being placed, where the finger has slid it so far */
@@ -453,11 +458,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     node.append(confetti(teams[side]));
   }
 
-  /* a test (or someone debugging) can put a match on the device to start from */
-  const setup = read<Partial<Match> | null>('match-setup', null);
-  if (setup && typeof setup === 'object') {
+  if (start) {
     write('match-setup', null);
-    m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a', setup.a?.length ?? buttonsPerSide(), matchRule()), ...setup };
+    m = { ...newMatch(goalsToWin(), start.turn === 'b' ? 'b' : 'a', start.a?.length ?? buttonsPerSide(), rule), ...start, rule };
     board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length }, { a: buttonsOf(teams.a, m.a.length), b: buttonsOf(teams.b, m.b.length) });
     busy = false;
     render('');

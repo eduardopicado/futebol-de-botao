@@ -19,7 +19,7 @@
 import { el, svg } from '../lib/dom';
 import type { Life } from '../lib/life';
 import { sfx } from '../lib/sfx';
-import { BALL, KEEPER_RX, KEEPER_W, KEEPER_Y, L, MOUTH, R, TRAY_AT, VIEW, W, flickFor, type Bump, type Flick, type Point } from '../content/botao';
+import { BALL, GOLEIROS, KEEPER_RX, L, MOUTH, R, TRAY_AT, VIEW, W, flickFor, type Bump, type Flick, type Goleiro, type Point } from '../content/botao';
 import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import { playerLabel, type Player } from './squads';
@@ -85,9 +85,9 @@ export interface Board {
 const line = (pts: Point[]): string => pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
 
 /** a goleiro's block, drawn round x = 0 and moved by a transform, so it can slide across */
-function keeperBlock(bottom: boolean): { g: SVGGElement; block: SVGRectElement } {
-  const [lo, hi] = bottom ? [L - KEEPER_Y[1], L - KEEPER_Y[0]] : KEEPER_Y;
-  const shape = { x: -KEEPER_W / 2, y: lo, width: KEEPER_W, height: hi - lo, rx: KEEPER_RX };
+function keeperBlock(bottom: boolean, size: Goleiro): { g: SVGGElement; block: SVGRectElement } {
+  const [lo, hi] = bottom ? [L - size.y[1], L - size.y[0]] : size.y;
+  const shape = { x: -size.w / 2, y: lo, width: size.w, height: hi - lo, rx: KEEPER_RX };
   const block = svg('rect', { ...shape, class: 'bt-keeper-block' });
   const g = svg('g', { class: `bt-keeper ${bottom ? 'home' : 'away'}` },
     svg('rect', { ...shape, x: shape.x + SHADOW.x, y: shape.y + SHADOW.y, class: 'bt-shadow' }),
@@ -100,15 +100,17 @@ function keeperBlock(bottom: boolean): { g: SVGGElement; block: SVGRectElement }
     game screen that sizes its columns by it */
 export const SHAPE = { '--bt-shape': String(VIEW.w / VIEW.h) };
 
-export function makeBoard(life: Life, label: string): Board {
+/** the table, with goleiros of the size the rule played has (as the physics
+    is told, in the Table it is given) */
+export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS['3']): Board {
   const board = svg('svg', { class: 'bt-table', viewBox: `${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`, role: 'img', 'aria-label': label });
   const path = svg('polyline', { class: 'bt-path' });
   const trail = svg('polyline', { class: 'bt-trail' });
   const band = svg('line', { class: 'bt-band' });
   const arrowEl = svg('polygon', { class: 'bt-arrow' });
   const ghostEl = svg('circle', { r: R, class: 'bt-ghost', hidden: '' });
-  const top = keeperBlock(false);
-  const bottom = keeperBlock(true);
+  const top = keeperBlock(false, goleiro);
+  const bottom = keeperBlock(true, goleiro);
   const ballEl = svg('g', { class: 'bt-ball' },
     svg('circle', { r: BALL, cx: SHADOW.x * 0.6, cy: SHADOW.y * 0.6, class: 'bt-shadow' }),
     svg('circle', { r: BALL, class: 'bt-ball-face' }));
@@ -292,9 +294,9 @@ export function makeBoard(life: Life, label: string): Board {
     if (slide) {
       const x = keeperAt(slide.which);
       const out = keeperOutAt(slide.which);
-      const mid = (KEEPER_Y[0] + KEEPER_Y[1]) / 2 + out;
+      const mid = (goleiro.y[0] + goleiro.y[1]) / 2 + out;
       const y = slide.which === 'top' ? mid : L - mid;
-      if (Math.abs(p.x - x) < KEEPER_W / 2 + 5 && Math.abs(p.y - y) < 8) {
+      if (Math.abs(p.x - x) < goleiro.w / 2 + 5 && Math.abs(p.y - y) < 8) {
         e.preventDefault();
         sliding = { pointer: e.pointerId, from: p, start: x, startOut: out };
         try { board.setPointerCapture(e.pointerId); } catch { /* the slide still works inside the table */ }

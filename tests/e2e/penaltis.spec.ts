@@ -6,11 +6,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, heard, inOrder, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
-import { KEEPER_Y, L, MARKS, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
+import { GOLEIROS, L, MARKS, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
 import type { Shootout, Side } from '../../src/content/match';
 import { PT_CHAMPIONS, enGoal, ptGoals } from '../../src/content/commentary';
 import { clipId } from '../../src/lib/clip-id';
 import { SQUADS } from '../../src/game/squads';
+
+const G3 = GOLEIROS['3'];
 
 async function screen(page: Page, p: Point): Promise<{ x: number; y: number; scale: number }> {
   const box = (await page.locator('.bt-table').boundingBox())!;
@@ -70,7 +72,7 @@ test.describe('Pênaltis', () => {
     const side = (await game(page).getAttribute('data-turn')) as Side;
     /* the defender, the other side: slides their goleiro, the note facing them */
     await expect(page.locator('.bt-say')).toHaveClass(side === 'a' ? /flip/ : /^(?!.*flip)/);
-    const line = side === 'a' ? (KEEPER_Y[0] + KEEPER_Y[1]) / 2 : L - (KEEPER_Y[0] + KEEPER_Y[1]) / 2;
+    const line = side === 'a' ? (G3.y[0] + G3.y[1]) / 2 : L - (G3.y[0] + G3.y[1]) / 2;
     const from = await screen(page, { x: 32, y: line });
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
@@ -160,7 +162,7 @@ test.describe('Pênaltis', () => {
       await seed(page, { 'team-a': 'brazil', 'team-b': 'argentina', 'shootout-setup': partWay('a', []), ...settings });
       await page.goto('/#/penaltis-2');
       /* Argentina's goleiro off to one side, to leave room for a shot */
-      const from = await screen(page, { x: 32, y: (KEEPER_Y[0] + KEEPER_Y[1]) / 2 });
+      const from = await screen(page, { x: 32, y: (G3.y[0] + G3.y[1]) / 2 });
       await page.mouse.move(from.x, from.y);
       await page.mouse.down();
       await page.mouse.move(from.x - 8 * from.scale, from.y, { steps: 6 });
