@@ -9,6 +9,8 @@
 export const PACE = {
   /** the turn passes: nothing can be flicked for a moment, so nobody flicks by mistake */
   handover: 600,
+  /** half time, extra time, or penalties: the whistle and the words, before play goes on */
+  halfTime: 2200,
   /** "GOL!", before the kick-off (a replay holds it until it has played) */
   goal: 1800,
   /** a goal that does not count: not called, or not allowed */

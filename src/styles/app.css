@@ -93,6 +93,17 @@ body[data-route="copa"], body[data-route="copa-team"] { --split: 100%; }
     radial-gradient(ellipse 60% 45% at 0% 0%, rgba(255, 220, 160, .14), transparent 70%),
     linear-gradient(180deg, transparent var(--split), rgba(50, 22, 6, .55) var(--split), transparent calc(var(--split) + 5%));
 }
+/* the Copa's final, at night (partida.ts, penaltis.ts): the room dark round
+   the table, two floodlights from the top corners and a pool of light
+   where the table stands; the table itself is lit as ever */
+body.night .scene::after {
+  background:
+    radial-gradient(ellipse 45% 40% at 50% 55%, rgba(255, 246, 214, .16), transparent 75%),
+    radial-gradient(ellipse 40% 50% at 4% 0%, rgba(255, 248, 225, .38), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 96% 0%, rgba(255, 248, 225, .38), transparent 70%),
+    linear-gradient(rgba(4, 10, 30, .74), rgba(4, 10, 30, .74));
+}
+.bt-clock { margin: 0; font: 700 14px / 1.2 var(--reading); color: var(--on-deep-soft); }
 .scene svg { position: absolute; display: block; }
 /* chalk on the wall, round the title */
 .scene .wall-marks {
@@ -235,9 +246,9 @@ select {
    a flick. So the game screen is exactly the screen's height, and the table
    is as big as the room left for it (container units: the stage is the
    container). svh where there is one, so an iPhone's toolbar is counted. */
-body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"], body[data-route="penaltis-1"], body[data-route="penaltis-2"], body[data-route="copa-jogo"], body[data-route="how-to-play"] { overflow: hidden; }
+body[data-route="treino"], body[data-route="partida"], body[data-route="computador"], body[data-route="goleiro"], body[data-route="penaltis-1"], body[data-route="penaltis-2"], body[data-route="copa-jogo"], body[data-route="copa-penaltis"], body[data-route="how-to-play"] { overflow: hidden; }
 body[data-route="treino"] .app, body[data-route="partida"] .app, body[data-route="computador"] .app, body[data-route="goleiro"] .app,
-body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[data-route="copa-jogo"] .app, body[data-route="how-to-play"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[data-route="copa-jogo"] .app, body[data-route="copa-penaltis"] .app, body[data-route="how-to-play"] .app { height: 100vh; height: 100svh; min-height: 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
 .game {
   height: 100%; margin: 0 auto;
   display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 6px;

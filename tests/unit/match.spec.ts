@@ -6,7 +6,7 @@ import { BALL, GOLEIROS, L, LINE, MARKS, MOUTH, NET, POST, R, W, keeperOut, keep
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
-  golaco, inTheirArea, kicked, missed, moment, newShootout, onTheLine, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
+  golaco, inTheirArea, kicked, missed, moment, newShootout, timeUp, turnsLeft, onTheLine, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
   type Match, type Shootout, type Side,
 } from '../../src/content/match';
 
@@ -622,6 +622,62 @@ describe('a shot that missed, for the commentator', () => {
       expect(moment(flick(m, 0, 0, side === 'a' ? -30 : 30))).toBeNull();
     });
   }
+});
+
+describe('a match against the clock (the Copa)', () => {
+  const CLOCK = { turns: 8, extra: 3 };
+  /** a's flick that touches nothing: the turn passes to b */
+  const miss = (m: Match): Match => flick(m, 1, 0, 3).next;
+
+  it('plays halves of so many turns a side; a goal does not end it, whatever the goals to win', () => {
+    let m = newMatch(1, 'a', 5, '3', CLOCK);
+    expect(m.clock).toMatchObject({ half: 1, first: 'a' });
+    expect(turnsLeft(m)).toBe(16);
+    expect(turnsLeft(newMatch(3, 'a'))).toBe(Number.POSITIVE_INFINITY);
+    /* a goal past "goals to win" is just a goal */
+    m = { ...m, phase: 'play', touches: 0, used: [], attack: true, ball: { x: 32, y: 30 }, a: [{ x: 32, y: 42 }, ...parked('a').slice(1)], b: parked('b') };
+    const scored = flick(pronto(call(m), MOUTH[0] + G3.w / 2 - 1), 0, 0, -110);
+    expect(scored.event).toMatchObject({ kind: 'goal', side: 'a' });
+    expect(scored.next.phase).toBe('kickoff');
+    expect(scored.next.winner).toBeNull();
+  });
+
+  it('blows for half time only between turns, once the half\'s turns are played, and the other side kicks off the second', () => {
+    const m = newMatch(3, 'b', 5, '3', CLOCK);
+    const at = (left: number, over: Partial<Match> = {}): Match => ({ ...m, phase: 'play', touches: 0, used: [], turnNo: m.clock!.start + 16 - left, ...over });
+    expect(timeUp(at(1))).toBeNull();
+    /* mid-turn, or with a penalty to take: not yet */
+    expect(timeUp(at(0, { touches: 1 }))).toBeNull();
+    expect(timeUp(at(0, { phase: 'placing', penalty: true }))).toBeNull();
+    const half = timeUp(at(0))!;
+    expect(half.whistle).toEqual({ kind: 'half', half: 2, side: 'a' });
+    expect(half.next.phase).toBe('kickoff');
+    expect(half.next.turn).toBe('a');
+    expect(half.next.ball).toEqual({ x: W / 2, y: L / 2 });
+    expect(turnsLeft(half.next)).toBe(16);
+  });
+
+  it('full time: won by the side ahead; level, extra time of 3 turns a side each half; still level, penalties', () => {
+    const m = newMatch(3, 'a', 5, '3', CLOCK);
+    const end = (half: 2 | 3 | 4, a: number, b: number): ReturnType<typeof timeUp> => {
+      const c = { ...m.clock!, half, start: 10 };
+      return timeUp({ ...m, phase: 'play', touches: 0, used: [], clock: c, turnNo: 10 + 2 * (half === 2 ? 8 : 3), score: { a, b } });
+    };
+    expect(end(2, 2, 1)!.whistle).toEqual({ kind: 'full-time', winner: 'a' });
+    expect(end(2, 2, 1)!.next).toMatchObject({ phase: 'over', winner: 'a' });
+    const extra = end(2, 1, 1)!;
+    expect(extra.whistle).toEqual({ kind: 'half', half: 3, side: 'a' });
+    expect(turnsLeft(extra.next)).toBe(6);
+    expect(end(3, 1, 1)!.whistle).toEqual({ kind: 'half', half: 4, side: 'b' });
+    expect(end(4, 1, 2)!.whistle).toEqual({ kind: 'full-time', winner: 'b' });
+    expect(end(4, 2, 2)!.whistle).toEqual({ kind: 'full-time', winner: null });
+    expect(end(4, 2, 2)!.next.phase).toBe('over');
+  });
+
+  it('counts a turn as it passes', () => {
+    const m = { ...newMatch(3, 'a', 5, '3', CLOCK), phase: 'play' as const, touches: 0, used: [], ball: { x: 32, y: 60 }, a: parked('a'), b: parked('b') };
+    expect(turnsLeft(miss(m))).toBe(turnsLeft(m) - 1);
+  });
 });
 
 describe('the commentator\'s moments', () => {
