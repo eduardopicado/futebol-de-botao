@@ -235,6 +235,30 @@ describe('iOS silencing the sound effects', () => {
     expect(first.closed).toBe(true);
   });
 
+  it('a context that will not start is no error: its refusal to resume is caught, at the first tap, a renewal, and a resume', async () => {
+    /* as WebKit does with no sound device: "AudioDestinationNode is not initialized" */
+    class Refusing extends FakeContext {
+      resume() { this.resumed += 1; return Promise.reject(new Error('InvalidStateError: AudioDestinationNode is not initialized')); }
+    }
+    vi.stubGlobal('window', { AudioContext: Refusing, localStorage: { getItem: () => null, setItem: () => undefined } });
+    const unhandled: unknown[] = [];
+    const note = (e: unknown): void => { unhandled.push(e); };
+    process.on('unhandledRejection', note);
+    try {
+      const { unlockSfx, staleSfx, wakeSfx } = await import('../../src/lib/sfx');
+      await unlockSfx();
+      FakeContext.made[0].state = 'suspended';
+      wakeSfx();
+      staleSfx();
+      wakeSfx();
+      expect(FakeContext.made.map((c) => c.resumed)).toEqual([2, 1]);
+      await new Promise((done) => setTimeout(done, 10));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', note);
+    }
+  });
+
   it('makes none before there is one, nor straight after the first: a new one has heard nothing yet', async () => {
     serve({ 'sfx.json': { cheer: 0.5 }, 'cheer.mp3': { seconds: 1.5 } });
     const { sfx, loadSfx, unlockSfx, staleSfx, wakeSfx } = await import('../../src/lib/sfx');
