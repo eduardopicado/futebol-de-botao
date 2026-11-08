@@ -87,9 +87,10 @@ In a cloud session whose Playwright browser does not match the installed
 
 ```
 src/content/botao.ts      the table, the physics of a flick, the three-touch rule,
-                          the goleiro (on its line, or off it at 1 Toque), and the
-                          planner (aimAt, oneTouch, passPlan, robust) that finds
-                          a way to score
+                          the goleiro (each rulebook's shape, at seven tenths of
+                          its size so goals still come; on its line, or off it
+                          at 1 Toque), and the planner (aimAt, oneTouch,
+                          passPlan, robust) that finds a way to score
 src/content/match.ts      a match: turns (three free touches, or one at 1 Toque),
                           "A gol!" and the goleiro, fouls and penalties, the
                           parked ball (1 Toque), kick-off, buttons in a net,

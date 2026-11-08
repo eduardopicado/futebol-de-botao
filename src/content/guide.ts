@@ -80,7 +80,7 @@ export function guideSteps(rule: Rule, goals: number): Step[] {
           a: [{ x: 20, y: 86 }, { x: 44, y: 86 }, { x: 32, y: 66 }, { x: 32, y: 42 }],
           b: [{ x: 8, y: 10 }, { x: 56, y: 10 }, { x: 8, y: 30 }, { x: 56, y: 34 }],
         }),
-        pronto: 23,
+        pronto: 24,
         flicks: [{ button: 3, vx: -15.8, vy: -63.1 }],
         expect: ['goal'],
       },

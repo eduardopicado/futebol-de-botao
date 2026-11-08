@@ -15,7 +15,7 @@
  * moment before it lets go. */
 
 import {
-  BALL, L, MOUTH, POST, W, aimAt, keeperFor, oneTouch, passPlan,
+  BALL, L, MOUTH, POST, W, aimAt, goleiroOf, keeperFor, oneTouch, passPlan,
   type Flick, type Point, type Table,
 } from './botao';
 import { clampKeeper, flick, inAttack, mayCall, mayFlick, mustFree, tableFor, type Match } from './match';
@@ -88,7 +88,7 @@ const onScreen = (m: Match, f: Flick, index: number): Move =>
 /** is there a shot worth calling from here, if their goleiro stands in the middle of the way? */
 function worthCalling(t: Table, buttons: readonly number[], level: Level): boolean {
   if (t.ball.y > 46) return false;
-  const guarded = { ...t, keeper: keeperFor('middle', t.ball) };
+  const guarded = { ...t, keeper: keeperFor('middle', t.ball, goleiroOf(t)) };
   return oneTouch(guarded, buttons, SKILL[level].walls) !== null;
 }
 
@@ -218,9 +218,9 @@ export function decide(m: Match, level: Level, rand: Rand = Math.random): Move {
  */
 export function placeKeeper(m: Match, level: Level, rand: Rand = Math.random): number {
   const { table: t } = tableFor(m);
-  const x = (keeperFor('middle', t.ball) ?? MID) + spread(rand) * SKILL[level].keeper;
+  const x = (keeperFor('middle', t.ball, goleiroOf(t)) ?? MID) + spread(rand) * SKILL[level].keeper;
   /* back from the shooter's table to the screen */
-  return clampKeeper(m.turn === 'a' ? x : W - x);
+  return clampKeeper(m.turn === 'a' ? x : W - x, goleiroOf(t));
 }
 
 /** in a penalty shootout it guesses: anywhere across its goal, the same at every level */

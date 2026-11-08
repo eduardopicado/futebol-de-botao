@@ -2,8 +2,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  BALL, KEEPER_OUT, KEEPER_RX, KEEPER_W, KEEPER_Y, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
-  angles, flickFor, keeperFor, oneTouch, passPlan, robust, shownBounce, simulate, slant,
+  BALL, GOLEIROS, KEEPER_RX, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
+  angles, flickFor, keeperFor, keeperOut, oneTouch, passPlan, robust, shownBounce, simulate, slant,
   type Point, type Table,
 } from '../../src/content/botao';
 
@@ -129,8 +129,8 @@ describe('the table', () => {
     expect(MARKS.spot).toBeLessThan(penD);
     /* the arc round the spot reaches past the penalty area's edge */
     expect(MARKS.spot + MARKS.arc).toBeGreaterThan(penD);
-    /* and the goleiro leaves a gap each side the ball fits through */
-    expect((MOUTH[1] - MOUTH[0] - KEEPER_W) / 2).toBeGreaterThan(2 * BALL + 2 * POST);
+    /* and each rule's goleiro leaves a gap each side the ball fits through */
+    for (const g of Object.values(GOLEIROS)) expect((MOUTH[1] - MOUTH[0] - g.w) / 2).toBeGreaterThan(2 * BALL + 2 * POST);
   });
 
   it('lets the goleiro stop a shot hit straight at him', () => {
@@ -223,38 +223,71 @@ describe('the table', () => {
 });
 
 describe('the goleiro', () => {
+  it('is each rulebook\'s, to the goal, at the same seven tenths: 3 Toques\'s wider and thinner, 1 Toque\'s narrower and thicker', () => {
+    const mouth = MOUTH[1] - MOUTH[0];
+    const book = { '3': { w: 70, d: 15, goal: 146 }, '1': { w: 60, d: 20, goal: 150 } } as const;
+    for (const rule of ['3', '1'] as const) {
+      const g = GOLEIROS[rule];
+      const { w, d, goal } = book[rule];
+      expect(g.w / mouth).toBeCloseTo(0.7 * w / goal, 2);
+      expect((g.y[1] - g.y[0]) / mouth).toBeCloseTo(0.7 * d / goal, 2);
+      /* its back where it has always stood, just in front of the line */
+      expect(g.y[0]).toBe(0.6);
+    }
+    expect(GOLEIROS['3'].w).toBeGreaterThan(GOLEIROS['1'].w);
+    expect(GOLEIROS['3'].y[1]).toBeLessThan(GOLEIROS['1'].y[1]);
+  });
+
+  it('is the size the table says, 3 Toques\'s if it says none', () => {
+    /* a ball going straight up just past a 1 Toque goleiro's side, inside a 3 Toques one's */
+    const keeper = 32;
+    const x = keeper + GOLEIROS['1'].w / 2 + BALL + 0.1;
+    const shoot = (extra: Partial<Table>) => simulate(table({ x, y: 30 }, [{ x, y: 42 }], { keeper, ...extra }), { button: 0, vx: 0, vy: -90 });
+    const saved = (extra: Partial<Table>): boolean => shoot(extra).bumps.some((b) => b.what === 'keeper');
+    expect(shoot({ goleiro: GOLEIROS['1'] }).goal).toBe(true);
+    expect(saved({ goleiro: GOLEIROS['1'] })).toBe(false);
+    expect(saved({ goleiro: GOLEIROS['3'] })).toBe(true);
+    expect(saved({})).toBe(true);
+    /* and it stays with the table after the flick */
+    expect(shoot({ goleiro: GOLEIROS['1'] }).end.goleiro).toBe(GOLEIROS['1']);
+  });
+
   it('puts the goleiro on the near post, or in the middle of the way to goal', () => {
     expect(keeperFor('none', { x: 10, y: 30 })).toBeNull();
     expect(keeperFor('side', { x: 10, y: 30 })!).toBeLessThan(MID);
     expect(keeperFor('side', { x: 54, y: 30 })!).toBeGreaterThan(MID);
-    for (const x of [2, 20, 32, 44, 62]) {
-      const k = keeperFor('middle', { x, y: 25 })!;
-      expect(k - KEEPER_W / 2).toBeGreaterThan(MOUTH[0]);
-      expect(k + KEEPER_W / 2).toBeLessThan(MOUTH[1]);
+    for (const g of Object.values(GOLEIROS)) {
+      for (const x of [2, 20, 32, 44, 62]) {
+        const k = keeperFor('middle', { x, y: 25 }, g)!;
+        expect(k - g.w / 2).toBeGreaterThan(MOUTH[0]);
+        expect(k + g.w / 2).toBeLessThan(MOUTH[1]);
+      }
     }
   });
 
-  it('has the rounded corners it is drawn with: a ball aimed at a corner touches the drawn block, no sooner', () => {
-    /* straight at the bottom right corner of a goleiro on its line, along the diagonal */
-    const keeper = 32;
-    const corner = { x: keeper + KEEPER_W / 2 - KEEPER_RX, y: KEEPER_Y[1] - KEEPER_RX };
-    const [ux, uy] = [-Math.SQRT1_2, -Math.SQRT1_2];
-    const ball = { x: corner.x + 10, y: corner.y + 10 };
-    const button = { x: ball.x - ux * (R + BALL + 0.5), y: ball.y - uy * (R + BALL + 0.5) };
-    /* slow enough that the frames, a 60th of a second apart, catch it close */
-    const shot = simulate(table(ball, [button], { keeper }), { button: 0, vx: ux * 25, vy: uy * 25 });
-    expect(shot.bumps.map((b) => b.what)).toContain('keeper');
-    /* the closest it came to the block as drawn: a rectangle with corners rounded by KEEPER_RX */
-    const toBlock = (p: Point): number => {
-      const cx = Math.min(keeper + KEEPER_W / 2 - KEEPER_RX, Math.max(keeper - KEEPER_W / 2 + KEEPER_RX, p.x));
-      const cy = Math.min(KEEPER_Y[1] - KEEPER_RX, Math.max(KEEPER_Y[0] + KEEPER_RX, p.y));
-      return dist(p, { x: cx, y: cy }) - KEEPER_RX;
-    };
-    /* square corners would have turned it back a third of a unit before the drawn block */
-    const closest = Math.min(...shot.frames.map((f) => toBlock(f[0])));
-    expect(closest).toBeGreaterThan(BALL - 0.05);
-    expect(closest).toBeLessThan(BALL + 0.15);
-  });
+  for (const [rule, g] of Object.entries(GOLEIROS)) {
+    it(`has the rounded corners it is drawn with: a ball aimed at a corner touches the drawn block, no sooner (${rule} Toque${rule === '1' ? '' : 's'})`, () => {
+      /* straight at the bottom right corner of a goleiro on its line, along the diagonal */
+      const keeper = 32;
+      const corner = { x: keeper + g.w / 2 - KEEPER_RX, y: g.y[1] - KEEPER_RX };
+      const [ux, uy] = [-Math.SQRT1_2, -Math.SQRT1_2];
+      const ball = { x: corner.x + 10, y: corner.y + 10 };
+      const button = { x: ball.x - ux * (R + BALL + 0.5), y: ball.y - uy * (R + BALL + 0.5) };
+      /* slow enough that the frames, a 60th of a second apart, catch it close */
+      const shot = simulate(table(ball, [button], { keeper, goleiro: g }), { button: 0, vx: ux * 25, vy: uy * 25 });
+      expect(shot.bumps.map((b) => b.what)).toContain('keeper');
+      /* the closest it came to the block as drawn: a rectangle with corners rounded by KEEPER_RX */
+      const toBlock = (p: Point): number => {
+        const cx = Math.min(keeper + g.w / 2 - KEEPER_RX, Math.max(keeper - g.w / 2 + KEEPER_RX, p.x));
+        const cy = Math.min(g.y[1] - KEEPER_RX, Math.max(g.y[0] + KEEPER_RX, p.y));
+        return dist(p, { x: cx, y: cy }) - KEEPER_RX;
+      };
+      /* square corners would have turned it back before the drawn block */
+      const closest = Math.min(...shot.frames.map((f) => toBlock(f[0])));
+      expect(closest).toBeGreaterThan(BALL - 0.05);
+      expect(closest).toBeLessThan(BALL + 0.15);
+    });
+  }
 
   it('off its line, it stops a shot that would have gone past it on the line', () => {
     /* from the left, across the face of goal into the far side of the net */
@@ -262,12 +295,13 @@ describe('the goleiro', () => {
     const [ux, uy] = [Math.SQRT1_2, -Math.SQRT1_2];
     const button = { x: ball.x - ux * (R + BALL + 0.5), y: ball.y - uy * (R + BALL + 0.5) };
     /* the goleiro where the shot meets the face of its block, off its line, not a corner */
-    const shot = (keeperOut: number) => simulate(table(ball, [button], { keeper: 30, keeperOut }), { button: 0, vx: ux * 100, vy: uy * 100 });
+    const g = GOLEIROS['1'];
+    const shot = (out: number) => simulate(table(ball, [button], { keeper: 30, keeperOut: out, goleiro: g }), { button: 0, vx: ux * 100, vy: uy * 100 });
     expect(shot(0).goal).toBe(true);
-    const out = shot(KEEPER_OUT);
+    const out = shot(keeperOut(g));
     expect(out.goal).toBe(false);
     expect(out.bumps.some((b) => b.what === 'keeper')).toBe(true);
-    expect(KEEPER_OUT + KEEPER_Y[1]).toBe(MARKS.box[1]);
+    expect(keeperOut(g) + g.y[1]).toBe(MARKS.box[1]);
   });
 });
 

@@ -5,8 +5,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { noProblems, seed, watchPage } from './helpers';
-import { KEEPER_Y, L, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
+import { GOLEIROS, L, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
 import type { Match, Side } from '../../src/content/match';
+
+const G3 = GOLEIROS['3'];
 
 async function screen(page: Page, p: Point): Promise<{ x: number; y: number; scale: number }> {
   const box = (await page.locator('.bt-table').boundingBox())!;
@@ -75,7 +77,7 @@ test.describe('Against the computer', () => {
     await expect(page.locator('.bt-say')).not.toHaveClass(/flip/);
     await expect(page.locator('.bt-keeper.home')).toHaveClass(/placing/);
     /* your goleiro, at the bottom, slid a little to the left */
-    const from = await screen(page, { x: 32, y: L - (KEEPER_Y[0] + KEEPER_Y[1]) / 2 });
+    const from = await screen(page, { x: 32, y: L - (G3.y[0] + G3.y[1]) / 2 });
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
     await page.mouse.move(from.x - 4 * from.scale, from.y, { steps: 4 });
