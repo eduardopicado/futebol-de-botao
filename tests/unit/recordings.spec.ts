@@ -34,7 +34,7 @@ describe('the commentator\'s recordings', () => {
 
   it('the tool knows every line the game can have him say, so none is left to the device voice', () => {
     const known = new Set(clips().map((c) => c.text));
-    const moments: Moment[] = ['goal', 'save', 'champion', 'post', 'close', 'own-goal'];
+    const moments: Moment[] = ['goal', 'golaco', 'save', 'champion', 'post', 'close', 'own-goal', 'shot', 'danger'];
     const unknown = new Set<string>();
     /* each of up to four lines a moment picks from, for every team, both ways */
     for (const r of [0.1, 0.4, 0.7, 0.95]) {

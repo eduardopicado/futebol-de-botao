@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
 import { BALL, GOLEIROS, L, LINE, MARKS, MOUTH, NET, PULL, R, VIEW, W, oneTouch, simulate, type Flick, type Point } from '../../src/content/botao';
 import { onTheLine, type Match, type Side } from '../../src/content/match';
-import { PT_CALL, PT_POSTS } from '../../src/content/commentary';
+import { PT_CALL, PT_DANGER, PT_POSTS, PT_SHOTS } from '../../src/content/commentary';
 import { clipId } from '../../src/lib/clip-id';
 
 const [G3, G1] = [GOLEIROS['3'], GOLEIROS['1']];
@@ -490,6 +490,40 @@ test.describe('Partida', () => {
       }
     });
   }
+
+  /** said in his Portuguese voice, or played from his recording */
+  const heardOne = async (page: Page, lines: string[]): Promise<boolean> => (await said(page)).some((t) => lines.includes(t))
+    || (await plays(page)).some((src) => lines.some((line) => src.endsWith(`/audio/${clipId(line)}.mp3`)));
+
+  test('the commentator: "Lá vem ele!" once the goleiro is placed and Pronto is tapped', async ({ page }) => {
+    await recordSpeech(page, ['pt-BR']);
+    await recordPlays(page);
+    await open(page, chance());
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
+    expect(await heardOne(page, PT_SHOTS)).toBe(false);
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect.poll(() => heardOne(page, PT_SHOTS)).toBe(true);
+  });
+
+  test('the commentator: "Perigo!" when a flick leaves the ball in their area, and not before', async ({ page }) => {
+    const watch = watchPage(page);
+    await recordSpeech(page, ['pt-BR']);
+    await recordPlays(page);
+    /* a's button behind the ball outside their area: a push into it, short of the goleiro, a degree or 5% either way */
+    const ball = { x: 32, y: 30 };
+    const me = { x: 32, y: 42 };
+    const vy = [-32, -34, -36, -38, -40].find((v) => [0.95, 1, 1.05].every((k) => {
+      const shot = simulate({ ball, us: [me], them: parked('b'), keeper: 32 }, { button: 0, vx: 0, vy: v * k });
+      return !shot.goal && shot.end.ball.y < MARKS.penalty[1] - 1;
+    }))!;
+    expect(vy).toBeDefined();
+    await open(page, chance({ ball, a: [me, ...parked('a').slice(1)] }));
+    expect(await heardOne(page, PT_DANGER)).toBe(false);
+    await flick(page, 'a', 0, 0, vy);
+    await expect(game(page)).toHaveAttribute('data-event', /./, { timeout: 10000 });
+    await expect.poll(() => heardOne(page, PT_DANGER)).toBe(true);
+    noProblems(watch);
+  });
 
   test('the commentator: a called shot off the post that stays out is "Na trave!"', async ({ page }) => {
     const watch = watchPage(page);

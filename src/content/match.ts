@@ -635,6 +635,24 @@ export function missed(play: Play, side: Side): 'save' | 'post' | 'close' | null
   return out > 0 && out <= CLOSE ? 'close' : null;
 }
 
+/** is the ball in the penalty area that `side` attacks, at the far end from its own */
+export function inTheirArea(ball: Point, side: Side): boolean {
+  const [w, d] = MARKS.penalty;
+  return Math.abs(ball.x - W / 2) < w / 2 && Math.abs(ball.y - (side === 'a' ? 0 : L)) < d;
+}
+
+/** how far from the goal line it attacks a shot has to start for a goal from it to be from far out */
+const LONG = 34;
+
+/** a goal for `side` worth a "Golaço!": in off the rim, or from far out (the
+    ball LONG or more from the goal line when it was flicked) */
+export function golaco(play: Pick<Play, 'frames' | 'bumps' | 'event'>, side: Side): boolean {
+  const e = play.event;
+  if ((e.kind !== 'goal' && e.kind !== 'champion') || e.own || e.side !== side) return false;
+  const start = play.frames[0].ball;
+  return (side === 'a' ? start.y : L - start.y) >= LONG || play.bumps.some((b) => b.what === 'wall');
+}
+
 /** how near a goal line the ball comes for its moment to be slowed down */
 const REACH = 5;
 

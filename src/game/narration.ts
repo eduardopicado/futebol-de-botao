@@ -15,12 +15,13 @@ import { canSpeak, say } from '../lib/speech';
 import { hasClip } from '../lib/audio';
 import { read, write } from '../lib/storage';
 import {
-  EN_CLOSE, EN_OWN_GOALS, EN_POSTS, EN_SAVES, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_OWN_GOALS, PT_POSTS, PT_SAVES, enChampion, enGoal, ptGoals,
+  EN_CLOSE, EN_DANGER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_DANGER, PT_OWN_GOALS, PT_POSTS,
+  PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, ptGoals, ptGolacos,
 } from '../content/commentary';
 import { real, type Team } from './teams';
 
 export type Narration = 'pt' | 'en' | 'off';
-export type Moment = 'goal' | 'save' | 'champion' | 'post' | 'close' | 'own-goal';
+export type Moment = 'goal' | 'golaco' | 'save' | 'champion' | 'post' | 'close' | 'own-goal' | 'shot' | 'danger';
 
 const KEY = 'football-narration';
 const PT = 'pt-BR';
@@ -32,20 +33,23 @@ export const narrationChoice = (): Narration => {
 export const setNarration = (v: Narration): void => write(KEY, v);
 
 /** the same moment, whoever it was for */
-const SAME: Record<'save' | 'post' | 'close' | 'own-goal', { pt: string[]; en: string[] }> = {
+const SAME: Record<Exclude<Moment, 'goal' | 'golaco' | 'champion'>, { pt: string[]; en: string[] }> = {
   save: { pt: PT_SAVES, en: EN_SAVES },
   post: { pt: PT_POSTS, en: EN_POSTS },
   close: { pt: PT_CLOSE, en: EN_CLOSE },
   'own-goal': { pt: PT_OWN_GOALS, en: EN_OWN_GOALS },
+  shot: { pt: PT_SHOTS, en: EN_SHOTS },
+  danger: { pt: PT_DANGER, en: EN_DANGER },
 };
 
 /** what the commentator shouts: a goal or the cup for `team`, or a moment
     that is the same whoever it was for */
 export function callFor(moment: Moment, team: Team, lang: 'pt' | 'en'): string {
-  if (moment !== 'goal' && moment !== 'champion') return pick(SAME[moment][lang]);
-  if (lang === 'pt') return pick(moment === 'champion' ? PT_CHAMPIONS : ptGoals(team.pt));
-  if (moment === 'champion') return enChampion(real(team) ? team.name : undefined);
-  return enGoal(real(team) ? team.name : undefined);
+  if (moment !== 'goal' && moment !== 'golaco' && moment !== 'champion') return pick(SAME[moment][lang]);
+  if (lang === 'pt') return pick(moment === 'champion' ? PT_CHAMPIONS : moment === 'golaco' ? ptGolacos(team.pt) : ptGoals(team.pt));
+  const name = real(team) ? team.name : undefined;
+  if (moment === 'champion') return enChampion(name);
+  return moment === 'golaco' ? enGolaco(name) : enGoal(name);
 }
 
 /**
@@ -66,7 +70,7 @@ export function narrate(moment: Moment, team: Team, then: () => void, later: (fn
   /* the name on its own, after the call: the call is recorded (public/audio),
      a name the players can change never is. In Portuguese where the device
      can say it, and otherwise in the voice it has, as a name still sounds */
-  const name = moment === 'goal' && scorer ? `${scorer}!` : '';
+  const name = (moment === 'goal' || moment === 'golaco') && scorer ? `${scorer}!` : '';
   const sayName = (): void => say(name, { lang: lang && canSpeak(lang) ? lang : undefined, onEnd: next });
   say(call, { lang, onEnd: name ? sayName : next });
   later(next, (hasClip(call) ? RECORDED : SPOKEN) + (name ? NAME : 0));

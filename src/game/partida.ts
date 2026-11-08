@@ -33,7 +33,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, moment, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
+  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, golaco, inTheirArea, moment, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { GOLEIROS } from '../content/botao';
@@ -200,6 +200,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     if (busy || m.phase !== 'placing') return;
     sfx.tap();
     m = pronto(m, sliding.x, sliding.out);
+    narrate('shot', teams[m.turn], () => undefined, life.later);
     render('');
   });
 
@@ -244,12 +245,12 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   }
   replayBtn.addEventListener('click', () => { sfx.tap(); void replay(); });
 
-  async function after(event: Event, called: boolean, saved: boolean): Promise<void> {
+  async function after(event: Event, called: boolean, saved: boolean, great = false): Promise<void> {
     switch (event.kind) {
       case 'goal': {
         sfx.roar();
         celebrate(stage, teams[event.side], life, event.own ? 'GOL CONTRA!' : 'GOOOL!');
-        narrate(event.own ? 'own-goal' : 'goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
+        narrate(event.own ? 'own-goal' : great ? 'golaco' : 'goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
         node.dataset.goal = event.side;
         showScore();
         const by = scorer ? ` ${scorer.name ? `${scorer.name} (${scorer.n})` : `Number ${scorer.n}`},` : '';
@@ -340,7 +341,11 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       sfx.groan();
       narrate(miss, teams[miss === 'save' ? other(before.turn) : before.turn], () => undefined, life.later);
     }
-    await after(play.event, called, saved);
+    /* a flick that leaves the ball in their area, from outside it, and play goes on */
+    if (!called && (play.event.kind === 'on' || play.event.kind === 'turn') && inTheirArea(m.ball, before.turn) && !inTheirArea(before.ball, before.turn)) {
+      narrate('danger', teams[before.turn], () => undefined, life.later);
+    }
+    await after(play.event, called, saved, golaco(play, before.turn));
     if (m.phase === 'over') return;
     busy = false;
     render();
@@ -368,6 +373,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     }
     sfx.tap();
     m = pronto(m, to);
+    narrate('shot', teams[m.turn], () => undefined, life.later);
     busy = false;
     thinking = false;
     render('');
