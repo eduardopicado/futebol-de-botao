@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BALL, GOLEIROS, KEEPER_RX, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
-  angles, flickFor, keeperFor, keeperOut, oneTouch, passPlan, robust, shownBounce, simulate, slant,
+  angles, flickFor, keeperFor, keeperOut, nearGoal, oneTouch, passPlan, robust, shownBounce, simulate, slant,
   type Point, type Table,
 } from '../../src/content/botao';
 
@@ -219,6 +219,17 @@ describe('the table', () => {
     expect(shot.own).toBe(false);
     expect(shot.bounces.length).toBeGreaterThan(0);
     expect(shot.end.ball.y).toBeLessThanOrEqual(L - BALL + 0.01);
+  });
+});
+
+describe('the crowd', () => {
+  it('stirs as the ball nears either goal\'s mouth, and not in midfield', () => {
+    expect(nearGoal({ x: MID, y: L / 2 })).toBe(0);
+    expect(nearGoal({ x: MID, y: 0 })).toBe(1);
+    expect(nearGoal({ x: MID, y: L })).toBe(1);
+    /* level with a post is as near as the post itself */
+    expect(nearGoal({ x: 2, y: 0 })).toBeCloseTo(1 - (MOUTH[0] - 2) / 30, 6);
+    expect(nearGoal({ x: MID, y: 10 })).toBeGreaterThan(nearGoal({ x: MID, y: 20 }));
   });
 });
 

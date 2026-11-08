@@ -8,10 +8,13 @@
   and "É campeão!".
 - **The sound effects** (`sfx/*.mp3`, listed in `sfx/sfx.json` with how loud
   each one plays): cheer, win, whistle, crowd, kick, clack, post, move, take
-  and roll.
+  and roll; and the stadium's roar for a goal and its groan ("uuuh") for a
+  near miss. The crowd's murmur swells under a flick as the ball nears a
+  goal.
 
-Both were made with ElevenLabs for `eduardopicado/sounds-of-reading` and
-copied here as they were. They are never edited by hand.
+The first lines and the first ten sound effects were made with ElevenLabs
+for `eduardopicado/sounds-of-reading` and copied here as they were; the rest
+were made here, with the same tools. They are never edited by hand.
 
 ## The voices
 
@@ -55,5 +58,9 @@ A line the commentator says comes from `src/content/commentary.ts`. Add it
 there first, then record it. `tests/unit/recordings.spec.ts` checks that
 both lists match their files and that every file is a line he says.
 
-The sound effects were made by `tools/make-sfx.ts` in sounds-of-reading;
-make new ones there and copy them over.
+The sound effects are made by `tools/make-sfx.ts` (ported from
+sounds-of-reading, its prompts with it). A sound comes out differently each
+time, so `npm run make:sfx -- --takes 3` makes takes into `audition/sfx/` to
+listen to, and `npm run make:sfx -- --keep <sound> <take>` keeps one and
+writes `sfx.json`. `tests/unit/recordings.spec.ts` checks the list matches
+its files and the volumes in the tool.

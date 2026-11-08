@@ -65,8 +65,8 @@ export function unlockSfx(): Promise<void> {
   return ac ? decodeAll(ac) : Promise.resolve();
 }
 
-/** the sounds that can be recorded (made by sounds-of-reading's tools/make-sfx.ts, which says what each one is) */
-export type Recordable = 'cheer' | 'win' | 'whistle' | 'crowd' | 'kick' | 'clack' | 'post' | 'move' | 'take' | 'roll';
+/** the sounds that can be recorded (tools/make-sfx.ts says what each one is) */
+export type Recordable = 'cheer' | 'win' | 'whistle' | 'crowd' | 'kick' | 'clack' | 'post' | 'move' | 'take' | 'roll' | 'roar' | 'groan';
 
 /** the recordings that are ready, with how loud each one plays */
 const recorded = new Map<string, { buffer: AudioBuffer; gain: number }>();
@@ -361,6 +361,13 @@ export const sfx = {
     const s = Math.max(1, seconds);
     if (enabled && !recording('crowd', s)) noise(s, 0.07);
   },
+  /** a goal in a match: the stadium going up, or the cheer where it is not recorded */
+  roar: () => sound('roar', () => sfx.cheer()),
+  /** a shot just wide, off the post or saved: the crowd's "uuuh" */
+  groan: () => sound('groan', () => {
+    noise(1.4, 0.1);
+    play([{ hz: 330, at: 0.1, for: 0.5, type: 'triangle', gain: 0.06 }, { hz: 247, at: 0.5, for: 0.7, type: 'triangle', gain: 0.05 }]);
+  }),
   /** a goal or a save, or any right answer: the crowd, and the rising third on top */
   cheer: () => sound('cheer', () => {
     noise(1.3, 0.22);
@@ -374,3 +381,72 @@ export const sfx = {
     { hz: 420, at: 0.44, for: 0.08, type: 'square', gain: 0.05 },
   ])),
 };
+
+/** a crowd watching a flick: `to` says how near the ball is to a goal, from
+    0 (nowhere near) to 1 (in the mouth), and `done` lets it die away */
+export interface Watching { to: (near: number) => void; done: () => void }
+
+const QUIET: Watching = { to: () => undefined, done: () => undefined };
+
+/**
+ * The crowd's murmur under a flick, swelling as the ball nears a goal and
+ * dying away when the flick is over: its recording looped, or noise made
+ * here. Quiet with the ball far from both goals, so a flick in midfield is
+ * not drowned; louder with the square of how near it is, so it builds.
+ */
+export function watching(): Watching {
+  if (!enabled) return QUIET;
+  const ac = audio();
+  if (!ac) return QUIET;
+  try {
+    const take = recorded.get('crowd');
+    const source = ac.createBufferSource();
+    const vol = ac.createGain();
+    let peak: number;
+    if (take) {
+      source.buffer = take.buffer;
+      peak = Math.min(1, take.gain * 2.4);
+      source.connect(vol);
+    } else {
+      const length = Math.floor(ac.sampleRate * 2);
+      const buffer = ac.createBuffer(1, length, ac.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
+      source.buffer = buffer;
+      const band = ac.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 900;
+      band.Q.value = 0.6;
+      source.connect(band).connect(vol);
+      peak = 0.12;
+    }
+    source.loop = true;
+    vol.gain.setValueAtTime(0.0001, ac.currentTime);
+    vol.connect(ac.destination);
+    source.start(ac.currentTime);
+    /* until it is done: leaving the game hushes it before then */
+    track(source, Number.POSITIVE_INFINITY);
+    let over = false;
+    return {
+      to: (near) => {
+        if (over) return;
+        const k = Math.min(1, Math.max(0, near));
+        try { vol.gain.setTargetAtTime(Math.max(0.0001, peak * k * k), ac.currentTime, 0.12); } catch { /* its context was renewed */ }
+      },
+      done: () => {
+        if (over) return;
+        over = true;
+        try {
+          const now = ac.currentTime;
+          vol.gain.setTargetAtTime(0.0001, now, 0.25);
+          source.stop(now + 1.2);
+          playing.set(source, now + 1.2);
+        } catch {
+          /* hushed already */
+        }
+      },
+    };
+  } catch {
+    return QUIET;
+  }
+}

@@ -72,11 +72,12 @@ npm run test:unit  # physics, planner, the match's rules, set-ups, shared code
 npm test           # unit tests, then the Playwright suite
 npm run make:launch  # by hand: the launch images, from the built app, into public/launch/
 npm run make:audio   # by hand, with ELEVENLABS_API_KEY: the commentator's lines, into public/audio/
+npm run make:sfx     # by hand, with ELEVENLABS_API_KEY: the sound effects, into public/audio/sfx/
 ```
 
-CI runs all of these but make:launch and make:audio on every pull request and
-push, the browser tests as one job per device (WebKit too). GitHub Pages
-deploys only after CI has passed on a push to `main`
+CI runs all of these but make:launch, make:audio and make:sfx on every pull
+request and push, the browser tests as one job per device (WebKit too).
+GitHub Pages deploys only after CI has passed on a push to `main`
 (`.github/workflows/deploy.yml`).
 
 In a cloud session whose Playwright browser does not match the installed
@@ -154,6 +155,8 @@ tools/launch.ts           the launch images: each iPad's and iPhone's screen, an
 tools/make-launch.ts      renders them from the built app into public/launch/
 tools/make-audio.ts       records the commentator's lines with ElevenLabs into
                           public/audio/ (its README says what is there)
+tools/make-sfx.ts         records the sound effects (the crowd's roar and groan
+                          among them) with ElevenLabs into public/audio/sfx/
 tools/ts-imports.ts       lets node run a tool that imports from src/
 .claude/skills/           grill-me and grilling (mattpocock/skills, MIT)
 ```

@@ -499,6 +499,17 @@ export const VIEW = (() => {
   return { x: TRAY_AT.x, y: top, w: TRAY_AT.w, h: bottom - top } as const;
 })();
 
+/** how far from a goal's mouth the crowd starts to stir (board.ts) */
+const NEAR = 30;
+
+/** how near a point is to either goal's mouth, the stretch between its
+    posts: 0 at NEAR or further, 1 in it */
+export function nearGoal(p: Point): number {
+  const x = Math.min(MOUTH[1], Math.max(MOUTH[0], p.x));
+  const d = Math.min(len(p.x - x, p.y), len(p.x - x, p.y - L));
+  return Math.max(0, 1 - d / NEAR);
+}
+
 /** the flick a pull back gives: the other way, harder the further it pulls */
 export function flickFor(button: number, pullX: number, pullY: number): Flick {
   const k = Math.min(1, MAX_SPEED / (len(pullX, pullY) * PULL || 1));

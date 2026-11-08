@@ -18,8 +18,8 @@
 
 import { el, svg } from '../lib/dom';
 import type { Life } from '../lib/life';
-import { sfx } from '../lib/sfx';
-import { BALL, GOLEIROS, KEEPER_RX, L, MOUTH, R, TRAY_AT, VIEW, W, flickFor, type Bump, type Flick, type Goleiro, type Point } from '../content/botao';
+import { sfx, watching } from '../lib/sfx';
+import { BALL, GOLEIROS, KEEPER_RX, L, MOUTH, R, TRAY_AT, VIEW, W, flickFor, nearGoal, type Bump, type Flick, type Goleiro, type Point } from '../content/botao';
 import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import { playerLabel, type Player } from './squads';
@@ -191,11 +191,14 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
       const start = performance.now();
       let heard = 0;
       let netted = false;
+      /* the crowd, louder as the ball nears a goal */
+      const crowd = watching();
       const tick = (): void => {
-        if (!life.alive()) return;
+        if (!life.alive()) { crowd.done(); return; }
         const i = Math.min(frames.length - 1, Math.floor((performance.now() - start) * speed / (1000 / 60)));
         const f = frames[i];
         draw(f, keepers, benched);
+        crowd.to(nearGoal(f.ball));
         if (!netted && f.ball.y + BALL < 0) { netted = true; bulge('top'); }
         if (!netted && f.ball.y - BALL > L) { netted = true; bulge('bottom'); }
         for (; heard < bumps.length && bumps[heard].frame <= i; heard += 1) {
@@ -204,7 +207,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
           else if (what === 'post') sfx.post();
           else sfx.tap();
         }
-        if (i >= frames.length - 1) { done(); return; }
+        if (i >= frames.length - 1) { crowd.done(); done(); return; }
         life.later(tick, 16);
       };
       tick();
