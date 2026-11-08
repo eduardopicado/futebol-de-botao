@@ -158,6 +158,17 @@ test.describe('Partida', () => {
       const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
       await page.getByRole('button', { name: '✋ Pronto' }).click();
       const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
+      /* the shake and the flash last half a second: noted as they start */
+      await page.evaluate(() => {
+        const w = window as unknown as { __shook: string[]; __flashed: string[] };
+        [w.__shook, w.__flashed] = [[], []];
+        const stage = document.querySelector('.bt-stage')!;
+        new MutationObserver(() => {
+          if (stage.classList.contains('shake')) w.__shook.push(getComputedStyle(stage.querySelector('.bt-wrap')!).animationName);
+          const flash = stage.querySelector('.bt-flash');
+          if (flash) w.__flashed.push(getComputedStyle(flash).display);
+        }).observe(stage, { attributes: true, attributeFilter: ['class'], childList: true });
+      });
       await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
       await expect(page.locator('.bt-table')).toHaveAttribute('data-slow', '');
       const banner = page.locator('.bt-gooool');
@@ -169,18 +180,18 @@ test.describe('Partida', () => {
         document.body.append(probe);
         const want = getComputedStyle(probe).color;
         probe.remove();
-        return {
-          colour: getComputedStyle(span).color, want,
-          shaking: getComputedStyle(document.querySelector('.bt-wrap')!).animationName,
-          flash: document.querySelector('.bt-flash') ? getComputedStyle(document.querySelector('.bt-flash')!).display : 'gone',
-        };
+        const w = window as unknown as { __shook: string[]; __flashed: string[] };
+        return { colour: getComputedStyle(span).color, want, shook: w.__shook, flashed: w.__flashed };
       });
       expect(look.colour).toBe(look.want);
+      expect(look.shook.length).toBeGreaterThan(0);
+      expect(look.flashed.length).toBeGreaterThan(0);
       if (reduced) {
-        expect(look.shaking).toBe('none');
-        expect(look.flash).not.toBe('block');
+        expect(new Set(look.shook)).toEqual(new Set(['none']));
+        expect(new Set(look.flashed)).toEqual(new Set(['none']));
       } else {
-        expect(look.shaking).toBe('bt-shake');
+        expect(look.shook).toContain('bt-shake');
+        expect(look.flashed).toContain('block');
       }
       await expect(game(page)).toHaveAttribute('data-event', 'goal');
       /* and nothing left on the table */
