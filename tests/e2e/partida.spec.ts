@@ -543,6 +543,48 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
+  for (const reduced of [false, true]) {
+    test(`a called shot from the TV camera: the table tilted, the goals and goleiros standing, then straight above again${reduced ? ' (never under Reduce Motion)' : ''}`, async ({ page }) => {
+      const watch = watchPage(page);
+      if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+      await open(page, chance());
+      /* what the camera did, noted as it happened */
+      await page.evaluate(() => {
+        const w = window as unknown as { __tv: { tilted: boolean; posts: number; keepers: number; ball: boolean } };
+        w.__tv = { tilted: false, posts: 0, keepers: 0, ball: false };
+        new MutationObserver(() => {
+          if (!document.querySelector('.bt-table.tv')) return;
+          w.__tv.tilted = true;
+          w.__tv.posts = Math.max(w.__tv.posts, document.querySelectorAll('.bt-tv .tv-post').length);
+          w.__tv.keepers = Math.max(w.__tv.keepers, document.querySelectorAll('.bt-tv .tv-keeper').length);
+          if (document.querySelector('.bt-tv .tv-ball')) w.__tv.ball = true;
+        }).observe(document.querySelector('.bt-wrap')!, { attributes: true, childList: true, subtree: true });
+      });
+      /* an ordinary flick is seen from above */
+      await page.getByRole('button', { name: '📣 Pro gol!' }).click();
+      expect(await page.evaluate(() => (window as unknown as { __tv: { tilted: boolean } }).__tv.tilted)).toBe(false);
+      await page.getByRole('button', { name: '✋ Pronto' }).click();
+      const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper: 32 }, [0], false)!;
+      await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
+      await expect(game(page)).toHaveAttribute('data-event', /./, { timeout: 10000 });
+      const tv = await page.evaluate(() => (window as unknown as { __tv: { tilted: boolean; posts: number; keepers: number; ball: boolean } }).__tv);
+      if (reduced) {
+        expect(tv.tilted).toBe(false);
+      } else {
+        expect(tv.tilted).toBe(true);
+        /* both goals' posts and crossbars, both goleiros' blocks, and the ball */
+        expect(tv.posts).toBe(6);
+        expect(tv.keepers).toBe(8);
+        expect(tv.ball).toBe(true);
+      }
+      /* and back to straight above, nothing of it left */
+      await expect(page.locator('.bt-table')).not.toHaveClass(/tv/, { timeout: 5000 });
+      expect(await page.locator('.bt-table').evaluate((t) => (t as SVGSVGElement).style.transform)).toBe('');
+      await expect(page.locator('.bt-tv > *')).toHaveCount(0);
+      noProblems(watch);
+    });
+  }
+
   test('not armed, holding still lifts nothing: the same flick goes low, to the goleiro', async ({ page }) => {
     const ball = { x: 32, y: 22 };
     const me = { x: 32, y: 22 + R + BALL + 2 };

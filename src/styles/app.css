@@ -363,6 +363,7 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
    src/content/botao.ts, set on .bt-wrap where it is made; as wide as the
    stage allows, or as tall */
 .bt-wrap {
+  position: relative;
   width: min(100%, calc((100svh - 190px) * var(--bt-shape)));
   /* the tray's own corners, from its picture (38 of 699 across, of 987 down), and its shadow on the page */
   border-radius: 5.4% / 3.9%;
@@ -477,6 +478,21 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .bt-arrow { fill: var(--mustard); stroke: var(--deep); stroke-width: .35; stroke-linejoin: round; }
 .bt-path { fill: none; stroke: #fff; stroke-width: .7; stroke-dasharray: 1.6 1.2; stroke-linecap: round; }
 .bt-ghost { fill: rgba(255, 255, 255, .18); stroke: #fff; stroke-width: .5; stroke-dasharray: 1.2 .8; }
+/* the TV camera (camera.ts): the table tilted, and what stands up off it
+   drawn on a flat layer over it, so the drawn-from-above goals, goleiros
+   and ball are hidden on the table itself; its page shadow goes too */
+.bt-tv { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.bt-table.tv .bt-net, .bt-table.tv .bt-goal, .bt-table.tv .bt-keeper, .bt-table.tv .bt-ball, .bt-table.tv .bt-goal-shadow { visibility: hidden; }
+.bt-wrap.tv { box-shadow: none; }
+.tv-net { fill: rgba(255, 255, 255, .16); stroke: rgba(255, 255, 255, .8); stroke-width: .15; stroke-linejoin: round; }
+.tv-net.roof { fill: rgba(255, 255, 255, .1); }
+.tv-mesh { stroke: rgba(255, 255, 255, .5); }
+.tv-post { stroke: #F7F7F2; stroke-linecap: round; }
+.tv-keeper { stroke: rgba(0, 0, 0, .4); stroke-width: .15; stroke-linejoin: round; }
+.tv-shade { fill: rgba(0, 0, 0, .28); }
+.tv-light { fill: rgba(255, 255, 255, .18); }
+.tv-ball { fill: #fff; stroke: #222; stroke-width: .25; }
+.tv-ball-shadow { fill: rgba(0, 0, 0, .3); }
 /* a chip's lift while it builds (board.ts): a ring filling round the held
    button, and the ball's way as dots, bigger where it is higher */
 .bt-lift-track { fill: none; stroke: rgba(255, 255, 255, .35); stroke-width: .7; }

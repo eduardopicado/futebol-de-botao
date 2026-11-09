@@ -29,6 +29,11 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
   drag, and a finger still down when a shot starts is no flick.
 - Nothing guide-like stays on the table when no button is held. Say what
   happened in words, above the table, or animate it and then clear it.
+- The TV camera (`src/game/camera.ts`) is presentation only: it tilts the
+  table for a called shot or a penalty while nothing can be flicked, draws
+  what stands up (goals, goleiros, the ball) on a flat layer from the same
+  camera, and is back to straight above before a finger can land. Never
+  under Reduce Motion.
 - The rules of a match live in `src/content/match.ts` and nowhere else, pure
   and unit-tested; a screen asks it what a flick led to. Side a plays up the
   table from the bottom, side b down it; the physics always sees the side
@@ -150,6 +155,8 @@ src/game/narration.ts     the commentator ("Goooool do Brasil!", "Na trave!")
 src/game/confetti.ts      confetti in the winners' colours, over a win
 src/game/moment.ts        a goal felt: a flash, the table shaking, GOOOL! in the
                           scorer's colours
+src/game/camera.ts        the TV camera for a called shot: the tilt, and the goals,
+                          goleiros and ball standing where it puts them
 src/game/pace.ts          how long the game waits between things, in one place
 src/lib/                  speech, sfx, audio (the commentator's recorded lines),
                           storage, crests, life, router, dom, update (the
