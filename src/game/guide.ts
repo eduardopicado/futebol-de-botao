@@ -16,6 +16,7 @@ import { sfx } from '../lib/sfx';
 import { write } from '../lib/storage';
 import { guideSteps, played, told, type Step } from '../content/guide';
 import type { Match, Scene } from '../content/match';
+import { GOLEIROS } from '../content/botao';
 import { type Board, type Keepers, makeBoard, SHAPE } from './board';
 import { goalsToWin, matchRule, speak } from './choices';
 import { GUIDE_SEEN } from './home';
@@ -58,7 +59,7 @@ export function mount(root: HTMLElement): () => void {
     demoLife?.end();
     const dl = lifetime();
     demoLife = dl;
-    const board = makeBoard(dl, `The table, showing: ${s.title}`);
+    const board = makeBoard(dl, `The table, showing: ${s.title}`, GOLEIROS[rule]);
     board.setUp(us, them, { a: s.demo.start.a.length, b: s.demo.start.b.length });
     stage.replaceChildren(board.node);
     node.dataset.step = s.id;
@@ -83,8 +84,8 @@ export function mount(root: HTMLElement): () => void {
     await wait(PACE.demoStart);
     const plays = played(d);
     if (d.pronto !== undefined) {
-      /* A gol! is called, and the other side's goleiro slides across */
-      now.textContent = 'A gol!';
+      /* Pro gol! is called, and the other side's goleiro slides across */
+      now.textContent = 'Pro gol!';
       sfx.whistle();
       await wait(PACE.demoAfter);
       const placed = plays[0].before;

@@ -9,7 +9,7 @@
  *
  * A coin toss picks who kicks off. Then each turn is up to three flicks with
  * any buttons (at 1 Toque, one flick, and the note warns when the ball is
- * parked between the buttons of the side to play); a shot has to be called with "A gol!", in a turn that started
+ * parked between the buttons of the side to play); a shot has to be called with "Pro gol!", in a turn that started
  * in the attacking half, and the defender slides their goleiro along the
  * line and taps Pronto before it is taken. Fouls give free kicks, or a
  * penalty in the area. After a goal, ↺ Replay plays the move that scored
@@ -20,7 +20,7 @@
  *
  * Against the computer you play side a, at the bottom, and the note never
  * turns round: the computer thinks for a moment on its turn, shows its arrow
- * for a moment and flicks, calls "A gol!" for you to place your goleiro, and
+ * for a moment and flicks, calls "Pro gol!" for you to place your goleiro, and
  * places its own when you call. All the rules are in src/content/match.ts,
  * the computer in src/content/computer.ts; the table on the screen is
  * board.ts. */
@@ -33,14 +33,15 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, ON_THE_LINE, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
+  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
+import { GOLEIROS } from '../content/botao';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
 import { confetti } from './confetti';
 import { cupShout, recordResult, tieNow } from './cup';
-import { narrate } from './narration';
+import { narrate, shoutCall } from './narration';
 import { PACE } from './pace';
 import { buttonsOf, type Player } from './squads';
 import { label, ourTeam, rivalFor, type Team } from './teams';
@@ -81,17 +82,22 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const sayEl = el('div', { class: 'bt-say', 'aria-live': 'polite' }, words, actions);
   const whose = el('span', { class: 'whose' });
   const pips = el('span', { class: 'bt-pips', role: 'img' });
-  const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`);
+  /* a test (or someone debugging) can put a match on the device to start from */
+  const setup = read<Partial<Match> | null>('match-setup', null);
+  const start = setup && typeof setup === 'object' ? setup : null;
+  const rule = start?.rule && RULES.includes(start.rule) ? start.rule : matchRule();
+  const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`, GOLEIROS[rule]);
   const stage = el('div', { class: 'bt-stage' }, board.node);
   const node = el('div', { class: 'game', vars: SHAPE },
     el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, occasion.title), el('p', { class: 'bt-touches' }, whose, pips)), scoreEl),
     sayEl, stage);
   root.append(node);
 
-  const callBtn = el('button', { class: 'btn small call', type: 'button', text: '📣 A gol!' });
+  /* the call players forget most: loud on the note, its 📣 shaking (app.css) */
+  const callBtn = el('button', { class: 'btn small call', type: 'button' }, el('span', { class: 'horn', text: '📣' }), ' Pro gol!');
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 
-  let m: Match = newMatch(goalsToWin(), 'a', buttonsPerSide(), matchRule());
+  let m: Match = newMatch(goalsToWin(), 'a', buttonsPerSide(), rule);
   /* a flick, a pause or the toss is under way: no finger does anything */
   let busy = true;
   /* the goleiro being placed, where the finger has slid it so far */
@@ -153,7 +159,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     const t = name(m.turn);
     /* the computer's own turn, or its goleiro to place: it says so, and does it */
     if (cpu && m.phase !== 'over' && (m.phase === 'placing' ? defender() === cpu : m.turn === cpu)) {
-      tell(`${lead}${m.phase === 'placing' ? `A gol! ${name(cpu)} places its goleiro…` : `${t} is thinking…`}`, 'a');
+      tell(`${lead}${m.phase === 'placing' ? `Pro gol! ${name(cpu)} places its goleiro…` : `${t} is thinking…`}`, 'a');
       if (!busy) schedule();
       return;
     }
@@ -169,7 +175,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         break;
       }
       case 'placing':
-        tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'A gol! '}${name(defender())}: ${m.rule === '1' ? 'move your goleiro anywhere in the small area, or back into the goal' : 'slide your goleiro along the line'}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
+        tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'Pro gol! '}${name(defender())}: ${m.rule === '1' ? 'move your goleiro anywhere in the small area, or back into the goal' : 'slide your goleiro along the line'}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
         break;
       case 'shot':
         tell(`${lead}${t}: take your shot!`, m.turn);
@@ -185,6 +191,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   callBtn.addEventListener('click', () => {
     if (busy || !mayCall(m)) return;
     sfx.whistle();
+    shoutCall();
     m = call(m);
     render('');
   });
@@ -260,7 +267,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         return;
       case 'uncalled': {
         sfx.whistle();
-        const why = event.couldCall ? 'No goal: the shot was not called. Call "A gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
+        const why = event.couldCall ? 'No goal: the shot was not called. Call "Pro gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
         speak(why);
         render(`${why} Goal kick to ${name(other(event.side))}.`);
         await wait(PACE.noGoal);
@@ -359,12 +366,13 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     render('');
   }
 
-  /** its turn: "A gol!", or a flick, its arrow shown for a moment first */
+  /** its turn: "Pro gol!", or a flick, its arrow shown for a moment first */
   async function cpuMove(me: Side): Promise<void> {
     if (m.turn !== me || m.phase === 'placing' || m.phase === 'over') { thinking = false; return; }
     const move = decide(m, level);
     if (move.kind === 'call') {
       sfx.whistle();
+      shoutCall();
       m = call(m);
       thinking = false;
       render('');
@@ -453,11 +461,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     node.append(confetti(teams[side]));
   }
 
-  /* a test (or someone debugging) can put a match on the device to start from */
-  const setup = read<Partial<Match> | null>('match-setup', null);
-  if (setup && typeof setup === 'object') {
+  if (start) {
     write('match-setup', null);
-    m = { ...newMatch(goalsToWin(), setup.turn === 'b' ? 'b' : 'a', setup.a?.length ?? buttonsPerSide(), matchRule()), ...setup };
+    m = { ...newMatch(goalsToWin(), start.turn === 'b' ? 'b' : 'a', start.a?.length ?? buttonsPerSide(), rule), ...start, rule };
     board.setUp(teams.a, teams.b, { a: m.a.length, b: m.b.length }, { a: buttonsOf(teams.a, m.a.length), b: buttonsOf(teams.b, m.b.length) });
     busy = false;
     render('');

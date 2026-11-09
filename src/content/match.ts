@@ -13,7 +13,7 @@
  * - Three free touches: a turn is up to three flicks, with any buttons. It
  *   passes to the other side after the third, straight away when a flick
  *   does not move the ball, or when the ball last touched one of theirs.
- * - "A gol!": a shot only counts when it was called, and it may only be
+ * - "Pro gol!": a shot only counts when it was called, and it may only be
  *   called in a turn that started with the ball in the attacking half
  *   (Art. 74). The defender then slides their goleiro along the line and
  *   says Pronto (Art. 77). A goal not called is a goal kick (Art. 78).
@@ -47,6 +47,8 @@
  *   for a called shot it may also go back into the goal, its front face no
  *   further back than the goal line, and it is back in its small area after
  *   the shot (Art. 10).
+ * - The goleiro is 1 Toque's, narrower and thicker than 3 Toques's, as the
+ *   two rulebooks have them (Art. 4 § 1; GOLEIROS in botao.ts).
  * - A button that went into a net comes back after the other side's flick,
  *   just outside the small area where it went in, once that spot is free, and
  *   may not make its side's next flick (Art. 18).
@@ -55,7 +57,7 @@
  *   boxing it in, after your flick: straight away. Either way, a free kick
  *   to the other side from where the ball is (Art. 8 §10–12, Art. 63). */
 
-import { BALL, KEEPER_OUT, KEEPER_SPAN, KEEPER_W, KEEPER_Y, L, LINE, MARKS, MOUTH, POST, R, W, simulate, type Bump, type Point, type Table } from './botao';
+import { BALL, GOLEIROS, L, LINE, MARKS, MOUTH, POST, R, W, keeperOut, keeperSpan, simulate, type Bump, type Goleiro, type Point, type Table } from './botao';
 
 export type Side = 'a' | 'b';
 export const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
@@ -84,7 +86,7 @@ export type Phase =
   | 'kickoff'
   /** an ordinary turn */
   | 'play'
-  /** "A gol!" was called (or a penalty given): the defender places their goleiro */
+  /** "Pro gol!" was called (or a penalty given): the defender places their goleiro */
   | 'placing'
   /** Pronto: the called shot */
   | 'shot'
@@ -151,8 +153,8 @@ const dist = (p: Point, q: Point): number => Math.sqrt((p.x - q.x) ** 2 + (p.y -
 const MIDDLE = { x: W / 2, y: L / 2 };
 
 /** a goleiro stays on its line, between the posts, give or take */
-export const clampKeeper = (x: number): number =>
-  Math.min(MOUTH[1] - KEEPER_W / 2 + 1, Math.max(MOUTH[0] + KEEPER_W / 2 - 1, x));
+export const clampKeeper = (x: number, g: Goleiro = GOLEIROS['3']): number =>
+  Math.min(MOUTH[1] - g.w / 2 + 1, Math.max(MOUTH[0] + g.w / 2 - 1, x));
 
 /** is the ball in this side's attacking half (touching the halfway line is in neither) */
 export const inAttack = (ball: Point, side: Side): boolean =>
@@ -193,6 +195,7 @@ export function tableFor(m: Match): { table: Table; ours: number[]; theirs: numb
       home: across(m.keepers[me]),
       keeperOut: m.keepersOut[you],
       homeOut: m.keepersOut[me],
+      goleiro: GOLEIROS[m.rule],
     },
     ours,
     theirs,
@@ -273,10 +276,10 @@ export const mayFlick = (m: Match, button: number): boolean =>
   && m[m.turn][button] !== null
   && !((m.phase === 'kickoff' || m.rule === '1') && m.used.includes(button));
 
-/** may the side playing call "A gol!" now? */
+/** may the side playing call "Pro gol!" now? */
 export const mayCall = (m: Match): boolean => m.phase === 'play' && m.attack;
 
-/** "A gol!": the defender places their goleiro */
+/** "Pro gol!": the defender places their goleiro */
 export function call(m: Match): Match {
   if (!mayCall(m)) return m;
   return { ...m, phase: 'placing' };
@@ -287,11 +290,12 @@ export function call(m: Match): Match {
     (`forShot`), also back in the goal, its front face no further back than
     the goal line, and between the posts while any of it is behind the line */
 export function placeGoleiro(rule: Rule, x: number, out = 0, forShot = false): { x: number; out: number } {
-  if (rule === '3') return { x: clampKeeper(x), out: 0 };
-  const o = Math.min(KEEPER_OUT, Math.max(forShot ? -KEEPER_Y[1] : 0, out));
-  const [lo, hi] = KEEPER_Y[0] + o < 0
-    ? [MOUTH[0] + POST + KEEPER_W / 2, MOUTH[1] - POST - KEEPER_W / 2]
-    : [W / 2 - KEEPER_SPAN, W / 2 + KEEPER_SPAN];
+  const g = GOLEIROS[rule];
+  if (rule === '3') return { x: clampKeeper(x, g), out: 0 };
+  const o = Math.min(keeperOut(g), Math.max(forShot ? -g.y[1] : 0, out));
+  const [lo, hi] = g.y[0] + o < 0
+    ? [MOUTH[0] + POST + g.w / 2, MOUTH[1] - POST - g.w / 2]
+    : [W / 2 - keeperSpan(g), W / 2 + keeperSpan(g)];
   return { x: Math.min(hi, Math.max(lo, x)), out: o };
 }
 

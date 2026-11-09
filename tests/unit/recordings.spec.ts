@@ -51,6 +51,8 @@ describe('the commentator\'s recordings', () => {
     const voices = new Map(clips().map((c) => [c.text, c.voice]));
     expect(voices.get('Goooool do Brasil!')).toBe('pt-commentator');
     expect(voices.get('É campeão!')).toBe('pt-commentator');
+    /* the call, whoever commentates */
+    expect(voices.get('Pro gol!')).toBe('pt-commentator');
     expect(voices.get('Goooal for Brazil!')).toBe('en');
     expect(voices.get('What a save!')).toBe('en');
   });

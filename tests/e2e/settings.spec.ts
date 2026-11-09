@@ -174,7 +174,7 @@ test.describe('Picking teams', () => {
       ball: { x: 32, y: 30 }, a: [{ x: 32, y: 42 }, ...parked('a').slice(1)], b: parked('b'), keepers: { a: 32, b: 23 },
     } });
     await page.goto('/#/partida');
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await page.getByRole('button', { name: '✋ Pronto' }).click();
     /* straight up the middle, past the goleiro standing at the post */
     const box = (await page.locator('.bt-table').boundingBox())!;

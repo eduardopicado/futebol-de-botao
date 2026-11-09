@@ -1,12 +1,14 @@
 /* One player against the computer, and Treino's Goleiro: the computer takes
-   its turns, calls "A gol!" for you to place your goleiro, places its own
+   its turns, calls "Pro gol!" for you to place your goleiro, places its own
    when you call, and shoots at your goal. */
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { noProblems, seed, watchPage } from './helpers';
-import { KEEPER_Y, L, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
+import { GOLEIROS, L, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
 import type { Match, Side } from '../../src/content/match';
+
+const G3 = GOLEIROS['3'];
 
 async function screen(page: Page, p: Point): Promise<{ x: number; y: number; scale: number }> {
   const box = (await page.locator('.bt-table').boundingBox())!;
@@ -66,7 +68,7 @@ test.describe('Against the computer', () => {
     noProblems(watch);
   });
 
-  test('it calls "A gol!": you slide your goleiro and tap Pronto, and it shoots', async ({ page }) => {
+  test('it calls "Pro gol!": you slide your goleiro and tap Pronto, and it shoots', async ({ page }) => {
     const watch = watchPage(page);
     await seed(page, { 'match-setup': chance('b'), level: 'hard' });
     await page.goto('/#/computador');
@@ -75,7 +77,7 @@ test.describe('Against the computer', () => {
     await expect(page.locator('.bt-say')).not.toHaveClass(/flip/);
     await expect(page.locator('.bt-keeper.home')).toHaveClass(/placing/);
     /* your goleiro, at the bottom, slid a little to the left */
-    const from = await screen(page, { x: 32, y: L - (KEEPER_Y[0] + KEEPER_Y[1]) / 2 });
+    const from = await screen(page, { x: 32, y: L - (G3.y[0] + G3.y[1]) / 2 });
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
     await page.mouse.move(from.x - 4 * from.scale, from.y, { steps: 4 });
@@ -85,11 +87,11 @@ test.describe('Against the computer', () => {
     noProblems(watch);
   });
 
-  test('you call "A gol!": it places its own goleiro, and your shot past it counts', async ({ page }) => {
+  test('you call "Pro gol!": it places its own goleiro, and your shot past it counts', async ({ page }) => {
     const watch = watchPage(page);
     await seed(page, { 'match-setup': chance('a'), level: 'easy' });
     await page.goto('/#/computador');
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await expect(page.locator('.bt-say')).toContainText('places its goleiro');
     await expect(page.getByRole('button', { name: '✋ Pronto' })).toHaveCount(0);
     await expect(game(page)).toHaveAttribute('data-phase', 'shot', { timeout: 8000 });

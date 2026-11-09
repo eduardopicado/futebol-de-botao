@@ -33,21 +33,32 @@ export const POST = 0.8;
     on y = 0 and L, the line the posts stand on, and an area's line belongs
     to the area; touching the halfway line means touching its paint */
 export const LINE = 0.43;
-/** the goleiro: a block this wide, just in front of the line, with its
-    corners rounded as it is drawn (board.ts) */
-export const KEEPER_W = 6;
-export const KEEPER_RX = 0.8;
 /** the markings at each end, across and deep: the small area (the goal
     area), the penalty area, the spot, and the radius of the arc on the
     penalty area's edge. As on a real table the goal is clearly narrower
     than the small area; the areas are drawn larger than on a real pitch so
     the goal can stay big enough to score in */
 export const MARKS = { box: [32, 7], penalty: [50, 18], spot: 12, arc: 8.5 } as const;
-export const KEEPER_Y: readonly [number, number] = [0.6, 3.4];
+/** a goleiro: a block this wide, standing from this far in front of its
+    line to this far, with its corners rounded as it is drawn (board.ts) */
+export interface Goleiro { w: number; y: readonly [number, number] }
+/** the rulebooks' goleiros: 3 Toques's 70 mm across and 15 thick (CBFM
+    2024, Art. 16), 1 Toque's 60 by 20 (CBFM 2010, Art. 4 § 1), each in a
+    goal about 150 mm wide. Both are drawn to the goal as the rulebooks have
+    them, and then at seven tenths of that: the ball here is twice the size
+    it is beside a real goal, and a goleiro to scale would leave too little
+    room to score in */
+export const GOLEIROS = {
+  '3': { w: 7.4, y: [0.6, 2.2] },
+  '1': { w: 6.2, y: [0.6, 2.65] },
+} as const satisfies Record<'3' | '1', Goleiro>;
+export const KEEPER_RX = 0.5;
+/** the goleiros of a table: 3 Toques's unless it says */
+export const goleiroOf = (t: Pick<Table, 'goleiro'>): Goleiro => t.goleiro ?? GOLEIROS['3'];
 /** how far a goleiro may come off its line, and across, and stay in its
     small area (1 Toque lets it go anywhere in there) */
-export const KEEPER_OUT = MARKS.box[1] - KEEPER_Y[1];
-export const KEEPER_SPAN = MARKS.box[0] / 2 - KEEPER_W / 2;
+export const keeperOut = (g: Goleiro): number => MARKS.box[1] - g.y[1];
+export const keeperSpan = (g: Goleiro): number => MARKS.box[0] / 2 - g.w / 2;
 const MID = (MOUTH[0] + MOUTH[1]) / 2;
 
 export interface Point { x: number; y: number }
@@ -65,6 +76,8 @@ export interface Table {
   /** how far each goleiro stands off its line, when it is not on it */
   keeperOut?: number;
   homeOut?: number;
+  /** the goleiros' size, by the rule played (3 Toques's if not given) */
+  goleiro?: Goleiro;
 }
 
 /** a flick: which button, and how fast it sets off, in table units a second */
@@ -157,10 +170,10 @@ function offRim(d: Disc): Point | null {
 /** off a goleiro's block: theirs at the top, or our own at the bottom. Its
     corners are rounded, as drawn: the nearest point of the block shrunk by
     the rounding, and that much more */
-function offKeeper(d: Disc, keeper: number, bottom = false, out = 0): boolean {
+function offKeeper(d: Disc, g: Goleiro, keeper: number, bottom = false, out = 0): boolean {
   const k = KEEPER_RX;
-  const cx = Math.min(keeper + KEEPER_W / 2 - k, Math.max(keeper - KEEPER_W / 2 + k, d.x));
-  const [lo, hi] = bottom ? [L - KEEPER_Y[1] - out, L - KEEPER_Y[0] - out] : [KEEPER_Y[0] + out, KEEPER_Y[1] + out];
+  const cx = Math.min(keeper + g.w / 2 - k, Math.max(keeper - g.w / 2 + k, d.x));
+  const [lo, hi] = bottom ? [L - g.y[1] - out, L - g.y[0] - out] : [g.y[0] + out, g.y[1] + out];
   const cy = Math.min(hi - k, Math.max(lo + k, d.y));
   return offPoint(d, cx, cy, k);
 }
@@ -182,6 +195,7 @@ export function simulate(table: Table, flick: Flick): Shot {
   const disc = (p: Point, ball: boolean): Disc => ({ x: p.x, y: p.y, vx: 0, vy: 0, r: ball ? BALL : R, m: ball ? MASS.ball : MASS.button, ball });
   const discs = [disc(table.ball, true), ...table.us.map((p) => disc(p, false)), ...table.them.map((p) => disc(p, false))];
   const ours = table.us.length;
+  const g = goleiroOf(table);
   const mover = discs[1 + flick.button];
   const speed = len(flick.vx, flick.vy);
   const k = speed > MAX_SPEED ? MAX_SPEED / speed : 1;
@@ -251,8 +265,8 @@ export function simulate(table: Table, flick: Flick): Shot {
         }
       }
       for (const py of [0, L]) for (const px of MOUTH) if (offPoint(d, px, py, POST) && d === ball) bump('post', step);
-      if (table.keeper !== null && offKeeper(d, table.keeper, false, table.keeperOut) && d === ball) bump('keeper', step);
-      if (table.home !== undefined && table.home !== null && offKeeper(d, table.home, true, table.homeOut) && d === ball) bump('home', step);
+      if (table.keeper !== null && offKeeper(d, g, table.keeper, false, table.keeperOut) && d === ball) bump('keeper', step);
+      if (table.home !== undefined && table.home !== null && offKeeper(d, g, table.home, true, table.homeOut) && d === ball) bump('home', step);
       slow(d);
     }
     /* over the line: a goal, or one in our own net, and a moment more for
@@ -267,7 +281,7 @@ export function simulate(table: Table, flick: Flick): Shot {
   const at = (d: Disc): Point => ({ x: d.x, y: d.y });
   return {
     frames,
-    end: { ball: at(ball), us: discs.slice(1, 1 + ours).map(at), them: discs.slice(1 + ours).map(at), keeper: table.keeper, ...(table.home === undefined ? {} : { home: table.home }), ...(table.keeperOut === undefined ? {} : { keeperOut: table.keeperOut }), ...(table.homeOut === undefined ? {} : { homeOut: table.homeOut }) },
+    end: { ball: at(ball), us: discs.slice(1, 1 + ours).map(at), them: discs.slice(1 + ours).map(at), keeper: table.keeper, ...(table.home === undefined ? {} : { home: table.home }), ...(table.keeperOut === undefined ? {} : { keeperOut: table.keeperOut }), ...(table.homeOut === undefined ? {} : { homeOut: table.homeOut }), ...(table.goleiro ? { goleiro: table.goleiro } : {}) },
     goal,
     own,
     bumps,
@@ -318,11 +332,11 @@ export type KeeperPlay = 'none' | 'side' | 'middle';
  * stands on the line from the ball to the middle of the goal, leaving a gap
  * each side.
  */
-export function keeperFor(play: KeeperPlay, ball: Point): number | null {
+export function keeperFor(play: KeeperPlay, ball: Point, g: Goleiro = GOLEIROS['3']): number | null {
   if (play === 'none') return null;
-  const edge = KEEPER_W / 2 + 0.6;
+  const edge = g.w / 2 + 0.6;
   if (play === 'side') return ball.x < MID ? MOUTH[0] + edge : MOUTH[1] - edge;
-  const x = MID + (ball.x - MID) * (KEEPER_Y[1] / Math.max(ball.y, KEEPER_Y[1]));
+  const x = MID + (ball.x - MID) * (g.y[1] / Math.max(ball.y, g.y[1]));
   return Math.min(MOUTH[1] - edge, Math.max(MOUTH[0] + edge, x));
 }
 
@@ -367,11 +381,11 @@ export function aimAt(t: Table, button: number, to: Point): { x: number; y: numb
 }
 
 /** points in the goal to aim for, the most open first */
-function goalPoints(keeper: number | null): number[] {
+function goalPoints(keeper: number | null, g: Goleiro): number[] {
   const xs: number[] = [];
   for (let x = MOUTH[0] + BALL + POST + 0.6; x <= MOUTH[1] - BALL - POST - 0.6; x += 1.5) xs.push(x);
   if (keeper === null) return xs.sort((a, b) => Math.abs(a - MID) - Math.abs(b - MID));
-  return xs.filter((x) => Math.abs(x - keeper) > KEEPER_W / 2 + BALL)
+  return xs.filter((x) => Math.abs(x - keeper) > g.w / 2 + BALL)
     .sort((a, b) => Math.abs(b - keeper) - Math.abs(a - keeper));
 }
 
@@ -389,9 +403,10 @@ function clear(t: Table, p: Point, q: Point, r: number, skip: readonly Point[]):
   });
 }
 
-/** a robust one-touch goal for one of these buttons, straight or off a wall */
-export function oneTouch(t: Table, buttons: readonly number[], walls: boolean): Plan | null {
-  const xs = goalPoints(t.keeper);
+/** a one-touch goal for one of these buttons, straight or off a wall: one
+    that still goes in a little off, or with `sure` false any that goes in */
+export function oneTouch(t: Table, buttons: readonly number[], walls: boolean, sure = true): Plan | null {
+  const xs = goalPoints(t.keeper, goleiroOf(t));
   const b = t.ball;
   /* off a wall, aim at the goal as it would be seen in the wall, like a mirror */
   const aims: { to: Point; via?: Point; goal: Point }[] = xs.map((x) => ({ to: { x, y: GOAL_Y }, goal: { x, y: GOAL_Y } }));
@@ -424,7 +439,7 @@ export function oneTouch(t: Table, buttons: readonly number[], walls: boolean): 
         const banked = shot.bumps.some((x) => x.what === 'wall');
         if (banked !== !!via) continue;
         /* one that only just trickles in may go in harder */
-        if (!robust(t, f)) continue;
+        if (sure && !robust(t, f)) continue;
         return { flicks: [f], kind: via ? 'wall' : aim.cut > 0.97 ? 'straight' : 'cut' };
       }
     }
@@ -451,7 +466,7 @@ export function passPlan(t: Table, from: number, to: number, keeper: KeeperPlay)
         const f = { button: from, vx: aim.x * speed, vy: aim.y * speed };
         const shot = simulate(t, f);
         if (!shot.touched || shot.goal) continue;
-        const next = { ...shot.end, keeper: keeperFor(keeper, shot.end.ball) };
+        const next = { ...shot.end, keeper: keeperFor(keeper, shot.end.ball, goleiroOf(t)) };
         const then = oneTouch(next, [to], false);
         if (then) return { flicks: [f, then.flicks[0]], kind: 'pass' };
       }

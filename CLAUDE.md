@@ -87,16 +87,17 @@ In a cloud session whose Playwright browser does not match the installed
 
 ```
 src/content/botao.ts      the table, the physics of a flick, the three-touch rule,
-                          the goleiro (on its line, or off it at 1 Toque), and the
-                          planner (aimAt, oneTouch, passPlan, robust) that finds
-                          a way to score
+                          the goleiro (each rulebook's shape, at seven tenths of
+                          its size so goals still come; on its line, or off it
+                          at 1 Toque), and the planner (aimAt, oneTouch,
+                          passPlan, robust) that finds a way to score
 src/content/match.ts      a match: turns (three free touches, or one at 1 Toque),
-                          "A gol!" and the goleiro, fouls and penalties, the
+                          "Pro gol!" and the goleiro, fouls and penalties, the
                           parked ball (1 Toque), kick-off, buttons in a net,
                           winning; a penalty shootout; and what a shot that
                           missed was (saved, off the post, close), for the
                           commentator
-src/content/computer.ts   the computer: its moves, when it calls "A gol!", where it
+src/content/computer.ts   the computer: its moves, when it calls "Pro gol!", where it
                           stands its goleiro (a guess, in a shootout), and how far
                           off it is at each level
 src/content/treino.ts     Treino's set-ups, each with a way to score from it
@@ -108,7 +109,7 @@ src/game/board.ts         the table on the screen, shared: both sides, both
                           goleiros, a flick played out, the finger
 src/game/partida.ts       a match on the screen, two players or one against the
                           computer (a round of the Copa too): the toss, the note
-                          that turns to face whoever has to act, "A gol!" and
+                          that turns to face whoever has to act, "Pro gol!" and
                           Pronto, the goal replayed, full time
 src/game/cup.ts           the Copa: three opponents drawn, a level for each round,
                           the results kept, the cups won

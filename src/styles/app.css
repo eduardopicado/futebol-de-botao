@@ -290,12 +290,32 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .bt-say::after { left: 100%; margin-left: 4px; transform: scaleX(-1); }
 @media (max-width: 700px) { .bt-say::before, .bt-say::after { display: none; } }
 .bt-stage { container-type: size; display: grid; place-items: center; min-height: 0; position: relative; }
-/* the note's buttons ("A gol!", Pronto) beside its words; the whole note
+/* the note's buttons ("Pro gol!", Pronto) beside its words; the whole note
    turns round to face the player at the top when it is talking to them */
 .bt-say .say-actions { display: inline-flex; flex: none; gap: 8px; }
 .bt-say .say-actions:empty { display: none; }
 .bt-say .say-actions .btn { min-height: var(--tap); }
 .bt-say.flip { transform: rotate(179.4deg); }
+/* "Pro gol!", the call players forget most: red on the cream note, a gold
+   ring beating out from it and its 📣 shaking, until it is tapped. Nothing
+   in it changes size or place, so a finger (or a test) always meets it
+   where it is; under Reduce Motion it stays still, red with a gold ring */
+.btn.call { background: #C7361A; color: #fff; font-size: 17px; box-shadow: 0 4px 0 #8E2410; animation: bt-call 1.1s ease-out infinite; }
+.btn.call:active { box-shadow: 0 1px 0 #8E2410; animation: none; }
+.btn.call .horn { display: inline-block; animation: bt-horn 1.1s ease-in-out infinite; }
+@keyframes bt-call {
+  0% { box-shadow: 0 4px 0 #8E2410, 0 0 0 0 rgba(243, 178, 41, .95); }
+  70%, 100% { box-shadow: 0 4px 0 #8E2410, 0 0 0 12px rgba(243, 178, 41, 0); }
+}
+@keyframes bt-horn {
+  0%, 50%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(-16deg); }
+  20%, 40% { transform: rotate(12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.call, .btn.call .horn { animation: none; }
+  .btn.call { box-shadow: 0 4px 0 #8E2410, 0 0 0 3px var(--mustard); }
+}
 .match-score { font-size: 20px; white-space: nowrap; }
 .whose { font-family: var(--reading); }
 /* over the table: the coin toss, and full time */
@@ -381,7 +401,7 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .bt-keeper-block { stroke: #111; stroke-width: .4; }
 .bt-keeper-shine { fill: url(#bt-blockshade); }
 .keeper-moving .bt-keeper { transition: transform .4s ease; }
-/* the goleiro being placed after "A gol!": it glows, and slides with the finger */
+/* the goleiro being placed after "Pro gol!": it glows, and slides with the finger */
 .bt-keeper.placing .bt-keeper-block { stroke: var(--mustard); stroke-width: .9; }
 .bt-keeper.placing { cursor: ew-resize; }
 .bt-keeper.placing.area { cursor: move; }

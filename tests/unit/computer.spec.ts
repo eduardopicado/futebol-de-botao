@@ -1,11 +1,13 @@
 /* The computer: its aim and how far off it is at each level, its kick-off,
-   when it calls "A gol!", its shots, its goleiro, and a whole match of it
+   when it calls "Pro gol!", its shots, its goleiro, and a whole match of it
    against itself that ends with a winner. */
 
 import { describe, expect, it } from 'vitest';
-import { KEEPER_W, L, MOUTH, W, keeperFor, type Point } from '../../src/content/botao';
+import { GOLEIROS, L, MOUTH, W, keeperFor, type Point } from '../../src/content/botao';
 import { LEVELS, SKILL, decide, placeKeeper, shotFor, wobble, type Level } from '../../src/content/computer';
-import { RULES, SIZES, call, clampKeeper, flick, inAttack, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
+import { RULES, SIZES, call, clampKeeper, flick, inAttack, mayCall, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
+
+const G3 = GOLEIROS['3'];
 
 /* the same choices on every run */
 function seeded(seed: number): () => number {
@@ -73,16 +75,28 @@ describe('its turn', () => {
       expect(two.event).toEqual({ kind: 'turn', side: other(side), why: 'kickoff' });
     });
 
-    it(`side ${side}: calls "A gol!" with the ball in front of goal, and then scores past a goleiro standing aside`, () => {
+    it(`side ${side}: calls "Pro gol!" with the ball in front of goal, and then scores past a goleiro standing aside`, () => {
       const m = chance(side);
       expect(decide(m, 'hard', steady)).toEqual({ kind: 'call' });
-      const keeperAside = side === 'a' ? MOUTH[0] + KEEPER_W / 2 : W - MOUTH[0] - KEEPER_W / 2;
+      const keeperAside = side === 'a' ? MOUTH[0] + G3.w / 2 : W - MOUTH[0] - G3.w / 2;
       const ready = pronto(call(m), keeperAside);
       const move = decide(ready, 'hard', steady);
       if (move.kind !== 'flick') throw new Error('a shot is a flick');
       expect(flick(ready, move.button, move.vx, move.vy).event).toEqual({ kind: 'goal', side, own: false });
     });
   }
+
+  it('with no sure way in, still shoots: from near their goal on any flick, from further out on its last', () => {
+    /* their goal shut: two of theirs on the line, either side of where its goleiro stands */
+    const b = [{ x: 25, y: 5 }, { x: 39, y: 5 }, ...parked('b').slice(2)];
+    const near = chance('a', { b, ball: { x: 32, y: 28 }, a: [{ x: 32, y: 40 }, ...parked('a').slice(1)] });
+    const far = chance('a', { b, ball: { x: 32, y: 40 }, a: [{ x: 32, y: 52 }, ...parked('a').slice(1)] });
+    expect(decide(near, 'medium', steady).kind).toBe('call');
+    expect(decide(far, 'medium', steady).kind).toBe('flick');
+    expect(decide({ ...far, touches: 2 }, 'medium', steady).kind).toBe('call');
+    /* at 1 Toque every flick is the last */
+    expect(decide({ ...far, rule: '1' }, 'medium', steady).kind).toBe('call');
+  });
 
   it('does not call a shot from its own half', () => {
     const m = chance('a', { ball: { x: 32, y: 70 }, a: [{ x: 32, y: 82 }, ...parked('a').slice(1)] });
@@ -150,6 +164,27 @@ describe('its goleiro', () => {
 });
 
 describe('a whole match, the computer against itself', () => {
+  for (const rule of RULES) it(`calls "Pro gol!" in a good share of the turns it may, and scores no goal it did not call, at ${rule} Toque${rule === '1' ? '' : 's'}`, () => {
+    const rand = seeded(29);
+    let [may, calls, uncalled] = [0, 0, 0];
+    for (const first of ['a', 'b'] as const) {
+      let m = newMatch(2, first, 5, rule);
+      let flicks = 0;
+      while (m.phase !== 'over' && flicks < 400) {
+        if (m.phase === 'placing') { m = pronto(m, placeKeeper(m, 'medium', rand)); continue; }
+        if (mayCall(m)) may += 1;
+        const move = decide(m, 'medium', rand);
+        if (move.kind === 'call') { calls += 1; m = call(m); continue; }
+        const play = flick(m, move.button, move.vx, move.vy);
+        if (play.event.kind === 'uncalled' && play.event.couldCall) uncalled += 1;
+        m = play.next;
+        flicks += 1;
+      }
+    }
+    expect(calls / may).toBeGreaterThan(0.2);
+    expect(uncalled).toBe(0);
+  }, 120_000);
+
   for (const rule of RULES) it(`is played to the end, with a winner, at every level, at ${rule} Toque${rule === '1' ? '' : 's'}`, () => {
     for (const level of LEVELS) {
       const rand = seeded(level.length * 7);

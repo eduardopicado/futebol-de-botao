@@ -79,7 +79,7 @@ test.describe('Copa', () => {
     await seed(page, { cup: cup([{ us: 3, them: 1 }, { us: 3, them: 2 }]), goals: 3, 'match-setup': winning() });
     await page.goto('/#/copa-jogo');
     await expect(page.getByRole('heading', { name: 'Final' })).toBeVisible();
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await expect(page.locator('.game')).toHaveAttribute('data-phase', 'placing');
     await expect(page.locator('.game')).toHaveAttribute('data-phase', 'shot', { timeout: 8000 });
     const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
@@ -105,7 +105,7 @@ test.describe('Copa', () => {
     const watch = watchPage(page);
     await seed(page, { cup: cup([]), goals: 3, 'match-setup': winning() });
     await page.goto('/#/copa-jogo');
-    await page.getByRole('button', { name: '📣 A gol!' }).click();
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await expect(page.locator('.game')).toHaveAttribute('data-phase', 'shot', { timeout: 8000 });
     const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
     const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
