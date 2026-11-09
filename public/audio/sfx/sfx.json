@@ -8,5 +8,7 @@
   "post": 0.5,
   "move": 0.8,
   "take": 0.7,
-  "roll": 0.7
+  "roll": 0.7,
+  "roar": 0.5,
+  "groan": 0.45
 }

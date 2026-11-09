@@ -152,7 +152,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
        so neither talks over the other; on the deciding kick, his "É campeão!" */
     const miss = scored ? null : missed(play, taker);
     const called = new Promise<void>((done) => {
-      if (scored) { sfx.cheer(); narrate('goal', teams[taker], done, life.later, who.name); } else if (miss) narrate(miss, teams[miss === 'save' ? other(taker) : taker], done, life.later);
+      if (scored) { sfx.roar(); narrate('goal', teams[taker], done, life.later, who.name); } else if (miss) { sfx.groan(); narrate(miss, teams[miss === 'save' ? other(taker) : taker], done, life.later); }
       else { sfx.wrong(); done(); }
     });
     const by = who.name || `Number ${who.n}`;

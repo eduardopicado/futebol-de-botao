@@ -5,6 +5,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { MODEL, VOICES, brazilianProblem, clips, fetchRetrying, ttsRequest } from '../../tools/make-audio';
+import { EFFECTS } from '../../tools/make-sfx';
 import { clipId } from '../../src/lib/clip-id';
 import { EN_SAVES, PT_SAVES, enGoal, ptGoals } from '../../src/content/commentary';
 import { callFor, type Moment } from '../../src/game/narration';
@@ -59,6 +60,11 @@ describe('the commentator\'s recordings', () => {
 });
 
 describe('the sound effects\' recordings', () => {
+  it('each one is a sound make:sfx knows, at the volume it says', () => {
+    const list = JSON.parse(readFileSync(`${AUDIO}/sfx/sfx.json`, 'utf8')) as Record<string, number>;
+    for (const [name, gain] of Object.entries(list)) expect(EFFECTS[name as keyof typeof EFFECTS]?.gain, name).toBe(gain);
+  });
+
   it('sfx.json lists exactly the files there, each with a volume', () => {
     const list = JSON.parse(readFileSync(`${AUDIO}/sfx/sfx.json`, 'utf8')) as Record<string, number>;
     expect(Object.keys(list).sort()).toEqual(mp3s(`${AUDIO}/sfx`));

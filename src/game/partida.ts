@@ -246,7 +246,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   async function after(event: Event, called: boolean, saved: boolean): Promise<void> {
     switch (event.kind) {
       case 'goal': {
-        sfx.cheer();
+        sfx.roar();
         narrate(event.own ? 'own-goal' : 'goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
         node.dataset.goal = event.side;
         showScore();
@@ -332,7 +332,10 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     const saved = play.bumps.some((b) => b.what === 'keeper');
     /* a called shot that did not go in: saved, off the post, or close */
     const miss = called ? missed(play, before.turn) : null;
-    if (miss) narrate(miss, teams[miss === 'save' ? other(before.turn) : before.turn], () => undefined, life.later);
+    if (miss) {
+      sfx.groan();
+      narrate(miss, teams[miss === 'save' ? other(before.turn) : before.turn], () => undefined, life.later);
+    }
     await after(play.event, called, saved);
     if (m.phase === 'over') return;
     busy = false;

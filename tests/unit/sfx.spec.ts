@@ -26,7 +26,11 @@ class FakeSource {
   stop(at?: number): void { if (at === undefined) this.cut = true; else this.endsAt = at; }
 }
 
-const param = () => ({ value: 0, setValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined });
+/** an audio parameter, remembering the values it was asked to move towards */
+const param = () => {
+  const p = { value: 0, targets: [] as number[], setValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined, setTargetAtTime: (v: number) => { p.targets.push(v); } };
+  return p;
+};
 
 class FakeContext {
   static made: FakeContext[] = [];
@@ -39,7 +43,8 @@ class FakeContext {
   constructor() { FakeContext.made.push(this); }
   createOscillator() { return new FakeSource('tone'); }
   createBufferSource() { const s = new FakeSource('noise'); s.on = this; return s; }
-  createGain() { return { gain: param(), connect: <T>(n: T) => n }; }
+  gains: { gain: ReturnType<typeof param> }[] = [];
+  createGain() { const g = { gain: param(), connect: <T>(n: T) => n }; this.gains.push(g); return g; }
   createBiquadFilter() { return { type: '', frequency: { value: 0 }, Q: { value: 0 }, connect: <T>(n: T) => n }; }
   createBuffer(_c: number, length: number) { return { getChannelData: () => new Float32Array(length) }; }
   resume() { this.resumed += 1; return Promise.resolve(); }
@@ -190,6 +195,69 @@ describe('recorded sounds', () => {
     sfx.win();
     sfx.cheer();
     expect(FakeSource.made).toEqual([]);
+  });
+});
+
+describe('the crowd', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    FakeSource.made = [];
+    FakeContext.made = [];
+    vi.stubGlobal('window', { AudioContext: FakeContext, localStorage: { getItem: () => null, setItem: () => undefined } });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('watching a flick: its murmur looped, louder the nearer the ball comes to a goal, dying away when it is over', async () => {
+    serve({ 'sfx.json': { crowd: 0.25 }, 'crowd.mp3': { seconds: 8 } });
+    const { watching, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
+    await loadSfx();
+    await unlockSfx();
+    const crowd = watching();
+    const murmur = FakeSource.made.at(-1)!;
+    expect([murmur.loop, murmur.buffer]).toEqual([true, { duration: 8 }]);
+    const { gain } = FakeContext.made[0].gains.at(-1)!;
+    crowd.to(0);
+    crowd.to(0.3);
+    crowd.to(1);
+    const [none, far, near] = gain.targets;
+    expect(none).toBeLessThan(0.001);
+    expect(near).toBeGreaterThan(far * 5);
+    crowd.done();
+    expect(gain.targets.at(-1)).toBeLessThan(0.001);
+    expect(murmur.endsAt).not.toBeNull();
+    /* and nothing after it is over */
+    crowd.to(1);
+    expect(gain.targets.at(-1)).toBeLessThan(0.001);
+  });
+
+  it('made from noise where it is not recorded; leaving the game hushes it; none with sound effects off', async () => {
+    const { watching, hushSfx, setSfxEnabled } = await import('../../src/lib/sfx');
+    watching().to(1);
+    const murmur = FakeSource.made.at(-1)!;
+    expect([murmur.kind, murmur.loop]).toEqual(['noise', true]);
+    hushSfx();
+    expect(murmur.cut).toBe(true);
+    setSfxEnabled(false);
+    const before = FakeSource.made.length;
+    watching().to(1);
+    expect(FakeSource.made).toHaveLength(before);
+  });
+
+  it('a goal roars and a near miss groans: their recordings, or the cheer and a groan made here', async () => {
+    serve({ 'sfx.json': { roar: 0.5, groan: 0.45 }, 'roar.mp3': { seconds: 3.5 }, 'groan.mp3': { seconds: 2 } });
+    const { sfx, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
+    sfx.roar();
+    sfx.groan();
+    const made = FakeSource.made.map((s) => s.kind);
+    expect(made).toContain('noise');
+    expect(made).toContain('tone');
+    expect(FakeSource.made.every((s) => s.buffer === null || (s.buffer as { duration?: number }).duration === undefined)).toBe(true);
+    FakeSource.made = [];
+    await loadSfx();
+    await unlockSfx();
+    sfx.roar();
+    sfx.groan();
+    expect(FakeSource.made.map((s) => s.buffer)).toEqual([{ duration: 3.5 }, { duration: 2 }]);
   });
 });
 
