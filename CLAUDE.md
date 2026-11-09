@@ -143,7 +143,8 @@ src/game/pace.ts          how long the game waits between things, in one place
 src/lib/                  speech, sfx, audio (the commentator's recorded lines),
                           storage, crests, life, router, dom, update (the
                           "new version, tap to update" button)
-src/assets/tray.webp      the wooden tray, cut from the design handoff
+src/assets/tray.webp      the wooden tray, cut from the design handoff, its rim
+                          as deep at the bottom as at the top
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
                           squads, the Copa, the guide's demos, storage, sfx, speech, crests,
                           the recordings
