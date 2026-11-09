@@ -553,12 +553,15 @@ export function passPlan(t: Table, from: number, to: number, keeper: KeeperPlay)
 /** a pull back of one table unit sets a button off at this speed */
 export const PULL = 5;
 /**
- * The wooden tray the table sits in: the design handoff's picture of it
- * (src/assets/tray.webp), 699 × 987, with its felt at 47 across and
- * 58 down, 609 by 838. The tray's front shows below its rim, so it is deeper
- * at the bottom than at the top.
+ * The wooden tray the table sits in (src/assets/tray.webp), 703 × 954,
+ * with its felt at 47 across and 58 down, 609 by 838: the rim as deep at
+ * the bottom as at the top, and as wide on the right as on the left, as the
+ * tray is seen from straight above. It is the top left
+ * quarter of the design handoff's picture, the goal painted on its rim
+ * filled in with the wood beside it, mirrored across and down (the handoff's
+ * own showed the tray's front below its bottom rim, deeper than the top).
  */
-export const TRAY = { w: 699, h: 987, felt: { x: 47, y: 58, w: 609, h: 838 } } as const;
+export const TRAY = { w: 703, h: 954, felt: { x: 47, y: 58, w: 609, h: 838 } } as const;
 /** where the tray's picture lies, in table units: laid so its felt is exactly ours */
 export const TRAY_AT = (() => {
   const [kx, ky] = [W / TRAY.felt.w, L / TRAY.felt.h];
