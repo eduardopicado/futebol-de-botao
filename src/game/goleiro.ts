@@ -2,7 +2,7 @@
  *
  * The computer's attackers come at the goal at the bottom, set up the way
  * Treino's are (src/content/treino.ts, turned round), with your three
- * defenders standing in the way. It calls "A gol!", you slide your goleiro
+ * defenders standing in the way. It calls "Pro gol!", you slide your goleiro
  * along the line and tap Pronto, and it shoots, at the level chosen in the
  * settings: straight on easy, off the wall too on medium, and on hard it may
  * pass first, then call again. Its aim stays hidden until you have said
@@ -18,7 +18,7 @@ import { SKILL, shotFor, wobble } from '../content/computer';
 import { clampKeeper, type Scene } from '../content/match';
 import { drill } from '../content/treino';
 import { makeBoard, SHAPE } from './board';
-import { narrate } from './narration';
+import { narrate, shoutCall } from './narration';
 import { computerLevel } from './choices';
 import { PACE } from './pace';
 import { modeSwitch } from './treino';
@@ -79,7 +79,7 @@ export function mount(root: HTMLElement): () => void {
     busy = false;
     node.dataset.phase = 'placing';
     board.placing('bottom', (x) => { keeper = clampKeeper(x); draw(); });
-    tell(`Shot ${shotNo} of ${SHOTS}: A gol! Slide your goleiro along the line, then tap Pronto.`, pronto);
+    tell(`Shot ${shotNo} of ${SHOTS}: Pro gol! Slide your goleiro along the line, then tap Pronto.`, pronto);
   }
 
   function next(): void {
@@ -93,6 +93,7 @@ export function mount(root: HTMLElement): () => void {
     board.glow('b');
     draw();
     sfx.whistle();
+    shoutCall();
     placing();
   }
 
@@ -121,7 +122,8 @@ export function mount(root: HTMLElement): () => void {
       /* a pass: it calls again, and you place your goleiro again */
       passed = true;
       sfx.whistle();
-      tell('A pass! A gol! again.');
+      shoutCall();
+      tell('A pass! Pro gol! again.');
       await wait(PACE.pass);
       placing();
       return;

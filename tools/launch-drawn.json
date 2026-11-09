@@ -50,7 +50,7 @@
   "div.home | 16,36,712,672",
   "h1 | 128,104,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 444,104,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 65,183,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 55,183,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/744x1133@2-landscape.jpg": [
   "div.scene | 0,0,1133,744 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -103,7 +103,7 @@
   "div.home | 16,36,1101,649",
   "h1 | 322,81,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 639,81,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 259,159,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 250,159,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/810x1080@2-portrait.jpg": [
   "div.scene | 0,0,810,1080 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -156,7 +156,7 @@
   "div.home | 16,32,778,669",
   "h1 | 161,97,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 477,97,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 98,176,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 88,176,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/810x1080@2-landscape.jpg": [
   "div.scene | 0,0,1080,810 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -209,7 +209,7 @@
   "div.home | 16,32,1048,653",
   "h1 | 296,81,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 612,81,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 233,159,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 223,159,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/820x1180@2-portrait.jpg": [
   "div.scene | 0,0,820,1180 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -262,7 +262,7 @@
   "div.home | 16,36,788,675",
   "h1 | 166,107,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 482,107,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 103,186,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 93,186,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/820x1180@2-landscape.jpg": [
   "div.scene | 0,0,1180,820 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -315,7 +315,7 @@
   "div.home | 16,36,1148,653",
   "h1 | 346,85,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 662,85,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 283,164,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 273,164,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/834x1112@2-portrait.jpg": [
   "div.scene | 0,0,834,1112 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -368,7 +368,7 @@
   "div.home | 16,32,802,671",
   "h1 | 173,99,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 489,99,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 110,177,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 100,177,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/834x1112@2-landscape.jpg": [
   "div.scene | 0,0,1112,834 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -421,7 +421,7 @@
   "div.home | 16,32,1080,654",
   "h1 | 312,82,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 628,82,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 249,161,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 239,161,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/834x1194@2-portrait.jpg": [
   "div.scene | 0,0,834,1194 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -474,7 +474,7 @@
   "div.home | 16,36,802,676",
   "h1 | 173,108,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 489,108,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 110,186,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 100,186,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/834x1194@2-landscape.jpg": [
   "div.scene | 0,0,1194,834 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -527,7 +527,7 @@
   "div.home | 16,36,1162,654",
   "h1 | 353,86,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 669,86,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 290,165,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 280,165,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/834x1210@2-portrait.jpg": [
   "div.scene | 0,0,834,1210 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -580,7 +580,7 @@
   "div.home | 16,36,802,677",
   "h1 | 173,109,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 489,109,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 110,187,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 100,187,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/834x1210@2-landscape.jpg": [
   "div.scene | 0,0,1210,834 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -633,7 +633,7 @@
   "div.home | 16,36,1178,654",
   "h1 | 361,86,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 677,86,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 298,165,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 288,165,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/1024x1366@2-portrait.jpg": [
   "div.scene | 0,0,1024,1366 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -686,7 +686,7 @@
   "div.home | 16,36,992,686",
   "h1 | 268,118,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 584,118,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 205,197,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 195,197,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/1024x1366@2-landscape.jpg": [
   "div.scene | 0,0,1366,1024 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -739,7 +739,7 @@
   "div.home | 16,36,1334,666",
   "h1 | 439,97,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 755,97,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 376,176,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 366,176,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/1032x1376@2-portrait.jpg": [
   "div.scene | 0,0,1032,1376 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -792,7 +792,7 @@
   "div.home | 16,36,1000,687",
   "h1 | 272,119,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 588,119,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 209,197,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 199,197,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/1032x1376@2-landscape.jpg": [
   "div.scene | 0,0,1376,1032 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -845,7 +845,7 @@
   "div.home | 16,36,1344,666",
   "h1 | 444,98,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 760,98,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 381,177,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 371,177,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/375x667@2-portrait.jpg": [
   "div.scene | 0,0,375,667 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -898,7 +898,7 @@
   "div.home | 16,32,343,639",
   "h1 | 44,72,287,37 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 38px",
   "span.swash | 230,72,101,37 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 38px",
-  "p.home-tag | 16,125,343,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
+  "p.home-tag | 16,125,343,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
  ],
  "launch/375x667@2-landscape.jpg": [
   "div.scene | 0,0,667,375 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -951,7 +951,7 @@
   "div.home | 16,12,635,627",
   "h1 | 89,35,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 406,35,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 26,113,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 17,113,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/360x780@3-portrait.jpg": [
   "div.scene | 0,0,360,780 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1004,7 +1004,7 @@
   "div.home | 16,62,328,646",
   "h1 | 37,109,287,37 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 38px",
   "span.swash | 222,109,101,37 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 38px",
-  "p.home-tag | 16,162,328,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
+  "p.home-tag | 16,162,328,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
  ],
  "launch/360x780@3-landscape.jpg": [
   "div.scene | 0,0,780,360 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1057,7 +1057,7 @@
   "div.home | 66,12,648,626",
   "h1 | 146,34,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 462,34,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 83,112,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 73,112,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/375x812@3-portrait.jpg": [
   "div.scene | 0,0,375,812 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1110,7 +1110,7 @@
   "div.home | 16,56,343,647",
   "h1 | 44,105,287,37 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 38px",
   "span.swash | 230,105,101,37 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 38px",
-  "p.home-tag | 16,158,343,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
+  "p.home-tag | 16,158,343,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
  ],
  "launch/375x812@3-landscape.jpg": [
   "div.scene | 0,0,812,375 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1163,7 +1163,7 @@
   "div.home | 60,12,692,627",
   "h1 | 162,35,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 478,35,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 99,113,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 89,113,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/390x844@3-portrait.jpg": [
   "div.scene | 0,0,390,844 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1216,7 +1216,7 @@
   "div.home | 16,59,358,650",
   "h1 | 48,110,295,38 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 39px",
   "span.swash | 238,110,104,38 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 39px",
-  "p.home-tag | 16,164,358,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
+  "p.home-tag | 16,164,358,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
  ],
  "launch/390x844@3-landscape.jpg": [
   "div.scene | 0,0,844,390 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1269,7 +1269,7 @@
   "div.home | 63,12,718,628",
   "h1 | 178,35,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 494,35,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 115,114,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 105,114,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/393x852@3-portrait.jpg": [
   "div.scene | 0,0,393,852 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1322,7 +1322,7 @@
   "div.home | 16,71,361,651",
   "h1 | 48,122,297,39 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 39.3px",
   "span.swash | 240,122,105,39 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 39.3px",
-  "p.home-tag | 16,177,361,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
+  "p.home-tag | 16,177,361,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16px"
  ],
  "launch/393x852@3-landscape.jpg": [
   "div.scene | 0,0,852,393 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1375,7 +1375,7 @@
   "div.home | 75,12,702,628",
   "h1 | 182,36,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 498,36,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 119,114,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 109,114,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/402x874@3-portrait.jpg": [
   "div.scene | 0,0,402,874 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1428,7 +1428,7 @@
   "div.home | 16,74,370,653",
   "h1 | 49,126,304,39 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 40.2px",
   "span.swash | 246,126,107,39 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 40.2px",
-  "p.home-tag | 16,182,370,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.08px"
+  "p.home-tag | 16,182,370,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.08px"
  ],
  "launch/402x874@3-landscape.jpg": [
   "div.scene | 0,0,874,402 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1481,7 +1481,7 @@
   "div.home | 78,12,718,628",
   "h1 | 193,36,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 509,36,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 130,115,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 120,115,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/414x896@2-portrait.jpg": [
   "div.scene | 0,0,414,896 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1534,7 +1534,7 @@
   "div.home | 16,60,382,656",
   "h1 | 50,114,313,41 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 41.4px",
   "span.swash | 253,114,110,41 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 41.4px",
-  "p.home-tag | 16,170,382,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.56px"
+  "p.home-tag | 16,170,382,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.56px"
  ],
  "launch/414x896@2-landscape.jpg": [
   "div.scene | 0,0,896,414 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1587,7 +1587,7 @@
   "div.home | 64,12,768,629",
   "h1 | 204,37,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 520,37,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 141,116,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 131,116,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/414x896@3-portrait.jpg": [
   "div.scene | 0,0,414,896 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1640,7 +1640,7 @@
   "div.home | 16,56,382,656",
   "h1 | 50,110,313,41 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 41.4px",
   "span.swash | 253,110,110,41 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 41.4px",
-  "p.home-tag | 16,166,382,52 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.56px"
+  "p.home-tag | 16,166,382,52 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.56px"
  ],
  "launch/414x896@3-landscape.jpg": [
   "div.scene | 0,0,896,414 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1693,7 +1693,7 @@
   "div.home | 60,12,776,629",
   "h1 | 204,37,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 520,37,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 141,116,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 131,116,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/420x912@3-portrait.jpg": [
   "div.scene | 0,0,420,912 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1746,7 +1746,7 @@
   "div.home | 16,74,388,659",
   "h1 | 51,129,318,41 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 42px",
   "span.swash | 257,129,112,41 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 42px",
-  "p.home-tag | 16,186,388,54 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.8px"
+  "p.home-tag | 16,186,388,54 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 16.8px"
  ],
  "launch/420x912@3-landscape.jpg": [
   "div.scene | 0,0,912,420 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1799,7 +1799,7 @@
   "div.home | 78,12,756,629",
   "h1 | 212,37,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 528,37,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 149,116,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 139,116,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/428x926@3-portrait.jpg": [
   "div.scene | 0,0,428,926 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1852,7 +1852,7 @@
   "div.home | 16,59,396,663",
   "h1 | 52,115,324,42 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 42.8px",
   "span.swash | 262,115,114,42 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 42.8px",
-  "p.home-tag | 16,172,396,56 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 17.12px"
+  "p.home-tag | 16,172,396,56 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 17.12px"
  ],
  "launch/428x926@3-landscape.jpg": [
   "div.scene | 0,0,926,428 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1905,7 +1905,7 @@
   "div.home | 63,12,800,630",
   "h1 | 219,38,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 535,38,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 156,116,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 146,116,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/430x932@3-portrait.jpg": [
   "div.scene | 0,0,430,932 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -1958,7 +1958,7 @@
   "div.home | 16,71,398,664",
   "h1 | 52,127,326,42 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 43px",
   "span.swash | 263,127,115,42 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 43px",
-  "p.home-tag | 16,185,398,56 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 17.2px"
+  "p.home-tag | 16,185,398,56 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 17.2px"
  ],
  "launch/430x932@3-landscape.jpg": [
   "div.scene | 0,0,932,430 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -2011,7 +2011,7 @@
   "div.home | 75,12,782,630",
   "h1 | 222,38,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 538,38,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 159,117,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 149,117,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ],
  "launch/440x956@3-portrait.jpg": [
   "div.scene | 0,0,440,956 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -2064,7 +2064,7 @@
   "div.home | 16,74,408,666",
   "h1 | 53,131,333,43 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 44px",
   "span.swash | 269,131,118,43 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 44px",
-  "p.home-tag | 16,190,408,56 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 17.6px"
+  "p.home-tag | 16,190,408,56 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 17.6px"
  ],
  "launch/440x956@3-landscape.jpg": [
   "div.scene | 0,0,956,440 | rgb(176, 112, 63) | desk-DkwG11SH.webp",
@@ -2117,6 +2117,6 @@
   "div.home | 78,12,800,631",
   "h1 | 234,38,489,63 | \"Futebol de\" rgb(255, 246, 231) \"Baloo 2\" 800 64px",
   "span.swash | 550,38,172,63 | \"Botão\" rgb(243, 178, 41) \"Baloo 2\" 800 64px",
-  "p.home-tag | 171,117,614,32 | \"Flick your buttons. Three touches a turn. Call \"A gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
+  "p.home-tag | 161,117,633,32 | \"Flick your buttons. Three touches a turn. Call \"Pro gol!\" to shoot.\" rgba(255, 246, 231, 0.78) Andika 700 20px"
  ]
 }

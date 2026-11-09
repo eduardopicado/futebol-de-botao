@@ -1,4 +1,4 @@
-/* The computer: what it flicks, when it calls "A gol!", and where it stands
+/* The computer: what it flicks, when it calls "Pro gol!", and where it stands
  * its goleiro.
  *
  * It plays with the planner in botao.ts, and then misses by a little, more
@@ -18,7 +18,7 @@ import {
   BALL, L, MOUTH, POST, W, aimAt, goleiroOf, keeperFor, oneTouch, passPlan,
   type Flick, type Point, type Table,
 } from './botao';
-import { clampKeeper, flick, inAttack, mayCall, mayFlick, mustFree, tableFor, type Match } from './match';
+import { clampKeeper, flick, inAttack, mayCall, mayFlick, mustFree, tableFor, touchesFor, type Match } from './match';
 
 export type Level = 'easy' | 'medium' | 'hard';
 export const LEVELS: readonly Level[] = ['easy', 'medium', 'hard'];
@@ -60,7 +60,7 @@ const CORNERS = [[0, 0], [0, 1], [1, 0], [1, 1]] as const;
     side of the goal furthest from their goleiro */
 export function shotFor(t: Table, buttons: readonly number[], level: Level): Flick {
   const { walls } = SKILL[level];
-  const plan = oneTouch(t, buttons, walls);
+  const plan = oneTouch(t, buttons, walls) ?? oneTouch(t, buttons, walls, false);
   if (plan) return plan.flicks[0];
   /* no sure way in: the far side of the goal from the goleiro, from whichever
      button meets the ball fullest */
@@ -85,11 +85,22 @@ const dist = (p: Point, q: Point): number => Math.sqrt((p.x - q.x) ** 2 + (p.y -
 const onScreen = (m: Match, f: Flick, index: number): Move =>
   ({ kind: 'flick', button: index, vx: m.turn === 'a' ? f.vx : -f.vx, vy: m.turn === 'a' ? f.vy : -f.vy });
 
-/** is there a shot worth calling from here, if their goleiro stands in the middle of the way? */
-function worthCalling(t: Table, buttons: readonly number[], level: Level): boolean {
+/** how near their goal the ball has to be for a shot that is only a fair
+    try: on any flick, or on the turn's last, when a try beats handing the
+    ball over */
+const TRY = { any: 30, last: 44 };
+
+/** is a shot worth calling from here: one that goes in past their goleiro
+    stood in the middle of the ball's way, or, with the ball near enough
+    their goal, a fair try (a button that meets the ball well towards a side
+    of the goal) */
+function worthCalling(m: Match, t: Table, buttons: readonly number[], level: Level): boolean {
   if (t.ball.y > 46) return false;
   const guarded = { ...t, keeper: keeperFor('middle', t.ball, goleiroOf(t)) };
-  return oneTouch(guarded, buttons, SKILL[level].walls) !== null;
+  if (oneTouch(guarded, buttons, SKILL[level].walls, false)) return true;
+  if (t.ball.y > (m.touches >= touchesFor(m.rule) - 1 ? TRY.last : TRY.any)) return false;
+  const inside = BALL + POST + 0.8;
+  return [MOUTH[0] + inside, MOUTH[1] - inside].some((x) => buttons.some((b) => (aimAt(t, b, { x, y: -2.5 })?.cut ?? 0) > 0.7));
 }
 
 /**
@@ -191,7 +202,7 @@ export function decide(m: Match, level: Level, rand: Rand = Math.random): Move {
     const f = wobble(shotFor(t, may, level), level, rand);
     return onScreen(m, f, ours[f.button]);
   }
-  if (mayCall(m) && worthCalling(t, may, level)) return { kind: 'call' };
+  if (mayCall(m) && worthCalling(m, t, may, level)) return { kind: 'call' };
   /* hard: a pass to a team-mate in front of goal, to shoot from there (not
      at 1 Toque, where the other side plays before the shot could) */
   if (SKILL[level].passes && m.rule === '3' && inAttack(m.ball, m.turn) && m.touches < 2) {

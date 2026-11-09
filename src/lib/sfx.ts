@@ -27,6 +27,17 @@ let enabled = true;
    does for one iOS says is interrupted. */
 let stale = false;
 
+/** start a context, or try to: one that will not start (WebKit with no
+    sound device says "AudioDestinationNode is not initialized") only means
+    no sound, never an error */
+function start(ac: AudioContext | null): void {
+  try {
+    void ac?.resume()?.catch(() => undefined);
+  } catch {
+    /* ignore */
+  }
+}
+
 function audio(): AudioContext | null {
   if (ctx) return ctx;
   try {
@@ -50,11 +61,7 @@ export function setSfxEnabled(on: boolean): void {
     them with; done when they are */
 export function unlockSfx(): Promise<void> {
   const ac = audio();
-  try {
-    void ac?.resume();
-  } catch {
-    /* ignore */
-  }
+  start(ac);
   return ac ? decodeAll(ac) : Promise.resolve();
 }
 
@@ -146,7 +153,7 @@ export function wakeSfx(): void {
   try {
     if (!ctx) return;
     if (stale || (ctx.state as string) === 'interrupted') renew();
-    else if (ctx.state !== 'running') void ctx.resume();
+    else if (ctx.state !== 'running') start(ctx);
   } catch {
     /* ignore */
   }
@@ -165,11 +172,7 @@ function renew(): void {
   } catch {
     /* already closed */
   }
-  try {
-    void audio()?.resume();
-  } catch {
-    /* ignore */
-  }
+  start(audio());
 }
 
 interface Note { hz: number; at: number; for: number; gain?: number; type?: OscillatorType }

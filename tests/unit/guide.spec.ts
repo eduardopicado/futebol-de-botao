@@ -51,7 +51,7 @@ describe('How to play', () => {
         if (rule === '3') expect(step(rule, 'touches').demo.flicks.map((f) => f.button)).toEqual([3, 3, 2]);
       });
 
-      it('A gol!: called, the goleiro placed, and the shot goes past it', () => {
+      it('Pro gol!: called, the goleiro placed, and the shot goes past it', () => {
         const d = step(rule, 'call').demo;
         const [{ before, play }] = played(d);
         expect(before.phase).toBe('shot');

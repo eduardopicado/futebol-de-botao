@@ -48,7 +48,7 @@ export function mount(root: HTMLElement): () => void {
   root.append(el('div', { class: 'home' },
     settings,
     title,
-    el('p', { class: 'home-tag', text: 'Flick your buttons. Three touches a turn. Call "A gol!" to shoot.' }),
+    el('p', { class: 'home-tag', text: 'Flick your buttons. Three touches a turn. Call "Pro gol!" to shoot.' }),
     ...(seen ? [modes, later] : [offer, modes])));
   /* the flick, as the app opens (intro.ts): fetched after the screen is up, so nothing waits for it */
   if (opening) void import('./intro').then((intro) => intro.flick(title, life)).catch(() => undefined);

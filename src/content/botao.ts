@@ -403,8 +403,9 @@ function clear(t: Table, p: Point, q: Point, r: number, skip: readonly Point[]):
   });
 }
 
-/** a robust one-touch goal for one of these buttons, straight or off a wall */
-export function oneTouch(t: Table, buttons: readonly number[], walls: boolean): Plan | null {
+/** a one-touch goal for one of these buttons, straight or off a wall: one
+    that still goes in a little off, or with `sure` false any that goes in */
+export function oneTouch(t: Table, buttons: readonly number[], walls: boolean, sure = true): Plan | null {
   const xs = goalPoints(t.keeper, goleiroOf(t));
   const b = t.ball;
   /* off a wall, aim at the goal as it would be seen in the wall, like a mirror */
@@ -438,7 +439,7 @@ export function oneTouch(t: Table, buttons: readonly number[], walls: boolean): 
         const banked = shot.bumps.some((x) => x.what === 'wall');
         if (banked !== !!via) continue;
         /* one that only just trickles in may go in harder */
-        if (!robust(t, f)) continue;
+        if (sure && !robust(t, f)) continue;
         return { flicks: [f], kind: via ? 'wall' : aim.cut > 0.97 ? 'straight' : 'cut' };
       }
     }
