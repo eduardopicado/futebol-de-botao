@@ -45,9 +45,18 @@ export interface Finger {
   may?: (side: Side, index: number) => boolean;
   /** the start of the ball's way for this flick, to show while aiming, if any */
   guide?: (side: Side, index: number, f: Flick) => { ball: Point[]; mine: Point[] } | null;
-  /** let go: the flick, as on the screen (up is towards y = 0) */
+  /** let go: the flick, as on the screen (up is towards y = 0), with its lift if a chip */
   flick: (side: Side, index: number, f: Flick) => void;
+  /** is a chip armed (Cobertura)? Then holding still after the pull lifts it */
+  chip?: () => boolean;
 }
+
+/** a chip's lift: it starts to build once the finger has held still this
+    long, in ms, and is full this much later; moving the finger more than
+    CHIP_MOVE units starts it again from nothing */
+export const CHIP_WAIT = 250;
+export const CHIP_FILL = 900;
+const CHIP_MOVE = 0.8;
 
 export interface Board {
   /** the table and its tray, sized for the screen */
@@ -125,6 +134,14 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   const band = svg('line', { class: 'bt-band' });
   const arrowEl = svg('polygon', { class: 'bt-arrow' });
   const ghostEl = svg('circle', { r: R, class: 'bt-ghost', hidden: '' });
+  /* a chip's lift while it builds: a ring round the held button, filling,
+     and the ball's way as dots, bigger where it is higher */
+  const RING = R + 1.4;
+  const ringTrack = svg('circle', { r: RING, class: 'bt-lift-track' });
+  const ringFill = svg('circle', { r: RING, class: 'bt-lift-ring', transform: 'rotate(-90)', 'stroke-dasharray': `0 ${2 * Math.PI * RING}` });
+  const lifter = svg('g', { class: 'bt-lift', 'aria-hidden': 'true' }, ringTrack, ringFill);
+  lifter.style.display = 'none';
+  const dots = svg('g', { class: 'bt-lift-dots', 'aria-hidden': 'true' });
   const top = keeperBlock(false, goleiro);
   const bottom = keeperBlock(true, goleiro);
   const ballShadow = svg('circle', { r: BALL, cx: SHADOW.x * 0.6, cy: SHADOW.y * 0.6, class: 'bt-shadow' });
@@ -149,7 +166,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   const tag = svg('g', { class: 'bt-tag', 'aria-hidden': 'true' }, tagBack, tagText);
   tag.style.display = 'none';
   board.append(shading(), field, trail, path, ghostEl, top.g, bottom.g, discs, ballEl,
-    goalFrame(), svg('g', { class: 'bt-goal-far', transform: FAR }, goalFrame()), band, arrowEl, tag);
+    goalFrame(), svg('g', { class: 'bt-goal-far', transform: FAR }, goalFrame()), band, dots, arrowEl, lifter, tag);
   const nets = { top: field.querySelector('.bt-net.ours')!, bottom: field.querySelector('.bt-goal-far .bt-net')! };
   /* the table's shape, for its size on the screen (app.css) */
   const node = el('div', { class: 'bt-wrap', vars: SHAPE }, board);
@@ -285,6 +302,9 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
 
   const clearAim = (): void => {
     for (const n of [path, trail, arrowEl]) n.setAttribute('points', '');
+    lifter.style.display = 'none';
+    lifter.removeAttribute('data-lift');
+    dots.replaceChildren();
     for (const k of ['x1', 'y1', 'x2', 'y2']) band.setAttribute(k, '0');
     ghostEl.setAttribute('hidden', '');
     tag.style.display = 'none';
@@ -311,6 +331,39 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
 
   let finger: Finger = { side: () => null, flick: () => undefined };
   let drag: { side: Side; index: number; pointer: number; from: Point } | null = null;
+  /* a chip being built: since when the finger has held still, where, and how much lift so far */
+  let chip: { since: number; at: Point; lift: number } | null = null;
+
+  /** the lift shown: the ring filled that far, and the way as dots that
+      swell where the ball is higher (none for a flick too small to see) */
+  const showLift = (): void => {
+    if (!drag || !chip) return;
+    const from = scene[drag.side][drag.index]!;
+    lifter.style.display = '';
+    lifter.setAttribute('transform', `translate(${from.x.toFixed(2)} ${from.y.toFixed(2)})`);
+    lifter.setAttribute('data-lift', chip.lift.toFixed(2));
+    const round = 2 * Math.PI * RING;
+    ringFill.setAttribute('stroke-dasharray', `${(chip.lift * round).toFixed(2)} ${round.toFixed(2)}`);
+    const pull = chip.at;
+    if (tiny(pull)) { dots.replaceChildren(); return; }
+    const f = flickFor(drag.index, pull.x, pull.y);
+    const s = Math.sqrt(f.vx * f.vx + f.vy * f.vy) || 1;
+    const [ux, uy] = [f.vx / s, f.vy / s];
+    const long = 8 + (s / 130) * 22;
+    const b = scene.ball;
+    dots.replaceChildren(...Array.from({ length: 9 }, (_, i) => {
+      const t = (i + 1) / 10;
+      const high = chip!.lift * 4 * t * (1 - t);
+      return svg('circle', { cx: (b.x + ux * long * t).toFixed(2), cy: (b.y + uy * long * t).toFixed(2), r: (0.35 + 1.1 * high).toFixed(2) });
+    }));
+  };
+  /** while a chip is held: its lift builds with the time held still */
+  const buildLift = (): void => {
+    if (!drag || !chip) return;
+    chip.lift = Math.min(1, Math.max(0, (performance.now() - chip.since - CHIP_WAIT) / CHIP_FILL));
+    showLift();
+    life.later(buildLift, 40);
+  };
   let slide: { which: 'top' | 'bottom'; onMove?: (x: number, out: number) => void; area: boolean } | null = null;
   let sliding: { pointer: number; from: Point; start: number; startOut: number } | null = null;
 
@@ -355,6 +408,8 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     e.preventDefault();
     if (finger.may && !finger.may(side, best)) return;
     drag = { side, index: best, pointer: e.pointerId, from: p };
+    chip = finger.chip?.() ? { since: performance.now(), at: { x: 0, y: 0 }, lift: 0 } : null;
+    if (chip) buildLift();
     try { board.setPointerCapture(e.pointerId); } catch { /* the drag still works inside the table */ }
     clearAim();
     showTag(side, best);
@@ -371,6 +426,11 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     if (!drag || e.pointerId !== drag.pointer) return;
     const pull = pullOf(e, drag.from);
     const from = scene[drag.side][drag.index]!;
+    /* a chip: moving the finger (aiming again) starts its lift again */
+    if (chip && Math.sqrt((pull.x - chip.at.x) ** 2 + (pull.y - chip.at.y) ** 2) > CHIP_MOVE) {
+      chip = { since: performance.now(), at: pull, lift: 0 };
+      showLift();
+    }
     /* the band from the button, as far back as it has been pulled */
     band.setAttribute('x1', from.x.toFixed(2)); band.setAttribute('y1', from.y.toFixed(2));
     band.setAttribute('x2', (from.x + pull.x).toFixed(2)); band.setAttribute('y2', (from.y + pull.y).toFixed(2));
@@ -385,17 +445,19 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     if (!drag || e.pointerId !== drag.pointer) return;
     const pull = pullOf(e, drag.from);
     const { side, index } = drag;
+    const lift = chip?.lift ?? 0;
     drag = null;
+    chip = null;
     clearAim();
     /* a tap, or a pull too small to see, is not a flick */
     if (tiny(pull)) return;
-    finger.flick(side, index, flickFor(index, pull.x, pull.y));
+    finger.flick(side, index, { ...flickFor(index, pull.x, pull.y), ...(lift > 0 ? { lift } : {}) });
   };
   board.addEventListener('pointerup', up);
   /* the system took the finger (a swipe from the edge, a call): no flick */
   board.addEventListener('pointercancel', (e) => {
     if (sliding && e.pointerId === sliding.pointer) sliding = null;
-    if (drag && e.pointerId === drag.pointer) { drag = null; clearAim(); }
+    if (drag && e.pointerId === drag.pointer) { drag = null; chip = null; clearAim(); }
   });
 
   return {

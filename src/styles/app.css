@@ -477,6 +477,16 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .bt-arrow { fill: var(--mustard); stroke: var(--deep); stroke-width: .35; stroke-linejoin: round; }
 .bt-path { fill: none; stroke: #fff; stroke-width: .7; stroke-dasharray: 1.6 1.2; stroke-linecap: round; }
 .bt-ghost { fill: rgba(255, 255, 255, .18); stroke: #fff; stroke-width: .5; stroke-dasharray: 1.2 .8; }
+/* a chip's lift while it builds (board.ts): a ring filling round the held
+   button, and the ball's way as dots, bigger where it is higher */
+.bt-lift-track { fill: none; stroke: rgba(255, 255, 255, .35); stroke-width: .7; }
+.bt-lift-ring { fill: none; stroke: var(--mustard); stroke-width: .9; stroke-linecap: round; }
+.bt-lift-dots circle { fill: #fff; fill-opacity: .85; stroke: var(--deep); stroke-width: .15; }
+/* Cobertura, armed */
+.btn.chip[aria-pressed="true"] { background: var(--mustard); color: var(--deep-2); box-shadow: 0 4px 0 var(--mustard-dark), 0 0 0 3px #fff; }
+.btn.chip[aria-pressed="false"] { background: var(--paper); color: var(--ink); box-shadow: 0 4px 0 #C9B48E; }
+/* on a phone the note has no room for the word: the 🌈 alone, still named */
+@media (max-width: 500px) { .btn.chip .chip-label { display: none; } .btn.chip { padding-inline: 12px; } }
 .bt-ghost[hidden], .bt-keeper[hidden] { display: none; }
 
 /* ── home ─────────────────────────────────────────────────────────────── */

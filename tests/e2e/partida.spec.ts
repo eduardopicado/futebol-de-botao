@@ -35,6 +35,19 @@ async function flick(page: Page, side: Side, i: number, vx: number, vy: number):
   await page.mouse.up();
 }
 
+/** the same, held still at full pull for `ms` before letting go (a chip's lift builds) */
+async function held(page: Page, side: Side, i: number, vx: number, vy: number, ms: number): Promise<number> {
+  const { x, y, scale } = await screen(page, await where(page, side, i));
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x - (vx / PULL) * scale, y - (vy / PULL) * scale, { steps: 6 });
+  await page.waitForTimeout(ms);
+  /* the ring's lift as the finger lets go */
+  const lift = Number(await page.locator('.bt-lift').getAttribute('data-lift') ?? 0);
+  await page.mouse.up();
+  return lift;
+}
+
 /** far out of the way, for buttons a test does not need */
 const parked = (side: Side): Point[] => [
   { x: 6, y: side === 'a' ? 92 : 6 }, { x: 58, y: side === 'a' ? 92 : 6 },
@@ -494,6 +507,53 @@ test.describe('Partida', () => {
   /** said in his Portuguese voice, or played from his recording */
   const heardOne = async (page: Page, lines: string[]): Promise<boolean> => (await said(page)).some((t) => lines.includes(t))
     || (await plays(page)).some((src) => lines.some((line) => src.endsWith(`/audio/${clipId(line)}.mp3`)));
+
+  test('Cobertura: armed, holding still lifts the ball over the goleiro and in; not armed, the same flick held is saved', async ({ page }) => {
+    const watch = watchPage(page);
+    /* the ball 22 out, a's button behind it, their goleiro straight in the way */
+    const ball = { x: 32, y: 22 };
+    const me = { x: 32, y: 22 + R + BALL + 2 };
+    const setup = chance({ ball, a: [me, ...parked('a').slice(1)], keepers: { a: 32, b: 32 } });
+    /* a speed that a full chip puts in, a little off either way, and that goes to the goleiro low */
+    const shot = (vy: number, lift: number) => simulate({ ball, us: [me], them: parked('b'), keeper: 32 }, { button: 0, vx: 0, vy, lift });
+    const vy = [-61, -60, -62, -59].find((v) => [0.96, 1, 1.04].every((k) => shot(v * k, 1).goal && !shot(v * k, 0).goal))!;
+    expect(vy).toBeDefined();
+    await open(page, setup);
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    const chip = page.getByRole('button', { name: '🌈 Cobertura' });
+    await expect(chip).toHaveAttribute('aria-pressed', 'false');
+    await chip.click();
+    await expect(chip).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.bt-say')).toContainText('hold still while the ring fills');
+    /* the ball noted as it goes up */
+    await page.evaluate(() => {
+      const w = window as unknown as { __up: boolean };
+      w.__up = false;
+      new MutationObserver(() => { if (document.querySelector('.bt-ball[data-up]')) w.__up = true; })
+        .observe(document.querySelector('.bt-table')!, { attributes: true, subtree: true, attributeFilter: ['data-up'] });
+    });
+    const lift = await held(page, 'a', 0, 0, vy, 1600);
+    expect(lift).toBe(1);
+    await expect(game(page)).toHaveAttribute('data-event', 'goal', { timeout: 10000 });
+    expect(await page.evaluate(() => (window as unknown as { __up: boolean }).__up)).toBe(true);
+    /* nothing of it left on the table */
+    await expect(page.locator('.bt-lift')).toBeHidden();
+    await expect(page.locator('.bt-lift-dots circle')).toHaveCount(0);
+    noProblems(watch);
+  });
+
+  test('not armed, holding still lifts nothing: the same flick goes low, to the goleiro', async ({ page }) => {
+    const ball = { x: 32, y: 22 };
+    const me = { x: 32, y: 22 + R + BALL + 2 };
+    await open(page, chance({ ball, a: [me, ...parked('a').slice(1)], keepers: { a: 32, b: 32 } }));
+    await page.getByRole('button', { name: '📣 Pro gol!' }).click();
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await held(page, 'a', 0, 0, -60, 1600);
+    await expect(game(page)).toHaveAttribute('data-event', /./, { timeout: 10000 });
+    await expect(game(page)).not.toHaveAttribute('data-event', 'goal');
+    await expect(page.locator('.bt-ball[data-up]')).toHaveCount(0);
+  });
 
   test('the commentator: "Lá vem ele!" once the goleiro is placed and Pronto is tapped', async ({ page }) => {
     await recordSpeech(page, ['pt-BR']);

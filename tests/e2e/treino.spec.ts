@@ -159,6 +159,29 @@ test.describe('Treino', () => {
     noProblems(watch);
   });
 
+  test('Cobertura to practise a chip: the ring fills while the finger holds still, and goes after the flick', async ({ page }) => {
+    const watch = watchPage(page);
+    await start(page);
+    const chip = page.getByRole('button', { name: '🌈 Cobertura' });
+    await chip.click();
+    await expect(chip).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.say-words')).toContainText('hold still while the ring fills');
+    const { x, y, scale } = await onScreen(page, 0);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y + (40 / PULL) * scale, { steps: 6 });
+    /* empty at first, then filling while the finger is still */
+    await expect(page.locator('.bt-lift')).toBeVisible();
+    await expect.poll(async () => Number(await page.locator('.bt-lift').getAttribute('data-lift'))).toBeGreaterThan(0.5);
+    /* moving the finger to aim again starts it again */
+    await page.mouse.move(x + 3 * scale, y + (40 / PULL) * scale, { steps: 2 });
+    expect(Number(await page.locator('.bt-lift').getAttribute('data-lift'))).toBeLessThan(0.2);
+    await page.mouse.up();
+    await expect(page.locator('.bt-lift')).toBeHidden();
+    await expect(chip).toHaveAttribute('aria-pressed', 'false');
+    noProblems(watch);
+  });
+
   test('has no accessibility violations', async ({ page }) => {
     await start(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
