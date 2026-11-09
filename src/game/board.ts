@@ -127,9 +127,20 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   const ghostEl = svg('circle', { r: R, class: 'bt-ghost', hidden: '' });
   const top = keeperBlock(false, goleiro);
   const bottom = keeperBlock(true, goleiro);
-  const ballEl = svg('g', { class: 'bt-ball' },
-    svg('circle', { r: BALL, cx: SHADOW.x * 0.6, cy: SHADOW.y * 0.6, class: 'bt-shadow' }),
-    svg('circle', { r: BALL, class: 'bt-ball-face' }));
+  const ballShadow = svg('circle', { r: BALL, cx: SHADOW.x * 0.6, cy: SHADOW.y * 0.6, class: 'bt-shadow' });
+  const ballFace = svg('circle', { r: BALL, class: 'bt-ball-face' });
+  const ballEl = svg('g', { class: 'bt-ball' }, ballShadow, ballFace);
+  /** the ball where it is: in the air (a chip), bigger, and its shadow left
+      on the felt further off and fainter the higher it is */
+  const placeBall = (p: Point): void => {
+    at(ballEl, p);
+    const z = p.z ?? 0;
+    ballEl.toggleAttribute('data-up', z > 0);
+    ballShadow.setAttribute('cx', (SHADOW.x * 0.6 + z * 0.45).toFixed(2));
+    ballShadow.setAttribute('cy', (SHADOW.y * 0.6 + z * 0.7).toFixed(2));
+    ballShadow.setAttribute('opacity', z > 0 ? Math.max(0.35, 1 - z * 0.07).toFixed(2) : '1');
+    ballFace.setAttribute('r', (BALL * (1 + z * 0.07)).toFixed(3));
+  };
   const discs = svg('g', {});
   const field = pitch();
   /* the held button's number and name, above it, while it is held */
@@ -166,7 +177,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
 
   const draw = (s: Scene, keepers: Keepers, benched: Benched[] = []): void => {
     scene = s;
-    at(ballEl, s.ball);
+    placeBall(s.ball);
     for (const side of ['a', 'b'] as const) {
       buttons[side].forEach((g, i) => {
         const p = s[side][i];

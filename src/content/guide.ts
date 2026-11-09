@@ -164,6 +164,7 @@ export function told(play: Pick<Play, 'event' | 'bumps'>, rule: Rule): string {
     case 'foul': return `Foul! A ${e.penalty ? 'penalty' : 'free kick'} to ${to(e.side)}.`;
     case 'parked': return `Parked! A free kick to ${to(e.side)}.`;
     case 'uncalled': return 'Not called: no goal.';
+    case 'over': return 'Over the bar: a goal kick.';
     case 'retake': return 'Not forward: again.';
     case 'on': return `${e.left} ${e.left === 1 ? 'touch' : 'touches'} left.`;
     case 'turn': {

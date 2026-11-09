@@ -158,7 +158,8 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     const who = takerOf(teams[taker], shootoutTaken(s, taker));
     const play = flick(m, index, vx, vy);
     const scored = scoredFrom(play, taker);
-    const miss = scored ? null : missed(play, taker);
+    /* a chip over the bar is a miss of its own */
+    const miss = scored ? null : play.event.kind === 'over' ? 'over' : missed(play, taker);
     /* a goal or a near miss is slowed right down as the ball gets there */
     await board.play(play.frames, play.bumps, keepersOf(m), [], 1, scored || miss ? moment(play) : null);
     if (scored) celebrate(stage, teams[taker], life);
@@ -174,7 +175,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     });
     const by = who.name || `Number ${who.n}`;
     const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!`
-      : `${miss === 'post' ? 'Off the post! ' : ''}${onTheLine(play.frames.at(-1)!.ball) ? `${ON_THE_LINE} ` : ''}${by} misses for ${name(taker)}!`;
+      : `${miss === 'post' ? 'Off the post! ' : miss === 'over' ? 'Over the bar! ' : ''}${onTheLine(play.frames.at(-1)!.ball) ? `${ON_THE_LINE} ` : ''}${by} misses for ${name(taker)}!`;
     tell(said, 'a');
     if (!s.winner) void called.then(() => speak(said));
     await wait(PACE.kick);

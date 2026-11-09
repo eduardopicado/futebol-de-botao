@@ -706,6 +706,44 @@ describe('the commentator\'s moments', () => {
   });
 });
 
+describe('a chip', () => {
+  for (const side of ['a', 'b'] as const) {
+    /** side's called shot from 22 out, straight at the goal, their goleiro in the middle */
+    const shot = (speed: number, lift: number) => {
+      const a = side === 'a';
+      const put = a ? (p: Point): Point => p : turned;
+      const m = call(playing({
+        turn: side, ball: put({ x: 32, y: 22 }),
+        a: a ? [{ x: 32, y: 22 + R + BALL + 2 }, ...parked('a').slice(1)] : parked('a'),
+        b: a ? parked('b') : [turned({ x: 32, y: 22 + R + BALL + 2 }), ...parked('b').slice(1)],
+      }));
+      return flick(pronto(m, 32), 0, 0, (a ? -1 : 1) * speed, lift);
+    };
+
+    it(`side ${side}: chipped in over the goleiro is a goal, and a golaço; the same shot low is saved`, () => {
+      const low = shot(80, 0);
+      expect(low.event.kind).not.toBe('goal');
+      expect(low.bumps.some((b) => b.what === 'keeper')).toBe(true);
+      const chip = shot(80, 0.75);
+      expect(chip.event).toMatchObject({ kind: 'goal', side, own: false });
+      expect(golaco(chip, side)).toBe(true);
+      /* its height comes through to the frames as drawn */
+      expect(chip.frames.some((f) => (f.ball.z ?? 0) > 2)).toBe(true);
+    });
+
+    it(`side ${side}: over the bar is a goal kick to the side whose goal it went over`, () => {
+      const over = shot(100, 1);
+      expect(over.event).toEqual({ kind: 'over', side });
+      expect(over.next.turn).toBe(other(side));
+      expect(over.next.score).toEqual({ a: 0, b: 0 });
+      /* in the small area of that goal, at the other end from side's own */
+      const line = side === 'a' ? 0 : L;
+      expect(Math.abs(over.next.ball.y - line)).toBeLessThan(MARKS.box[1] + 1);
+      expect(over.next.ball.z).toBeUndefined();
+    });
+  }
+});
+
 describe('slow motion', () => {
   it('a goleiro off his line who saves it far out: the moment is where it hits him', () => {
     const m = call(playing({ turn: 'a', rule: '1', ball: { x: 32, y: 26 }, a: [{ x: 32, y: 38 }, ...parked('a').slice(1)] }));

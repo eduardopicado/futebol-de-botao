@@ -57,7 +57,7 @@
  *   boxing it in, after your flick: straight away. Either way, a free kick
  *   to the other side from where the ball is (Art. 8 §10–12, Art. 63). */
 
-import { BALL, GOLEIROS, L, LINE, MARKS, MOUTH, POST, R, W, keeperOut, keeperSpan, simulate, type Bump, type Goleiro, type Point, type Table } from './botao';
+import { BALL, BUTTON_H, GOLEIROS, L, LINE, MARKS, MOUTH, POST, R, W, keeperOut, keeperSpan, simulate, type Bump, type Goleiro, type Point, type Table } from './botao';
 
 export type Side = 'a' | 'b';
 export const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
@@ -158,6 +158,8 @@ export type Event =
   | { kind: 'foul'; side: Side; penalty: boolean }
   /** 1 Toque: the other side parked the ball between its own buttons, and `side` has the free kick */
   | { kind: 'parked'; side: Side }
+  /** `side` sent the ball over a crossbar: a goal kick */
+  | { kind: 'over'; side: Side }
   /** the kick-off did not send the ball forward: again */
   | { kind: 'retake'; side: Side }
   /** the turn passes to `side` */
@@ -168,7 +170,7 @@ export type Event =
 /** where everything is, as drawn: the ball and both sides */
 export interface Scene { ball: Point; a: (Point | null)[]; b: (Point | null)[] }
 
-const turned = (p: Point): Point => ({ x: W - p.x, y: L - p.y });
+const turned = (p: Point): Point => ({ x: W - p.x, y: L - p.y, ...(p.z === undefined ? {} : { z: p.z }) });
 const dist = (p: Point, q: Point): number => Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
 const MIDDLE = { x: W / 2, y: L / 2 };
 
@@ -518,13 +520,13 @@ export interface Play {
  * The side whose turn it is flicks one of its buttons (an index into its
  * five), with this speed, as seen on the table (up is towards y = 0).
  */
-export function flick(m: Match, button: number, vx: number, vy: number): Play {
+export function flick(m: Match, button: number, vx: number, vy: number, lift = 0): Play {
   const me = m.turn;
   const you = other(me);
   const { table, ours, theirs } = tableFor(m);
   const index = ours.indexOf(button);
   const flip = me === 'b';
-  const shot = simulate(table, { button: index < 0 ? 0 : index, vx: flip ? -vx : vx, vy: flip ? -vy : vy });
+  const shot = simulate(table, { button: index < 0 ? 0 : index, vx: flip ? -vx : vx, vy: flip ? -vy : vy, ...(lift > 0 ? { lift } : {}) });
   const back = flip ? turned : (p: Point): Point => p;
 
   /* the frames as drawn: the ball, and each side's buttons in their own places */
@@ -536,7 +538,7 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
   };
   const frames = shot.frames.map(scene);
   const end = frames[frames.length - 1];
-  const next: Match = { ...m, ball: end.ball, a: end.a.map((p) => (p ? { ...p } : null)), b: end.b.map((p) => (p ? { ...p } : null)), out: [...m.out], used: [...m.used, button], touches: m.touches + 1, keepers: { ...m.keepers }, keepersOut: { ...m.keepersOut }, score: { ...m.score } };
+  const next: Match = { ...m, ball: { x: end.ball.x, y: end.ball.y }, a: end.a.map((p) => (p ? { ...p } : null)), b: end.b.map((p) => (p ? { ...p } : null)), out: [...m.out], used: [...m.used, button], touches: m.touches + 1, keepers: { ...m.keepers }, keepersOut: { ...m.keepersOut }, score: { ...m.score } };
   const result = (event: Event): Play => ({ frames, bumps: shot.bumps.map(({ what, frame }) => ({ what, frame })), goal: shot.goal || shot.own, next, event });
 
   /* a button wholly over a goal line, in the net, is out of play (Art. 28);
@@ -578,6 +580,11 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
     }
     lineUp(next, other(scorer));
     return result({ kind: 'goal', side: scorer, own: shot.own });
+  }
+  /* over a crossbar: out, and a goal kick to the side whose goal it went over */
+  if (shot.over) {
+    goalKick(next, shot.over === 'top' ? you : me);
+    return result({ kind: 'over', side: me });
   }
   if (shot.goal) {
     goalKick(next, you);
@@ -707,13 +714,15 @@ export function inTheirArea(ball: Point, side: Side): boolean {
 /** how far from the goal line it attacks a shot has to start for a goal from it to be from far out */
 const LONG = 34;
 
-/** a goal for `side` worth a "Golaço!": in off the rim, or from far out (the
-    ball LONG or more from the goal line when it was flicked) */
+/** a goal for `side` worth a "Golaço!": chipped in, in off the rim, or from
+    far out (the ball LONG or more from the goal line when it was flicked) */
 export function golaco(play: Pick<Play, 'frames' | 'bumps' | 'event'>, side: Side): boolean {
   const e = play.event;
   if ((e.kind !== 'goal' && e.kind !== 'champion') || e.own || e.side !== side) return false;
   const start = play.frames[0].ball;
-  return (side === 'a' ? start.y : L - start.y) >= LONG || play.bumps.some((b) => b.what === 'wall');
+  /* a chip in, over the goleiro, is one too */
+  const chipped = play.frames.some((f) => (f.ball.z ?? 0) > BUTTON_H);
+  return chipped || (side === 'a' ? start.y : L - start.y) >= LONG || play.bumps.some((b) => b.what === 'wall');
 }
 
 /** how near a goal line the ball comes for its moment to be slowed down */

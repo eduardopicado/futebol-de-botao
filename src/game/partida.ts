@@ -287,6 +287,12 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       case 'champion':
         champion(event.side);
         return;
+      case 'over': {
+        /* a chip too high: the commentator, and the goal kick */
+        render(`Over the bar! Goal kick to ${name(other(event.side))}.`);
+        await wait(PACE.noGoal);
+        return;
+      }
       case 'uncalled': {
         sfx.whistle();
         const why = event.couldCall ? 'No goal: the shot was not called. Call "Pro gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
@@ -351,7 +357,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     /* a called shot that did not go in: saved, off the post, or close */
     const miss = called ? missed(play, before.turn) : null;
     /* a goal or a near miss is slowed right down as the ball gets there */
-    const big = play.event.kind === 'goal' || play.event.kind === 'champion' || miss !== null;
+    const big = play.event.kind === 'goal' || play.event.kind === 'champion' || play.event.kind === 'over' || miss !== null;
     await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before), 1, big ? moment(play) : null);
     m = play.next;
     node.dataset.event = play.event.kind;
@@ -359,6 +365,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     if (miss) {
       sfx.groan();
       narrate(miss, teams[miss === 'save' ? other(before.turn) : before.turn], () => undefined, life.later);
+    } else if (play.event.kind === 'over') {
+      sfx.groan();
+      narrate('over', teams[before.turn], () => undefined, life.later);
     }
     /* a flick that leaves the ball in their area, from outside it, and play goes on */
     if (!called && (play.event.kind === 'on' || play.event.kind === 'turn') && inTheirArea(m.ball, before.turn) && !inTheirArea(before.ball, before.turn)) {
