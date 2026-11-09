@@ -156,11 +156,16 @@ test.describe('Picking teams', () => {
     noProblems(watch);
   });
 
-  test('says so when the two picked look alike on the table', async ({ page }) => {
+  test('says so when the two picked look alike on the table, and not when their flags tell them apart', async ({ page }) => {
     await page.goto('/#/teams-2');
-    await page.getByRole('group', { name: 'Player at the bottom' }).getByRole('button', { name: 'Liverpool' }).click();
-    await page.getByRole('group', { name: 'Player at the top' }).getByRole('button', { name: 'Manchester United' }).click();
+    const [bottom, top] = [page.getByRole('group', { name: 'Player at the bottom' }), page.getByRole('group', { name: 'Player at the top' })];
+    await bottom.getByRole('button', { name: 'Liverpool' }).click();
+    await top.getByRole('button', { name: 'Manchester United' }).click();
     await expect(page.locator('.pick-warn')).toContainText('look alike');
+    /* both yellow, but 🇧🇷 and 🇦🇺 are on the buttons */
+    await bottom.getByRole('button', { name: 'Brazil' }).click();
+    await top.getByRole('button', { name: 'Australia' }).click();
+    await expect(page.locator('.pick-warn')).toHaveText('');
   });
 
   test('"Change teams" at full time goes back to picking them', async ({ page }) => {

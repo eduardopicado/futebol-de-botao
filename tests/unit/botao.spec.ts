@@ -1,8 +1,9 @@
 /* Futebol de Botão: the flick, the bounces, the rules, and the planner. */
 
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  BALL, GOLEIROS, KEEPER_RX, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, W,
+  BALL, GOLEIROS, KEEPER_RX, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, TRAY, TRAY_AT, W,
   angles, flickFor, keeperFor, keeperOut, nearGoal, oneTouch, passPlan, robust, shownBounce, simulate, slant,
   type Point, type Table,
 } from '../../src/content/botao';
@@ -219,6 +220,16 @@ describe('the table', () => {
     expect(shot.own).toBe(false);
     expect(shot.bounces.length).toBeGreaterThan(0);
     expect(shot.end.ball.y).toBeLessThanOrEqual(L - BALL + 0.01);
+  });
+
+  it('sits in a tray whose rim is as deep at the bottom as at the top, its picture the size TRAY says', () => {
+    /* the picture's own width and height, from its WebP header */
+    const file = readFileSync('src/assets/tray.webp');
+    expect(file.toString('ascii', 8, 16)).toBe('WEBPVP8X');
+    expect([file.readUIntLE(24, 3) + 1, file.readUIntLE(27, 3) + 1]).toEqual([TRAY.w, TRAY.h]);
+    /* in table units: the rim at the bottom as deep as at the top, and the right as wide as the left */
+    expect(TRAY_AT.y + TRAY_AT.h - L).toBeCloseTo(-TRAY_AT.y, 6);
+    expect(TRAY_AT.x + TRAY_AT.w - W).toBeCloseTo(-TRAY_AT.x, 6);
   });
 });
 
