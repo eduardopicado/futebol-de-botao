@@ -112,8 +112,16 @@ function gap(p: string, q: string): number {
   return a.reduce((sum, v, i) => sum + Math.abs(v - b[i]), 0);
 }
 
-/** do two teams' buttons look too alike to tell apart (their faces, the first colour)? */
-export const clash = (t: Team, u: Team): boolean => gap(t.colours[0], u.colours[0]) < 160;
+/** is there something on a team's buttons besides the colour of the face:
+    a crest added for it, or its flag (YOU's is a star) */
+const marked = (t: Team): boolean => !!t.flag || !!crestOf(t.id);
+
+/** do two teams' buttons look too alike to tell apart: faces (the first
+    colour) close, and nothing on either face to tell them by. Brazil and
+    Australia are both yellow, but their flags are nothing alike; two red
+    clubs are only told apart once one has a crest */
+export const clash = (t: Team, u: Team): boolean =>
+  gap(t.colours[0], u.colours[0]) < 160 && !marked(t) && !marked(u);
 
 /** a team's name as it is shown, flag first where there is one */
 export const label = (team: Team, short = false): string =>
