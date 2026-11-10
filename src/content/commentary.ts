@@ -15,7 +15,22 @@ export const PT_SAVES = ['Defendeu o goleiro!', 'Que defesa!', 'Pegou o goleiro!
 
 /** a goal, in Portuguese: for a team said with its article ("do Brasil"), or for a made-up side */
 export const ptGoals = (team?: string): string[] =>
-  team ? [`Goooool ${team}!`, `É gol ${team}!`, `Golaço ${team}!`] : ['Goooool!', 'Golaço!', 'É gol!'];
+  team ? [`Goooool ${team}!`, `É gol ${team}!`] : ['Goooool!', 'É gol!'];
+
+/** a great goal (off the rim, or from far out: golaco() in match.ts), in Portuguese */
+export const ptGolacos = (team?: string): string[] =>
+  team ? [`Golaço ${team}!`, `Que golaço ${team}!`] : ['Golaço!', 'Que golaço!'];
+
+/** a great goal, in English */
+export const enGolaco = (team?: string): string => (team ? `What a goal from ${team}!` : 'What a goal!');
+
+/** a shot about to be taken (the goleiro placed, Pronto), in Portuguese and in English */
+export const PT_SHOTS = ['Lá vem ele!', 'Vai chutar!', 'Ajeitou pro chute!'];
+export const EN_SHOTS = ['Here he comes!', 'He lines it up!', 'Here comes the shot!'];
+
+/** the ball left in their penalty area by a flick, in Portuguese and in English */
+export const PT_DANGER = ['Perigo!', 'Olha o perigo!', 'Cuidado!'];
+export const EN_DANGER = ['Danger!', 'Look out!', 'Dangerous!'];
 
 /** a save, in English */
 export const EN_SAVES = ['What a save!', 'Saved by the keeper!'];

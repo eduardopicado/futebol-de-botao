@@ -130,6 +130,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     if (busy || m.phase !== 'placing') return;
     sfx.tap();
     m = pronto(m, sliding);
+    narrate('shot', teams[m.turn], () => undefined, life.later);
     render();
   });
 
@@ -186,6 +187,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     }
     sfx.tap();
     m = pronto(m, to);
+    narrate('shot', teams[m.turn], () => undefined, life.later);
     busy = false;
     render();
   }

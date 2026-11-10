@@ -6,7 +6,7 @@ import { BALL, GOLEIROS, L, LINE, MARKS, MOUTH, NET, POST, R, W, keeperOut, keep
 import {
   BUTTONS, CIRCLE, SIZES, FREE_KICK_GAP, call, clampKeeper, flick, formation, inAttack, mayCall, mayFlick, mayMoveGoleiro, moveGoleiro, mustFree,
   newMatch, other, placeGoleiro, pronto, tableFor,
-  kicked, missed, moment, newShootout, onTheLine, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
+  golaco, inTheirArea, kicked, missed, moment, newShootout, onTheLine, penaltyFor, scoredFrom, shootoutGoals, shootoutTaken,
   type Match, type Shootout, type Side,
 } from '../../src/content/match';
 
@@ -622,6 +622,32 @@ describe('a shot that missed, for the commentator', () => {
       expect(moment(flick(m, 0, 0, side === 'a' ? -30 : 30))).toBeNull();
     });
   }
+});
+
+describe('the commentator\'s moments', () => {
+  it('the area a side attacks is the penalty area at the far end from its own goal', () => {
+    expect(inTheirArea({ x: 32, y: 10 }, 'a')).toBe(true);
+    expect(inTheirArea({ x: 32, y: L - 10 }, 'a')).toBe(false);
+    expect(inTheirArea({ x: 32, y: L - 10 }, 'b')).toBe(true);
+    expect(inTheirArea({ x: 32, y: MARKS.penalty[1] + 1 }, 'a')).toBe(false);
+    expect(inTheirArea({ x: 3, y: 10 }, 'a')).toBe(false);
+  });
+
+  it('a golaço: a goal from far out, or in off the rim; not one from close in, nor an own goal', () => {
+    /* straight in from close: a goal, no golaço */
+    const close = flick(pronto(call(playing({ turn: 'a', ball: { x: 32, y: 24 }, a: [{ x: 32, y: 36 }, ...parked('a').slice(1)], b: parked('b') })), MOUTH[0] + G3.w / 2 - 1), 0, 0, -110);
+    /* the ball 40 out, the goleiro aside: a long one */
+    const far = flick(pronto(call(playing({ turn: 'a', ball: { x: 32, y: 40 }, a: [{ x: 32, y: 52 }, ...parked('a').slice(1)], b: parked('b') })), MOUTH[0] + G3.w / 2 - 1), 0, 0, -130);
+    expect(close.event.kind).toBe('goal');
+    expect(golaco(close, 'a')).toBe(false);
+    expect(far.event.kind).toBe('goal');
+    expect(golaco(far, 'a')).toBe(true);
+    /* in off the rim: the same goal with a wall in its bumps */
+    expect(golaco({ ...close, bumps: [...close.bumps, { what: 'wall', frame: 3 }] }, 'a')).toBe(true);
+    /* for the other side, or an own goal, it is no golaço of a's */
+    expect(golaco(far, 'b')).toBe(false);
+    expect(golaco({ ...far, event: { kind: 'goal', side: 'a', own: true } as typeof far.event }, 'a')).toBe(false);
+  });
 });
 
 describe('slow motion', () => {
