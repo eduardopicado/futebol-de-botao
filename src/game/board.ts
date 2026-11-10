@@ -59,8 +59,10 @@ export interface Board {
   setUp: (a: Team, b: Team, counts: { a: number; b: number }, players?: { a: Player[]; b: Player[] }) => void;
   draw: (s: Scene, keepers: Keepers, benched?: Benched[]) => void;
   /** a flick played out; resolves when everything has stopped */
-  /** a flick played out, frame by frame; `speed` below 1 is slower, for a replay */
-  play: (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched?: Benched[], speed?: number) => Promise<void>;
+  /** a flick played out, frame by frame; `speed` below 1 is slower, for a
+      replay; and slowed right down round the frame `slowAt` (a goal, a near
+      miss), the table saying data-slow while it is */
+  play: (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched?: Benched[], speed?: number, slowAt?: number | null) => Promise<void>;
   /** the side to play, glowing, all but the buttons it may not flick now
       (at a kick-off, the one that made the first flick) */
   glow: (side: Side | null, spent?: number[]) => void;
@@ -80,6 +82,20 @@ export interface Board {
   listen: (f: Finger) => void;
   /** any drag in progress is dropped (a shot or Show me is starting) */
   drop: () => void;
+}
+
+/** slow motion: this fast at the moment itself, for this many frames
+    either side of it, eased in and out over EASE more */
+const SLOW = 0.3;
+const HOLD = 18;
+const EASE = 8;
+
+/** how fast frame i plays, as a share of the speed asked for */
+function rate(i: number, slowAt: number | null): number {
+  if (slowAt === null) return 1;
+  const off = Math.abs(i - slowAt);
+  const w = off <= HOLD ? 1 : off >= HOLD + EASE ? 0 : 1 - (off - HOLD) / EASE;
+  return 1 - (1 - SLOW) * w;
 }
 
 const line = (pts: Point[]): string => pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
@@ -186,17 +202,25 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     life.later(() => n.classList.remove('bulge'), 900);
   };
 
-  const play = (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched: Benched[] = [], speed = 1): Promise<void> =>
+  const play = (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched: Benched[] = [], speed = 1, slowAt: number | null = null): Promise<void> =>
     new Promise((done) => {
       const start = performance.now();
+      /* when each frame is shown, in ms from the start: a 60th of a second
+         apart, and more round the moment */
+      const at = [0];
+      for (let i = 1; i < frames.length; i += 1) at.push(at[i - 1] + 1000 / 60 / speed / rate(i - 1, slowAt));
+      let shown = 0;
       let heard = 0;
       let netted = false;
       /* the crowd, louder as the ball nears a goal */
       const crowd = watching();
       const tick = (): void => {
         if (!life.alive()) { crowd.done(); return; }
-        const i = Math.min(frames.length - 1, Math.floor((performance.now() - start) * speed / (1000 / 60)));
+        const now = performance.now() - start;
+        while (shown < frames.length - 1 && at[shown + 1] <= now) shown += 1;
+        const i = shown;
         const f = frames[i];
+        board.toggleAttribute('data-slow', rate(i, slowAt) < 0.6);
         draw(f, keepers, benched);
         crowd.to(nearGoal(f.ball));
         if (!netted && f.ball.y + BALL < 0) { netted = true; bulge('top'); }
@@ -207,7 +231,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
           else if (what === 'post') sfx.post();
           else sfx.tap();
         }
-        if (i >= frames.length - 1) { crowd.done(); done(); return; }
+        if (i >= frames.length - 1) { crowd.done(); board.removeAttribute('data-slow'); done(); return; }
         life.later(tick, 16);
       };
       tick();

@@ -635,6 +635,24 @@ export function missed(play: Play, side: Side): 'save' | 'post' | 'close' | null
   return out > 0 && out <= CLOSE ? 'close' : null;
 }
 
+/** how near a goal line the ball comes for its moment to be slowed down */
+const REACH = 5;
+
+/**
+ * Where a flick's big moment is, for slow motion: the first frame its ball
+ * comes within REACH of a goal line, between the posts or close outside
+ * one, at either end, or hits a goleiro or a post, if that is sooner (a
+ * goleiro off its line saves it before it gets there). A screen slows it
+ * down only for a goal or a near miss; null when nothing like it happens.
+ */
+export function moment(play: Pick<Play, 'frames' | 'bumps'>): number | null {
+  const near = play.frames.findIndex(({ ball: { x, y } }) =>
+    x > MOUTH[0] - CLOSE && x < MOUTH[1] + CLOSE && (y < REACH || y > L - REACH));
+  const hit = play.bumps.find((b) => b.what === 'keeper' || b.what === 'home' || b.what === 'post')?.frame ?? -1;
+  const at = [near, hit].filter((i) => i >= 0);
+  return at.length ? Math.min(...at) : null;
+}
+
 /** the ball stopped across a goal line between the posts, not all of it
     over: no goal, as in football, and still in play */
 export const onTheLine = (ball: Point): boolean =>

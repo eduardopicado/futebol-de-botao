@@ -428,6 +428,39 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 @media (prefers-reduced-motion: reduce) {
   .bt-net.bulge { animation: none; }
 }
+/* a goal (src/game/moment.ts): a flash, the table shaking, and GOOOL! in the
+   scorer's colours, all gone again in under two seconds */
+.bt-stage.shake .bt-wrap { animation: bt-shake .5s ease-out; }
+@keyframes bt-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-6px, 3px); }
+  30% { transform: translate(5px, -4px); }
+  45% { transform: translate(-4px, 2px); }
+  60% { transform: translate(3px, -2px); }
+  80% { transform: translate(-1px, 1px); }
+}
+.bt-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; animation: bt-flash .6s ease-out; }
+@keyframes bt-flash { 0% { opacity: .55; } 100% { opacity: 0; } }
+.bt-gooool { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.bt-gooool span {
+  font: 800 clamp(44px, 17cqw, 150px) / 1 var(--display); letter-spacing: .02em;
+  color: var(--fill); -webkit-text-stroke: max(2px, .6cqw) var(--edge); paint-order: stroke fill;
+  text-shadow: 0 .05em 0 rgba(0, 0, 0, .35), 0 0 .3em rgba(0, 0, 0, .45);
+  transform: rotate(-4deg); animation: bt-gooool 1.8s ease-out forwards;
+}
+@keyframes bt-gooool {
+  0% { opacity: 0; transform: scale(.3) rotate(-10deg); }
+  14% { opacity: 1; transform: scale(1.14) rotate(-4deg); }
+  24% { transform: scale(1) rotate(-4deg); }
+  80% { opacity: 1; transform: scale(1) rotate(-4deg); }
+  100% { opacity: 0; transform: scale(1.06) rotate(-4deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bt-stage.shake .bt-wrap { animation: none; }
+  .bt-flash { display: none; }
+  .bt-gooool span { animation: bt-fade 1.8s ease-out forwards; }
+}
+@keyframes bt-fade { 0% { opacity: 0; } 14%, 80% { opacity: 1; } 100% { opacity: 0; } }
 .bt-trail { fill: none; stroke: rgba(255, 255, 255, .4); stroke-width: .5; stroke-dasharray: .6 1; }
 .bt-band { stroke: rgba(255, 255, 255, .55); stroke-width: .5; stroke-dasharray: 1 1; }
 .bt-arrow { fill: var(--mustard); stroke: var(--deep); stroke-width: .35; stroke-linejoin: round; }

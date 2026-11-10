@@ -143,6 +143,66 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
+  for (const reduced of [false, true]) {
+    test(`a goal: slowed right down as it goes in, then GOOOL! in the scorer's colours${reduced ? ' (Reduce Motion: no flash, no shake)' : ' over a flash and a shaking table'}, all gone again`, async ({ page }) => {
+      const watch = watchPage(page);
+      if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+      await open(page, chance());
+      await page.getByRole('button', { name: '📣 Pro gol!' }).click();
+      /* their goleiro slid to its left post, and a's shot past him */
+      const from = await screen(page, { x: 32, y: (G3.y[0] + G3.y[1]) / 2 });
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x - 10 * from.scale, from.y, { steps: 6 });
+      await page.mouse.up();
+      const keeper = Number(await page.locator('.bt-keeper.away').getAttribute('data-x'));
+      await page.getByRole('button', { name: '✋ Pronto' }).click();
+      const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
+      /* the shake and the flash last half a second: noted as they start */
+      await page.evaluate(() => {
+        const w = window as unknown as { __shook: string[]; __flashed: string[] };
+        [w.__shook, w.__flashed] = [[], []];
+        const stage = document.querySelector('.bt-stage')!;
+        new MutationObserver(() => {
+          if (stage.classList.contains('shake')) w.__shook.push(getComputedStyle(stage.querySelector('.bt-wrap')!).animationName);
+          const flash = stage.querySelector('.bt-flash');
+          if (flash) w.__flashed.push(getComputedStyle(flash).display);
+        }).observe(stage, { attributes: true, attributeFilter: ['class'], childList: true });
+      });
+      await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
+      await expect(page.locator('.bt-table')).toHaveAttribute('data-slow', '');
+      const banner = page.locator('.bt-gooool');
+      await expect(banner).toHaveText('GOOOL!');
+      const look = await banner.evaluate((b) => {
+        const span = b.querySelector('span')!;
+        const probe = document.createElement('i');
+        probe.style.color = getComputedStyle(b).getPropertyValue('--fill');
+        document.body.append(probe);
+        const want = getComputedStyle(probe).color;
+        probe.remove();
+        const w = window as unknown as { __shook: string[]; __flashed: string[] };
+        return { colour: getComputedStyle(span).color, want, shook: w.__shook, flashed: w.__flashed };
+      });
+      expect(look.colour).toBe(look.want);
+      expect(look.shook.length).toBeGreaterThan(0);
+      expect(look.flashed.length).toBeGreaterThan(0);
+      if (reduced) {
+        expect(new Set(look.shook)).toEqual(new Set(['none']));
+        expect(new Set(look.flashed)).toEqual(new Set(['none']));
+      } else {
+        expect(look.shook).toContain('bt-shake');
+        expect(look.flashed).toContain('block');
+      }
+      await expect(game(page)).toHaveAttribute('data-event', 'goal');
+      /* and nothing left on the table */
+      await expect(banner).toHaveCount(0, { timeout: 4000 });
+      await expect(page.locator('.bt-flash')).toHaveCount(0);
+      await expect(page.locator('.bt-stage')).not.toHaveClass(/shake/);
+      await expect(page.locator('.bt-table')).not.toHaveAttribute('data-slow');
+      noProblems(watch);
+    });
+  }
+
   test('a goal not called does not count: a goal kick to the other side', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance({ keepers: { a: 32, b: 23 } }));

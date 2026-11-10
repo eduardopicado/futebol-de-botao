@@ -18,13 +18,14 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, guessKeeper } from '../content/computer';
 import {
-  ON_THE_LINE, SHOOTOUT_KICKS, clampKeeper, flick, kicked, mayFlick, missed, newShootout, onTheLine, other, penaltyFor, pronto, scoredFrom,
+  ON_THE_LINE, SHOOTOUT_KICKS, clampKeeper, flick, kicked, mayFlick, missed, moment, newShootout, onTheLine, other, penaltyFor, pronto, scoredFrom,
   shootoutGoals, shootoutTaken, type Match, type Shootout, type Side,
 } from '../content/match';
 import { type Keepers, makeBoard, SHAPE } from './board';
 import { computerLevel, speak } from './choices';
 import { confetti } from './confetti';
 import { narrate } from './narration';
+import { celebrate } from './moment';
 import { PACE } from './pace';
 import { takerOf } from './squads';
 import { kit, label, ourTeam, rivalFor, type Team } from './teams';
@@ -142,15 +143,17 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     const taker = m.turn;
     const who = takerOf(teams[taker], shootoutTaken(s, taker));
     const play = flick(m, index, vx, vy);
-    await board.play(play.frames, play.bumps, keepersOf(m));
     const scored = scoredFrom(play, taker);
+    const miss = scored ? null : missed(play, taker);
+    /* a goal or a near miss is slowed right down as the ball gets there */
+    await board.play(play.frames, play.bumps, keepersOf(m), [], 1, scored || miss ? moment(play) : null);
+    if (scored) celebrate(stage, teams[taker], life);
     const saved = !scored && play.bumps.some((b) => b.what === 'keeper');
     s = kicked(s, scored);
     node.dataset.kick = scored ? 'goal' : saved ? 'saved' : 'missed';
     showKicks();
     /* the commentator first, and the words read aloud once he has finished,
        so neither talks over the other; on the deciding kick, his "É campeão!" */
-    const miss = scored ? null : missed(play, taker);
     const called = new Promise<void>((done) => {
       if (scored) { sfx.roar(); narrate('goal', teams[taker], done, life.later, who.name); } else if (miss) { sfx.groan(); narrate(miss, teams[miss === 'save' ? other(taker) : taker], done, life.later); }
       else { sfx.wrong(); done(); }
