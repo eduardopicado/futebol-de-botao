@@ -40,17 +40,18 @@ export const LINE = 0.43;
     the goal can stay big enough to score in */
 export const MARKS = { box: [32, 7], penalty: [50, 18], spot: 12, arc: 8.5 } as const;
 /** a goleiro: a block this wide, standing from this far in front of its
-    line to this far, with its corners rounded as it is drawn (board.ts) */
-export interface Goleiro { w: number; y: readonly [number, number] }
-/** the rulebooks' goleiros: 3 Toques's 70 mm across and 15 thick (CBFM
-    2024, Art. 16), 1 Toque's 60 by 20 (CBFM 2010, Art. 4 § 1), each in a
-    goal about 150 mm wide. Both are drawn to the goal as the rulebooks have
-    them, and then at seven tenths of that: the ball here is twice the size
-    it is beside a real goal, and a goleiro to scale would leave too little
-    room to score in */
+    line to this far, and this tall (a chip higher goes over him), with its
+    corners rounded as it is drawn (board.ts) */
+export interface Goleiro { w: number; y: readonly [number, number]; h: number }
+/** the rulebooks' goleiros: 3 Toques's 70 mm across, 15 thick and 35
+    tall (CBFM 2024, Art. 16), 1 Toque's 60 by 20 and 38 tall (CBFM 2010,
+    Art. 4 § 1), each in a goal about 150 mm wide. Both are drawn to the
+    goal as the rulebooks have them, and then at seven tenths of that: the
+    ball here is twice the size it is beside a real goal, and a goleiro to
+    scale would leave too little room to score in */
 export const GOLEIROS = {
-  '3': { w: 7.4, y: [0.6, 2.2] },
-  '1': { w: 6.2, y: [0.6, 2.65] },
+  '3': { w: 7.4, y: [0.6, 2.2], h: 3.7 },
+  '1': { w: 6.2, y: [0.6, 2.65], h: 3.9 },
 } as const satisfies Record<'3' | '1', Goleiro>;
 export const KEEPER_RX = 0.5;
 /** the goleiros of a table: 3 Toques's unless it says */
@@ -61,7 +62,8 @@ export const keeperOut = (g: Goleiro): number => MARKS.box[1] - g.y[1];
 export const keeperSpan = (g: Goleiro): number => MARKS.box[0] / 2 - g.w / 2;
 const MID = (MOUTH[0] + MOUTH[1]) / 2;
 
-export interface Point { x: number; y: number }
+/** a place on the table; for the ball in the air, its height off the felt too */
+export interface Point { x: number; y: number; z?: number }
 
 /** everything on the table: the ball, the buttons of the side playing, the
     other side's, and where the goleiros stand (the middle of each block), if
@@ -81,7 +83,10 @@ export interface Table {
 }
 
 /** a flick: which button, and how fast it sets off, in table units a second */
-export interface Flick { button: number; vx: number; vy: number }
+/** a flick: which button, and how fast it sets off, in table units a
+    second; and with `lift` (0 to 1) a chip, the ball popped up off the felt
+    where the button meets it, the more the higher */
+export interface Flick { button: number; vx: number; vy: number; lift?: number }
 
 /** what the ball hit: one of ours, one of theirs (a block), their goleiro,
     our own (home), a post, the rim */
@@ -93,13 +98,16 @@ export type Bump = 'touch' | 'block' | 'keeper' | 'home' | 'post' | 'wall';
 export interface Bounce { frame: number; at: Point; normal: Point; into: Point; out: Point }
 
 export interface Shot {
-  /** every disc's place, sixty times a second: the ball, then ours, then theirs */
+  /** every disc's place, sixty times a second: the ball, then ours, then
+      theirs; the ball's with its height off the felt (z) while it is in the air */
   frames: Point[][];
   /** where everything stopped */
   end: Table;
   goal: boolean;
   /** the ball went into our own net, at the far end */
   own: boolean;
+  /** the ball went over the crossbar, of their goal at the top or ours at the bottom */
+  over: 'top' | 'bottom' | null;
   /** what the ball hit, in order, and when (a frame number); who is which button */
   bumps: { what: Bump; frame: number; who?: number }[];
   /** every time the ball came off the rim, for showing its angles */
@@ -126,7 +134,25 @@ const MASS = { button: 1, ball: 0.3 };
    heavier, thuds */
 const BOUNCE = { disc: 0.9, rim: 1, ball: 0.95, button: 0.5, net: 0.1 };
 
-interface Disc { x: number; y: number; vx: number; vy: number; r: number; m: number; ball: boolean }
+/* ── a ball in the air (a chip) ───────────────────────────────────────── */
+
+/** the crossbar's underside, off the felt: 6 cm on the 1 Toque rulebook's
+    15 cm goal, to our goal; the ball goes in under it */
+export const BAR = 8.8;
+/** how tall a button is: a ball higher than this passes over it */
+export const BUTTON_H = 1.2;
+/** how thick the ball is (it is a disc): its top is this above its bottom */
+export const THICK = 0.3;
+/** how fast the ball falls, in units a second, each second */
+const GRAVITY = 380;
+/** a full chip pops the ball up at this share of the speed it sets off with */
+const LIFT = 0.9;
+/** landing, it bounces up again at this share of the speed it came down
+    at, loses a little way, and settles once it comes down slower than LAND */
+const Z_BOUNCE = 0.35;
+const LAND = 30;
+
+interface Disc { x: number; y: number; vx: number; vy: number; r: number; m: number; ball: boolean; z: number; vz: number }
 
 const len = (x: number, y: number): number => Math.sqrt(x * x + y * y);
 
@@ -180,7 +206,8 @@ function offKeeper(d: Disc, g: Goleiro, keeper: number, bottom = false, out = 0)
 
 function slow(d: Disc): void {
   const s = len(d.vx, d.vy);
-  if (s === 0) return;
+  /* in the air, nothing slows it to speak of */
+  if (s === 0 || d.z > 0) return;
   const [steady, more] = d.ball ? SLOW.ball : SLOW.button;
   /* a net stops a ball quickly */
   const net = d.ball && (d.y < 0 || d.y > L) ? 8 : 1;
@@ -192,7 +219,7 @@ function slow(d: Disc): void {
 
 /** what a flick does: every disc moved until they all stop, or the ball is in the net */
 export function simulate(table: Table, flick: Flick): Shot {
-  const disc = (p: Point, ball: boolean): Disc => ({ x: p.x, y: p.y, vx: 0, vy: 0, r: ball ? BALL : R, m: ball ? MASS.ball : MASS.button, ball });
+  const disc = (p: Point, ball: boolean): Disc => ({ x: p.x, y: p.y, vx: 0, vy: 0, r: ball ? BALL : R, m: ball ? MASS.ball : MASS.button, ball, z: 0, vz: 0 });
   const discs = [disc(table.ball, true), ...table.us.map((p) => disc(p, false)), ...table.them.map((p) => disc(p, false))];
   const ours = table.us.length;
   const g = goleiroOf(table);
@@ -203,12 +230,14 @@ export function simulate(table: Table, flick: Flick): Shot {
   mover.vy = flick.vy * k;
 
   const ball = discs[0];
-  const snap = (): Point[] => discs.map((d) => ({ x: d.x, y: d.y }));
+  const lift = Math.min(1, Math.max(0, flick.lift ?? 0));
+  const snap = (): Point[] => discs.map((d) => (d.z > 0 ? { x: d.x, y: d.y, z: d.z } : { x: d.x, y: d.y }));
   const frames: Point[][] = [snap()];
   const bumps: Shot['bumps'] = [];
   const bounces: Bounce[] = [];
   let goal = false;
   let own = false;
+  let over: Shot['over'] = null;
   let touched = false;
   /* has any of ours touched the ball yet, and did one of ours knock one of
      theirs before that */
@@ -225,7 +254,36 @@ export function simulate(table: Table, flick: Flick): Shot {
   };
 
   for (let step = 1; step <= MAX_STEPS; step += 1) {
+    const wasY = ball.y;
     for (const d of discs) { d.x += d.vx * DT; d.y += d.vy * DT; }
+    /* up and down: it falls, and lands with a little bounce */
+    if (ball.z > 0 || ball.vz !== 0) {
+      ball.z += ball.vz * DT;
+      ball.vz -= GRAVITY * DT;
+      if (ball.z <= 0) {
+        ball.z = 0;
+        if (ball.vz < -LAND) {
+          ball.vz = -ball.vz * Z_BOUNCE;
+          ball.vx *= 0.85;
+          ball.vy *= 0.85;
+        } else ball.vz = 0;
+        /* over the bar, it is out where it lands */
+        if (over) { ball.vx = 0; ball.vy = 0; ball.vz = 0; }
+      }
+    }
+    /* the goal line, between the posts: under the bar (in, as before),
+       against it, or over it */
+    for (const [line, end] of [[0, 'top'], [L, 'bottom']] as const) {
+      const crossed = (wasY - line) * (ball.y - line) <= 0 && wasY !== ball.y;
+      if (!crossed || over || ball.x <= MOUTH[0] || ball.x >= MOUTH[1] || ball.z + THICK <= BAR - POST) continue;
+      if (ball.z < BAR + POST) {
+        /* off the crossbar, back out and down */
+        ball.y = line + (line === 0 ? 1 : -1) * 0.01;
+        ball.vy = -ball.vy * 0.5;
+        ball.vz = -Math.abs(ball.vz) * 0.3;
+        bump('post', step);
+      } else over = end;
+    }
     for (let i = 0; i < discs.length; i += 1) {
       for (let j = i + 1; j < discs.length; j += 1) {
         const a = discs[i];
@@ -234,6 +292,8 @@ export function simulate(table: Table, flick: Flick): Shot {
         const dy = b.y - a.y;
         const reach = a.r + b.r;
         if (dx * dx + dy * dy >= reach * reach) continue;
+        /* a ball in the air passes over the buttons, and over the bar it is gone */
+        if (i === 0 && (a.z > BUTTON_H || over)) continue;
         const dist = len(dx, dy) || 1e-9;
         const nx = dx / dist;
         const ny = dy / dist;
@@ -248,6 +308,14 @@ export function simulate(table: Table, flick: Flick): Shot {
         }
         if (i === 0) {
           if (j <= ours) { bump('touch', step, j - 1); reached = true; } else bump('block', step, j - 1 - ours);
+          /* a chip: where the flicked button first meets the ball, it pops up */
+          if (b === mover && !touched && lift > 0) {
+            const s = len(a.vx, a.vy);
+            a.vz = lift * LIFT * s;
+            a.z = 0.001;
+            a.vx *= 1 - 0.2 * lift;
+            a.vy *= 1 - 0.2 * lift;
+          }
           if (b === mover) touched = true;
         } else if (!reached && !foul && i <= ours && j > ours && rel < -1) {
           foul = { frame: Math.ceil(step / PER_FRAME), who: j - 1 - ours, at: { x: b.x, y: b.y } };
@@ -255,6 +323,8 @@ export function simulate(table: Table, flick: Flick): Shot {
       }
     }
     for (const d of discs) {
+      /* over the bar, it flies on out of the table */
+      if (d === ball && over) continue;
       const into = { x: d.vx, y: d.vy };
       const wall = offRim(d);
       if (wall && d === ball) {
@@ -264,17 +334,19 @@ export function simulate(table: Table, flick: Flick): Shot {
           bounces.push({ frame: Math.ceil(step / PER_FRAME), at: { x: d.x, y: d.y }, normal: wall, into, out: { x: d.vx, y: d.vy } });
         }
       }
-      for (const py of [0, L]) for (const px of MOUTH) if (offPoint(d, px, py, POST) && d === ball) bump('post', step);
-      if (table.keeper !== null && offKeeper(d, g, table.keeper, false, table.keeperOut) && d === ball) bump('keeper', step);
-      if (table.home !== undefined && table.home !== null && offKeeper(d, g, table.home, true, table.homeOut) && d === ball) bump('home', step);
+      /* the posts stand as high as the bar; a goleiro as high as he is */
+      if (d.z < BAR) for (const py of [0, L]) for (const px of MOUTH) if (offPoint(d, px, py, POST) && d === ball) bump('post', step);
+      const overHim = d.z > g.h;
+      if (!overHim && table.keeper !== null && offKeeper(d, g, table.keeper, false, table.keeperOut) && d === ball) bump('keeper', step);
+      if (!overHim && table.home !== undefined && table.home !== null && offKeeper(d, g, table.home, true, table.homeOut) && d === ball) bump('home', step);
       slow(d);
     }
     /* over the line: a goal, or one in our own net, and a moment more for
        it to hit the net */
-    if (ball.y + BALL < 0) goal = true;
-    if (ball.y - BALL > L) own = true;
-    if (goal || own) after += 1;
-    const done = after > 90 || discs.every((d) => d.vx === 0 && d.vy === 0);
+    if (!over && ball.y + BALL < 0) goal = true;
+    if (!over && ball.y - BALL > L) own = true;
+    if (goal || own || over) after += 1;
+    const done = after > 90 || discs.every((d) => d.vx === 0 && d.vy === 0 && d.z === 0 && d.vz === 0);
     if (step % PER_FRAME === 0 || done) frames.push(snap());
     if (done) break;
   }
@@ -284,6 +356,7 @@ export function simulate(table: Table, flick: Flick): Shot {
     end: { ball: at(ball), us: discs.slice(1, 1 + ours).map(at), them: discs.slice(1 + ours).map(at), keeper: table.keeper, ...(table.home === undefined ? {} : { home: table.home }), ...(table.keeperOut === undefined ? {} : { keeperOut: table.keeperOut }), ...(table.homeOut === undefined ? {} : { homeOut: table.homeOut }), ...(table.goleiro ? { goleiro: table.goleiro } : {}) },
     goal,
     own,
+    over,
     bumps,
     bounces,
     touched,

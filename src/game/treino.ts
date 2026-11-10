@@ -78,11 +78,15 @@ export function mount(root: HTMLElement): () => void {
   const pips = el('span', { class: 'bt-pips', role: 'img' });
   const touchesEl = el('p', { class: 'bt-touches' }, el('span', { text: 'Touches' }), pips);
   const showMe = el('button', { class: 'btn on-paper ghost small', type: 'button', text: '👀 Show me' }) as HTMLButtonElement;
+  /* practise chips: Cobertura armed for the next flick, its lift held for on the table (board.ts) */
+  let chipArmed = false;
+  const chipBtn = el('button', { class: 'btn small chip', type: 'button', 'aria-pressed': 'false', 'aria-label': '🌈 Cobertura' }, el('span', { text: '🌈' }), el('span', { class: 'chip-label', text: ' Cobertura' }));
+  const arm = (on: boolean): void => { chipArmed = on; chipBtn.setAttribute('aria-pressed', String(on)); };
   const board = makeBoard(life, 'The table: your buttons, the ball, and the goal at the top');
   const stage = el('div', { class: 'bt-stage' }, board.node);
   const node = el('div', { class: 'game', vars: SHAPE },
     el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, modeSwitch('treino'), touchesEl), score),
-    el('div', { class: 'bt-say', 'aria-live': 'polite' }, sayWords, el('span', { class: 'say-actions' }, showMe)), stage);
+    el('div', { class: 'bt-say', 'aria-live': 'polite' }, sayWords, el('span', { class: 'say-actions' }, chipBtn, showMe)), stage);
   root.append(node);
 
   const draw = (t: Table): void => board.draw(sceneOf(t), keepersOf(t));
@@ -158,10 +162,19 @@ export function mount(root: HTMLElement): () => void {
     board.drop();
     showMe.disabled = true;
     const shot = simulate(table, f);
+    arm(false);
     touches += 1;
     setPips(touches);
     await board.play(framesOf(table, shot), shot.bumps, keepersOf(table));
     table = { ...shot.end, keeper: keeperFor('middle', shot.end.ball) };
+    if (shot.over) {
+      sfx.groan();
+      narrate('over', us, () => undefined, life.later);
+      tell('Over the bar! Less lift next time. Here is a new one.');
+      await wait(PACE.newSetUp);
+      next();
+      return;
+    }
     if (shot.own) {
       tell('Own goal! That one went into your own net.');
       await wait(PACE.newSetUp);
@@ -209,6 +222,14 @@ export function mount(root: HTMLElement): () => void {
     side: () => (busy ? null : 'a'),
     guide: (_side, _index, f) => wayOf(table, f, false),
     flick: (_side, _index, f) => { if (!busy) void flick(f); },
+    chip: () => chipArmed,
+  });
+
+  chipBtn.addEventListener('click', () => {
+    if (busy) return;
+    sfx.tap();
+    arm(!chipArmed);
+    tell(chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : 'Three touches to score!', false);
   });
 
   next();

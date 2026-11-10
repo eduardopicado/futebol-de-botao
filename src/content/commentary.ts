@@ -24,6 +24,10 @@ export const ptGolacos = (team?: string): string[] =>
 /** a great goal, in English */
 export const enGolaco = (team?: string): string => (team ? `What a goal from ${team}!` : 'What a goal!');
 
+/** a chip over the crossbar, in Portuguese and in English */
+export const PT_OVER = ['Por cima!', 'Isolou!', 'Por cima do gol!'];
+export const EN_OVER = ['Over the bar!', 'Just over!', 'Over the top!'];
+
 /** a shot about to be taken (the goleiro placed, Pronto), in Portuguese and in English */
 export const PT_SHOTS = ['Lá vem ele!', 'Vai chutar!', 'Ajeitou pro chute!'];
 export const EN_SHOTS = ['Here he comes!', 'He lines it up!', 'Here comes the shot!'];

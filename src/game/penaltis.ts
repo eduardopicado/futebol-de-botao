@@ -73,6 +73,9 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     sayEl, stage);
   root.append(node);
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
+  /* a chip for the kick (Cobertura): armed here, its lift held for on the table (board.ts) */
+  let chipArmed = false;
+  const chipBtn = el('button', { class: 'btn small chip', type: 'button', 'aria-pressed': 'false', 'aria-label': '🌈 Cobertura' }, el('span', { text: '🌈' }), el('span', { class: 'chip-label', text: ' Cobertura' }));
 
   let s: Shootout = newShootout('a');
   let m: Match = penaltyFor('a');
@@ -136,7 +139,11 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
       return;
     }
     if (placing) tell(`${lead}${kick} for ${name(m.turn)}. ${name(defender())}: slide your goleiro along the line, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
-    else tell(`${lead}${name(m.turn)}: take your penalty! One flick.`, m.turn);
+    else {
+      chipBtn.setAttribute('aria-pressed', String(chipArmed));
+      const how = chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : 'take your penalty! One flick.';
+      tell(`${lead}${name(m.turn)}: ${how}`, m.turn, ...(m.turn !== cpu && !busy ? [chipBtn] : []));
+    }
   }
 
   prontoBtn.addEventListener('click', () => {
@@ -148,7 +155,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   });
 
   /** the flick: a goal or not, the kick counted, then the next kick or the winner */
-  async function shoot(index: number, vx: number, vy: number, byComputer = false): Promise<void> {
+  async function shoot(index: number, vx: number, vy: number, byComputer = false, lift = 0): Promise<void> {
     if ((busy && !byComputer) || m.phase !== 'penalty' || !mayFlick(m, index)) return;
     busy = true;
     board.drop();
@@ -156,9 +163,11 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     actions.replaceChildren();
     const taker = m.turn;
     const who = takerOf(teams[taker], shootoutTaken(s, taker));
-    const play = flick(m, index, vx, vy);
+    const play = flick(m, index, vx, vy, lift);
+    chipArmed = false;
     const scored = scoredFrom(play, taker);
-    const miss = scored ? null : missed(play, taker);
+    /* a chip over the bar is a miss of its own */
+    const miss = scored ? null : play.event.kind === 'over' ? 'over' : missed(play, taker);
     /* a goal or a near miss is slowed right down as the ball gets there */
     await board.play(play.frames, play.bumps, keepersOf(m), [], 1, scored || miss ? moment(play) : null);
     if (scored) celebrate(stage, teams[taker], life);
@@ -174,7 +183,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     });
     const by = who.name || `Number ${who.n}`;
     const said = scored ? `GOL! ${by} scores for ${name(taker)}.` : saved ? `Saved by ${name(other(taker))}!`
-      : `${miss === 'post' ? 'Off the post! ' : ''}${onTheLine(play.frames.at(-1)!.ball) ? `${ON_THE_LINE} ` : ''}${by} misses for ${name(taker)}!`;
+      : `${miss === 'post' ? 'Off the post! ' : miss === 'over' ? 'Over the bar! ' : ''}${onTheLine(play.frames.at(-1)!.ball) ? `${ON_THE_LINE} ` : ''}${by} misses for ${name(taker)}!`;
     tell(said, 'a');
     if (!s.winner) void called.then(() => speak(said));
     await wait(PACE.kick);
@@ -221,7 +230,15 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   board.listen({
     side: () => (busy || m.phase !== 'penalty' || m.turn === cpu ? null : m.turn),
     may: (_side, index) => mayFlick(m, index),
-    flick: (_side, index, f) => { void shoot(index, f.vx, f.vy); },
+    flick: (_side, index, f) => { void shoot(index, f.vx, f.vy, false, f.lift ?? 0); },
+    chip: () => chipArmed && m.phase === 'penalty',
+  });
+
+  chipBtn.addEventListener('click', () => {
+    if (busy || m.phase !== 'penalty') return;
+    sfx.tap();
+    chipArmed = !chipArmed;
+    render();
   });
 
   /* ── the toss, and the end ──────────────────────────────────────────── */

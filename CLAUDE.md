@@ -21,6 +21,9 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
   240 steps a second, so a flick does exactly the same thing on every device
   and in the tests. Keep it that way: replays, the computer opponent and the
   tests depend on it. No `Math.sin`, `atan2` or randomness inside `simulate`.
+  A chip (a flick's `lift`, Cobertura) gives the ball a height: it flies
+  over buttons and a goleiro, in under the crossbar, off it or over it; with
+  no lift a flick is exactly what it was.
 - The pull counts from where the finger lands, not from the middle of the
   button; under 1.5 units of movement is no flick. A `pointercancel` drops the
   drag, and a finger still down when a shot starts is no flick.
@@ -90,8 +93,10 @@ In a cloud session whose Playwright browser does not match the installed
 src/content/botao.ts      the table, the physics of a flick, the three-touch rule,
                           the goleiro (each rulebook's shape, at seven tenths of
                           its size so goals still come; on its line, or off it
-                          at 1 Toque), and the planner (aimAt, oneTouch,
-                          passPlan, robust) that finds a way to score
+                          at 1 Toque), a chip's flight (over buttons and the
+                          goleiro, under or over the crossbar), and the planner
+                          (aimAt, oneTouch, passPlan, robust) that finds a way
+                          to score
 src/content/match.ts      a match: turns (three free touches, or one at 1 Toque),
                           "Pro gol!" and the goleiro, fouls and penalties, the
                           parked ball (1 Toque), kick-off, buttons in a net,
@@ -109,7 +114,8 @@ src/content/guide.ts      How to play: the steps, for the rule chosen, each with
 src/content/commentary.ts what the commentator shouts, both languages
 src/game/table.ts         the table drawn: tray, felt, lines, goals, buttons
 src/game/board.ts         the table on the screen, shared: both sides, both
-                          goleiros, a flick played out, the finger
+                          goleiros, a flick played out (a chip's ball rising off
+                          its shadow), the finger (and a chip's lift, held for)
 src/game/partida.ts       a match on the screen, two players or one against the
                           computer (a round of the Copa too): the toss, the note
                           that turns to face whoever has to act, "Pro gol!" and

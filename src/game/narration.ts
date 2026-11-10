@@ -15,13 +15,13 @@ import { canSpeak, say } from '../lib/speech';
 import { hasClip } from '../lib/audio';
 import { read, write } from '../lib/storage';
 import {
-  EN_CLOSE, EN_DANGER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_DANGER, PT_OWN_GOALS, PT_POSTS,
-  PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, ptGoals, ptGolacos,
+  EN_CLOSE, EN_DANGER, EN_OVER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_DANGER, PT_OVER, PT_OWN_GOALS,
+  PT_POSTS, PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, ptGoals, ptGolacos,
 } from '../content/commentary';
 import { real, type Team } from './teams';
 
 export type Narration = 'pt' | 'en' | 'off';
-export type Moment = 'goal' | 'golaco' | 'save' | 'champion' | 'post' | 'close' | 'own-goal' | 'shot' | 'danger';
+export type Moment = 'goal' | 'golaco' | 'save' | 'champion' | 'post' | 'close' | 'over' | 'own-goal' | 'shot' | 'danger';
 
 const KEY = 'football-narration';
 const PT = 'pt-BR';
@@ -37,6 +37,7 @@ const SAME: Record<Exclude<Moment, 'goal' | 'golaco' | 'champion'>, { pt: string
   save: { pt: PT_SAVES, en: EN_SAVES },
   post: { pt: PT_POSTS, en: EN_POSTS },
   close: { pt: PT_CLOSE, en: EN_CLOSE },
+  over: { pt: PT_OVER, en: EN_OVER },
   'own-goal': { pt: PT_OWN_GOALS, en: EN_OWN_GOALS },
   shot: { pt: PT_SHOTS, en: EN_SHOTS },
   danger: { pt: PT_DANGER, en: EN_DANGER },

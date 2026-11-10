@@ -107,6 +107,11 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
 
   /* the call players forget most: loud on the note, its 📣 shaking (app.css) */
   const callBtn = el('button', { class: 'btn small call', type: 'button' }, el('span', { class: 'horn', text: '📣' }), ' Pro gol!');
+  /* a chip for the shot (Cobertura): armed here, its lift held for on the table (board.ts) */
+  let chipArmed = false;
+  const chipBtn = el('button', { class: 'btn small chip', type: 'button', 'aria-pressed': 'false', 'aria-label': '🌈 Cobertura' }, el('span', { text: '🌈' }), el('span', { class: 'chip-label', text: ' Cobertura' }));
+  /** the note's words for a shot: as ever, or how to lift it once Cobertura is armed */
+  const shotWords = (what: string): string => (chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : what);
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 
   /** a new match: to the goals the settings chose, or a Copa tie's against the clock */
@@ -198,11 +203,12 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         tell(`${lead}${m.penalty ? `Penalty to ${t}! ` : 'Pro gol! '}${name(defender())}: ${m.rule === '1' ? 'move your goleiro anywhere in the small area, or back into the goal' : 'slide your goleiro along the line'}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
         break;
       case 'shot':
-        tell(`${lead}${t}: take your shot!`, m.turn);
+      case 'penalty': {
+        chipBtn.setAttribute('aria-pressed', String(chipArmed));
+        const mine = m.turn !== cpu && !busy;
+        tell(`${lead}${t}: ${shotWords(m.phase === 'shot' ? 'take your shot!' : 'take the penalty! One flick.')}`, m.turn, ...(mine ? [chipBtn] : []));
         break;
-      case 'penalty':
-        tell(`${lead}${t}: take the penalty! One flick.`, m.turn);
-        break;
+      }
       case 'over':
         break;
     }
@@ -287,6 +293,12 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       case 'champion':
         champion(event.side);
         return;
+      case 'over': {
+        /* a chip too high: the commentator, and the goal kick */
+        render(`Over the bar! Goal kick to ${name(other(event.side))}.`);
+        await wait(PACE.noGoal);
+        return;
+      }
       case 'uncalled': {
         sfx.whistle();
         const why = event.couldCall ? 'No goal: the shot was not called. Call "Pro gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
@@ -332,7 +344,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   /** a ball stopped across a goal line looks in and is not: say so */
   const lineWords = (): string => (onTheLine(m.ball) ? `${ON_THE_LINE} ` : '');
 
-  async function shoot(side: Side, index: number, vx: number, vy: number, byComputer = false): Promise<void> {
+  async function shoot(side: Side, index: number, vx: number, vy: number, byComputer = false, lift = 0): Promise<void> {
     if ((busy && !byComputer) || side !== m.turn || !mayFlick(m, index)) return;
     busy = true;
     board.drop();
@@ -340,7 +352,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     actions.replaceChildren();
     const called = m.phase === 'shot' || m.phase === 'penalty';
     const before = m;
-    const play = flick(m, index, vx, vy);
+    const play = flick(m, index, vx, vy, lift);
+    chipArmed = false;
     if (before.turnNo !== moveTurn) { move = []; moveTurn = before.turnNo; }
     move.push({ frames: play.frames, bumps: play.bumps, keepers: keepersOf(before), benched: benchedOf(before) });
     if (play.event.kind === 'goal' || play.event.kind === 'champion') {
@@ -351,7 +364,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     /* a called shot that did not go in: saved, off the post, or close */
     const miss = called ? missed(play, before.turn) : null;
     /* a goal or a near miss is slowed right down as the ball gets there */
-    const big = play.event.kind === 'goal' || play.event.kind === 'champion' || miss !== null;
+    const big = play.event.kind === 'goal' || play.event.kind === 'champion' || play.event.kind === 'over' || miss !== null;
     await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before), 1, big ? moment(play) : null);
     m = play.next;
     node.dataset.event = play.event.kind;
@@ -359,6 +372,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     if (miss) {
       sfx.groan();
       narrate(miss, teams[miss === 'save' ? other(before.turn) : before.turn], () => undefined, life.later);
+    } else if (play.event.kind === 'over') {
+      sfx.groan();
+      narrate('over', teams[before.turn], () => undefined, life.later);
     }
     /* a flick that leaves the ball in their area, from outside it, and play goes on */
     if (!called && (play.event.kind === 'on' || play.event.kind === 'turn') && inTheirArea(m.ball, before.turn) && !inTheirArea(before.ball, before.turn)) {
@@ -462,7 +478,15 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       words.textContent = 'At the kick-off, the second flick is by another button.';
       return false;
     },
-    flick: (side, index, f) => { void shoot(side, index, f.vx, f.vy); },
+    flick: (side, index, f) => { void shoot(side, index, f.vx, f.vy, false, f.lift ?? 0); },
+    chip: () => chipArmed && (m.phase === 'shot' || m.phase === 'penalty'),
+  });
+
+  chipBtn.addEventListener('click', () => {
+    if (busy || (m.phase !== 'shot' && m.phase !== 'penalty')) return;
+    sfx.tap();
+    chipArmed = !chipArmed;
+    render();
   });
 
   /* ── the toss, and the end ──────────────────────────────────────────── */

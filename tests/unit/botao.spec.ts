@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  BALL, GOLEIROS, KEEPER_RX, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, TRAY, TRAY_AT, W,
+  BALL, BAR, BUTTON_H, GOLEIROS, KEEPER_RX, L, MARKS, MAX_SPEED, MOUTH, NET, POST, PULL, R, THICK, TRAY, TRAY_AT, W,
   angles, flickFor, keeperFor, keeperOut, nearGoal, oneTouch, passPlan, robust, shownBounce, simulate, slant,
   type Point, type Table,
 } from '../../src/content/botao';
@@ -230,6 +230,70 @@ describe('the table', () => {
     /* in table units: the rim at the bottom as deep as at the top, and the right as wide as the left */
     expect(TRAY_AT.y + TRAY_AT.h - L).toBeCloseTo(-TRAY_AT.y, 6);
     expect(TRAY_AT.x + TRAY_AT.w - W).toBeCloseTo(-TRAY_AT.x, 6);
+  });
+});
+
+describe('a chip', () => {
+  const g = GOLEIROS['3'];
+  /** straight at the goal from `dist` out, its goleiro in the middle, at this speed and lift */
+  const chip = (dist: number, speed: number, lift: number, them: Point[] = []) => simulate(
+    table({ x: MID, y: dist }, [{ x: MID, y: dist + R + BALL + 2 }], { keeper: MID, goleiro: g, them }),
+    { button: 0, vx: 0, vy: -speed, lift },
+  );
+  const hit = (s: ReturnType<typeof chip>, what: string): boolean => s.bumps.some((b) => b.what === what);
+
+  it('no lift is the flick it always was, to the last frame', () => {
+    const t = table({ x: 30, y: 30 }, [{ x: 34, y: 42 }], { keeper: 32, them: [{ x: 20, y: 20 }] });
+    const f = { button: 0, vx: -20, vy: -90 };
+    expect(simulate(t, { ...f, lift: 0 })).toEqual(simulate(t, f));
+    expect(simulate(t, f).frames.every((fr) => fr[0].z === undefined)).toBe(true);
+  });
+
+  it('flies over a goleiro straight in its way and in under the bar, where the same flick low is saved', () => {
+    const low = chip(22, 80, 0);
+    expect(low.goal).toBe(false);
+    expect(hit(low, 'keeper')).toBe(true);
+    const high = chip(22, 80, 0.75);
+    expect(high.goal).toBe(true);
+    expect(hit(high, 'keeper')).toBe(false);
+    /* in the air on the way: higher than the goleiro as it passes him, lower than the bar as it goes in */
+    const heights = high.frames.map((f) => f[0].z ?? 0);
+    expect(Math.max(...heights)).toBeGreaterThan(g.h);
+    const crossing = high.frames.find((f) => f[0].y < 0)!;
+    expect((crossing[0].z ?? 0) + THICK).toBeLessThan(BAR);
+  });
+
+  it('too high goes over the bar: no goal, and the ball is out behind the goal', () => {
+    const over = chip(22, 100, 1);
+    expect(over.goal).toBe(false);
+    expect(over.over).toBe('top');
+    expect(over.end.ball.y).toBeLessThan(0);
+    expect(chip(22, 80, 0.75).over).toBeNull();
+  });
+
+  it('a little too high hits the crossbar and comes back out', () => {
+    const bar = chip(16, 100, 0.75);
+    expect(bar.goal).toBe(false);
+    expect(bar.over).toBeNull();
+    /* the bar, not a post: in the middle of the goal */
+    const at = bar.bumps.find((b) => b.what === 'post')!;
+    expect(Math.abs(bar.frames[at.frame][0].x - MID)).toBeLessThan(3);
+    expect(bar.end.ball.y).toBeGreaterThan(0);
+  });
+
+  it('flies over a defender in its way that stops it along the felt, and lands and rolls', () => {
+    const wall = [{ x: MID, y: 12 }];
+    expect(hit(chip(28, 80, 0, wall), 'block')).toBe(true);
+    const over = chip(28, 80, 0.75, wall);
+    expect(hit(over, 'block')).toBe(false);
+    /* up, and down again on the felt: a frame in the air, and the last one on the felt */
+    expect(over.frames.some((f) => (f[0].z ?? 0) > BUTTON_H)).toBe(true);
+    expect(over.frames.at(-1)![0].z).toBeUndefined();
+  });
+
+  it('a 1 Toque goleiro is a little taller to get over', () => {
+    expect(GOLEIROS['1'].h).toBeGreaterThan(GOLEIROS['3'].h);
+    for (const k of Object.values(GOLEIROS)) expect(k.h).toBeLessThan(BAR);
   });
 });
 
