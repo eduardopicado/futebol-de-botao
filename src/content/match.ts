@@ -94,6 +94,24 @@ export type Phase =
   | 'penalty'
   | 'over';
 
+/**
+ * A match against the clock (the Copa's) instead of to a number of goals:
+ * each half is `turns` turns a side, extra time's two halves `extra` a side
+ * if it is level at full time, and penalties if it is level after them. A
+ * half ends once its turns have been played (the turn a goal ended counts),
+ * never in the middle of a turn or of a penalty.
+ */
+export interface Clock {
+  turns: number;
+  extra: number;
+  /** 1 and 2, then 3 and 4 in extra time */
+  half: 1 | 2 | 3 | 4;
+  /** the match's turnNo when this half kicked off */
+  start: number;
+  /** who kicked off the match: the other side kicks off the second half of each pair */
+  first: Side;
+}
+
 /** a button out of play: whose, which, the net it went into and where across (x), and the turn it went in */
 export interface Out { side: Side; index: number; net: 'top' | 'bottom'; at: number; since: number }
 
@@ -126,6 +144,8 @@ export interface Match {
   /** the turn started with the ball in its attacking half, so it may call a shot */
   attack: boolean;
   winner: Side | null;
+  /** against the clock, or null to `goals` */
+  clock: Clock | null;
 }
 
 /** what a flick led to, for the words above the table */
@@ -218,14 +238,57 @@ function lineUp(m: Match, side: Side): void {
   m.attack = false;
 }
 
-export function newMatch(goals: number, first: Side, size = BUTTONS, rule: Rule = RULES[0]): Match {
+/** a new match: to `goals`, or against a clock of halves this many turns a side long */
+export function newMatch(goals: number, first: Side, size = BUTTONS, rule: Rule = RULES[0], clock?: { turns: number; extra: number }): Match {
   const m: Match = {
     ball: { ...MIDDLE }, a: [], b: [], keepers: { a: W / 2, b: W / 2 }, keepersOut: { a: 0, b: 0 }, out: [],
     score: { a: 0, b: 0 }, goals, size, rule, turn: first, turnNo: 0, phase: 'kickoff', penalty: false,
-    touches: 0, used: [], attack: false, winner: null,
+    touches: 0, used: [], attack: false, winner: null, clock: null,
   };
   lineUp(m, first);
+  if (clock) m.clock = { ...clock, half: 1, start: m.turnNo, first };
   return m;
+}
+
+/* ── the clock ─────────────────────────────────────────────────────────── */
+
+/** how many turns this half lasts, both sides together */
+const halfTurns = (c: Clock): number => 2 * (c.half <= 2 ? c.turns : c.extra);
+
+/** turns left in this half, both sides together; Infinity with no clock */
+export const turnsLeft = (m: Match): number =>
+  (m.clock ? Math.max(0, halfTurns(m.clock) - (m.turnNo - m.clock.start)) : Number.POSITIVE_INFINITY);
+
+/** what the referee's whistle means: the next half kicks off (2 after half
+    time, 3 to start extra time, 4 after its half time), with `side`; or
+    full time, won, or level after extra time for penalties (no winner) */
+export type Whistle =
+  | { kind: 'half'; half: 2 | 3 | 4; side: Side }
+  | { kind: 'full-time'; winner: Side | null };
+
+/**
+ * The referee's watch, asked after each flick: is the half over? Only
+ * between turns, and not with a penalty to take. The next half kicks off
+ * from the middle; full time is won, or goes to extra time if level after
+ * the second half, or to penalties (no winner) if level after the fourth.
+ */
+export function timeUp(m: Match): { next: Match; whistle: Whistle } | null {
+  const c = m.clock;
+  if (!c || m.phase === 'over' || m.touches > 0 || (m.phase !== 'play' && m.phase !== 'kickoff') || turnsLeft(m) > 0) return null;
+  const next: Match = { ...m, score: { ...m.score }, keepers: { ...m.keepers }, keepersOut: { ...m.keepersOut }, out: [...m.out], used: [...m.used] };
+  const level = m.score.a === m.score.b;
+  const lead: Side = m.score.a > m.score.b ? 'a' : 'b';
+  if (c.half === 1 || c.half === 3 || (c.half === 2 && level)) {
+    const half = (c.half + 1) as 2 | 3 | 4;
+    /* the side that kicked off the match starts the first half of each pair */
+    const side = half === 3 ? c.first : other(c.first);
+    lineUp(next, side);
+    next.clock = { ...c, half, start: next.turnNo };
+    return { next, whistle: { kind: 'half', half, side } };
+  }
+  next.phase = 'over';
+  next.winner = level ? null : lead;
+  return { next, whistle: { kind: 'full-time', winner: next.winner } };
 }
 
 /* ── 1 Toque: no parking the ball ──────────────────────────────────────── */
@@ -508,7 +571,7 @@ export function flick(m: Match, button: number, vx: number, vy: number): Play {
   if (shot.own || (shot.goal && called)) {
     const scorer = shot.own ? you : me;
     next.score[scorer] += 1;
-    if (next.score[scorer] >= m.goals) {
+    if (!next.clock && next.score[scorer] >= m.goals) {
       next.phase = 'over';
       next.winner = scorer;
       return result({ kind: 'champion', side: scorer, own: shot.own });

@@ -63,6 +63,39 @@ describe('the Copa', () => {
     expect(cupsWon()).toBe(1);
   });
 
+  it('level after extra time is settled on penalties: won on them goes through, lost on them goes out, and the shootout is kept', async () => {
+    const { newCup, recordResult, stageOf, cupNow, won, teamById } = await load();
+    const c = newCup(teamById('brazil')!, seeded(3));
+    expect(won({ us: 1, them: 1, pens: { us: 4, them: 3 } })).toBe(true);
+    expect(won({ us: 1, them: 1, pens: { us: 3, them: 4 } })).toBe(false);
+    expect(won({ us: 1, them: 1 })).toBe(false);
+    const through = recordResult(c, { us: 2, them: 2, pens: { us: 5, them: 4 } });
+    expect(stageOf(through)).toBe('playing');
+    expect(cupNow()!.results).toEqual([{ us: 2, them: 2, pens: { us: 5, them: 4 } }]);
+    const out = recordResult(through, { us: 0, them: 0, pens: { us: 2, them: 3 } });
+    expect(stageOf(out)).toBe('out');
+  });
+
+  it('a tie level after extra time waits for its penalties, for this cup and round only, until they are played', async () => {
+    const { newCup, recordResult, levelAfterExtraTime, waitingForPenalties, noPenaltiesWaiting, teamById } = await load();
+    const c = newCup(teamById('brazil')!, seeded(5));
+    expect(waitingForPenalties()).toBeNull();
+    levelAfterExtraTime(c, { us: 1, them: 1 });
+    expect(waitingForPenalties()).toEqual({ us: 1, them: 1 });
+    noPenaltiesWaiting();
+    expect(waitingForPenalties()).toBeNull();
+    /* one saved for a round since played is no longer waiting */
+    levelAfterExtraTime(c, { us: 1, them: 1 });
+    recordResult(c, { us: 1, them: 1, pens: { us: 3, them: 1 } });
+    expect(waitingForPenalties()).toBeNull();
+  });
+
+  it('a saved shootout that is not one is no result', async () => {
+    const saved = (pens: unknown) => ({ cup: { team: 'brazil', opponents: ['france', 'germany', 'italy'], results: [{ us: 1, them: 1, pens }] } });
+    expect((await load(saved({ us: 3, them: 2 }))).cupNow()!.results).toEqual([{ us: 1, them: 1, pens: { us: 3, them: 2 } }]);
+    expect((await load(saved({ us: 'x', them: 2 }))).cupNow()).toBeNull();
+  });
+
   it('a defeat puts you out, and nothing after it counts', async () => {
     const { newCup, recordResult, stageOf, teamById, cupsWon, cupNow } = await load();
     const first = recordResult(newCup(teamById('flamengo')!, seeded(3)), { us: 3, them: 2 });

@@ -95,9 +95,11 @@ src/content/botao.ts      the table, the physics of a flick, the three-touch rul
 src/content/match.ts      a match: turns (three free touches, or one at 1 Toque),
                           "Pro gol!" and the goleiro, fouls and penalties, the
                           parked ball (1 Toque), kick-off, buttons in a net,
-                          winning; a penalty shootout; and what a shot that
-                          missed was (saved, off the post, close), for the
-                          commentator
+                          winning, or the clock (halves, extra time, then
+                          penalties, for the Copa); a penalty shootout; and
+                          what a shot that missed was (saved, off the post,
+                          close), its moment for slow motion, and the
+                          commentator's other moments
 src/content/computer.ts   the computer: its moves, when it calls "Pro gol!", where it
                           stands its goleiro (a guess, in a shootout), and how far
                           off it is at each level
@@ -113,10 +115,11 @@ src/game/partida.ts       a match on the screen, two players or one against the
                           that turns to face whoever has to act, "Pro gol!" and
                           Pronto, the goal replayed, full time
 src/game/cup.ts           the Copa: three opponents drawn, a level for each round,
-                          the results kept, the cups won
+                          ties against the clock (penalties if still level), the
+                          results kept, the cups won
 src/game/copa.ts          the Copa's page: the rounds, the next match, the trophy
 src/game/penaltis.ts      Pênaltis: a penalty shootout, two players or one
-                          against the computer
+                          against the computer, or a Copa tie's penalties
 src/game/treino.ts        Treino: three touches, free shooting, Show me
 src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
 src/game/guide.ts         How to play: the steps to tap through, each demo played
@@ -139,6 +142,8 @@ src/game/squads.ts        the players: each real team's six (men's squads, Octob
                           2026), numbers and names, changed by anyone on the device
 src/game/narration.ts     the commentator ("Goooool do Brasil!", "Na trave!")
 src/game/confetti.ts      confetti in the winners' colours, over a win
+src/game/moment.ts        a goal felt: a flash, the table shaking, GOOOL! in the
+                          scorer's colours
 src/game/pace.ts          how long the game waits between things, in one place
 src/lib/                  speech, sfx, audio (the commentator's recorded lines),
                           storage, crests, life, router, dom, update (the

@@ -1,12 +1,14 @@
 /* The Copa: a cup for one player against the computer.
  *
  * Pick a team, and three opponents are drawn: a quarter-final on easy, a
- * semi-final on medium, the final on hard. Win to go through; lose and the
- * cup is over. A cup in progress is kept on this device, so it can be
- * finished another day, and so is the number of cups won. Each tie is an
- * ordinary match (partida.ts), to the goals, rule and buttons the settings
- * chose; a match left before full time does not count, and is played again.
- * Winning the cup is celebrated once, when the final is won. */
+ * semi-final on medium, the final on hard (at night, under floodlights).
+ * Win to go through; lose and the cup is over. A cup in progress is kept on
+ * this device, so it can be finished another day, and so is the number of
+ * cups won. Each tie is a match (partida.ts) to the rule and buttons the
+ * settings chose, against the clock (CUP_CLOCK) rather than to a number of
+ * goals: level at full time, extra time; still level, penalties
+ * (penaltis.ts). A match left before full time does not count, and is
+ * played again. Winning the cup is celebrated once, when the final is won. */
 
 import { read, write } from '../lib/storage';
 import type { Level } from '../content/computer';
@@ -18,7 +20,14 @@ export const ROUNDS: readonly { name: string; level: Level }[] = [
   { name: 'Final', level: 'hard' },
 ];
 
-export interface Result { us: number; them: number }
+/** a tie's score, and the shootout's when it went to penalties */
+export interface Result { us: number; them: number; pens?: { us: number; them: number } }
+
+/** a Copa tie: halves of 8 turns a side; extra time, 3 a side each half */
+export const CUP_CLOCK = { turns: 8, extra: 3 } as const;
+
+/** did we win this tie: ahead, or level and ahead on penalties */
+export const won = (r: Result): boolean => r.us > r.them || (r.us === r.them && !!r.pens && r.pens.us > r.pens.them);
 export interface Cup {
   /** your team, and the three drawn against it, round by round (team ids) */
   team: string;
@@ -37,10 +46,12 @@ let held: Cup | null = null;
 /* the final was won just now: the Copa's page celebrates it once, not on every visit */
 let fresh = false;
 
-const isResult = (r: unknown): r is Result =>
+const isScore = (r: unknown): r is { us: number; them: number } =>
   !!r && typeof r === 'object' && Number.isInteger((r as Result).us) && Number.isInteger((r as Result).them);
+const isResult = (r: unknown): r is Result => isScore(r) && ((r as Result).pens === undefined || isScore((r as Result).pens));
 
-const copy = (c: Cup): Cup => ({ team: c.team, opponents: [...c.opponents], results: c.results.map((r) => ({ us: r.us, them: r.them })) });
+const copyResult = (r: Result): Result => ({ us: r.us, them: r.them, ...(r.pens ? { pens: { us: r.pens.us, them: r.pens.them } } : {}) });
+const copy = (c: Cup): Cup => ({ team: c.team, opponents: [...c.opponents], results: c.results.map(copyResult) });
 
 const keep = (c: Cup): void => {
   held = copy(c);
@@ -58,7 +69,7 @@ export function cupNow(): Cup | null {
 
 /** still in it, won the final, or knocked out */
 export function stageOf(c: Cup): Stage {
-  if (c.results.some((r) => r.us <= r.them)) return 'out';
+  if (c.results.some((r) => !won(r))) return 'out';
   return c.results.length === ROUNDS.length ? 'won' : 'playing';
 }
 
@@ -95,7 +106,7 @@ const same = (c: Cup, d: Cup): boolean =>
 export function recordResult(played: Cup, result: Result): Cup {
   const c = copy(played);
   if (stageOf(c) !== 'playing') return c;
-  c.results.push({ us: result.us, them: result.them });
+  c.results.push(copyResult(result));
   const now = cupNow();
   if (now && !same(now, played)) return c;
   keep(c);
@@ -105,6 +116,26 @@ export function recordResult(played: Cup, result: Result): Cup {
   }
   return c;
 }
+
+const PENS = 'cup-penalties';
+
+/** a tie level after extra time, waiting for its penalties (penaltis.ts):
+    the cup's team and round, and the score */
+export function levelAfterExtraTime(c: Cup, score: { us: number; them: number }): void {
+  write(PENS, { team: c.team, round: c.results.length, us: score.us, them: score.them });
+}
+
+/** the score of this cup's tie that is waiting for its penalties, if one is */
+export function waitingForPenalties(): { us: number; them: number } | null {
+  const p = read<{ team?: unknown; round?: unknown; us?: unknown; them?: unknown } | null>(PENS, null);
+  const c = cupNow();
+  if (!p || typeof p !== 'object' || !c || stageOf(c) !== 'playing') return null;
+  if (p.team !== c.team || p.round !== c.results.length || !isScore(p) || p.us !== p.them) return null;
+  return { us: p.us, them: p.them };
+}
+
+/** no tie is waiting for penalties: a tie's match has started again, or its shootout is over */
+export const noPenaltiesWaiting = (): void => write(PENS, null);
 
 /** what full time shouts, for how the cup stands after the tie */
 export function cupShout(c: Cup): string {

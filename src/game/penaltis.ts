@@ -27,6 +27,7 @@ import { confetti } from './confetti';
 import { narrate } from './narration';
 import { celebrate } from './moment';
 import { PACE } from './pace';
+import { cupShout, noPenaltiesWaiting, recordResult, tieNow, waitingForPenalties } from './cup';
 import { takerOf } from './squads';
 import { kit, label, ourTeam, rivalFor, type Team } from './teams';
 
@@ -34,18 +35,30 @@ import { kit, label, ourTeam, rivalFor, type Team } from './teams';
 export const mount = (root: HTMLElement): (() => void) => shootout(root, false);
 /** one player, against the computer */
 export const mountComputer = (root: HTMLElement): (() => void) => shootout(root, true);
+/** the penalties of a Copa tie still level after extra time (cup.ts):
+    against the round's opponent, as hard as the round, the result kept */
+export const mountCup = (root: HTMLElement): (() => void) => shootout(root, true, true);
 
-function shootout(root: HTMLElement, computer: boolean): () => void {
+function shootout(root: HTMLElement, computer: boolean, forCup = false): () => void {
   const life = lifetime();
+  /* in the Copa, the tie waiting for its penalties; with none, back to the Copa's page */
+  const tie = forCup ? tieNow() : null;
+  const level0 = forCup ? waitingForPenalties() : null;
+  if (forCup && (!tie || !level0)) {
+    go('copa');
+    return () => life.end();
+  }
   const cpu: Side | null = computer ? COMPUTER : null;
-  const level = computerLevel();
+  const level = tie ? tie.level : computerLevel();
   const wait = (ms: number): Promise<void> => new Promise((done) => { life.later(done, ms); });
-  const a = ourTeam();
-  const teams: Record<Side, Team> = { a, b: rivalFor(a) };
+  const a = tie ? tie.us : ourTeam();
+  const teams: Record<Side, Team> = { a, b: tie ? tie.them : rivalFor(a) };
   const name = (s: Side): string => label(teams[s], true);
+  /* the final's penalties, still under the floodlights */
+  document.body.classList.toggle('night', tie?.name === 'Final');
 
-  const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Back to the start', text: '←' });
-  back.addEventListener('click', () => go('home'));
+  const back = el('button', { class: 'icon-btn', type: 'button', 'aria-label': tie ? 'Back to the Copa' : 'Back to the start', text: '←' });
+  back.addEventListener('click', () => go(tie ? 'copa' : 'home'));
   const scoreEl = el('p', { class: 'score match-score', 'aria-live': 'polite' });
   const words = el('span', { class: 'say-words' });
   const actions = el('span', { class: 'say-actions' });
@@ -56,7 +69,7 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
   const overlay = el('div', { class: 'bt-overlay', hidden: '' });
   stage.append(overlay);
   const node = el('div', { class: 'game', vars: SHAPE },
-    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, 'Pênaltis'), el('p', { class: 'pen-kicks' }, rows.a, rows.b)), scoreEl),
+    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, tie ? `${tie.name}: pênaltis` : 'Pênaltis'), el('p', { class: 'pen-kicks' }, rows.a, rows.b)), scoreEl),
     sayEl, stage);
   root.append(node);
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
@@ -254,11 +267,18 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     });
     const change = el('button', { class: 'btn ghost', type: 'button', text: 'Change teams' });
     change.addEventListener('click', () => go(cpu ? 'pen-teams-1' : 'pen-teams-2'));
+    /* a Copa tie: its result, with the shootout's, kept, and back to the cup */
+    const pens = { us: shootoutGoals(s, 'a'), them: shootoutGoals(s, 'b') };
+    const cup = tie && level0 ? recordResult(tie.cup, { ...level0, pens }) : null;
+    if (cup) noPenaltiesWaiting();
+    const copa = el('button', { class: 'btn', type: 'button', text: '🏆 Back to the Copa' });
+    copa.addEventListener('click', () => { sfx.tap(); go('copa'); });
     overlay.replaceChildren(el('div', { class: 'win', role: 'dialog', 'aria-label': 'Full time' },
-      el('p', { class: 'win-shout', text: 'É campeão!' }),
+      el('p', { class: 'win-shout', text: cup ? cupShout(cup) : 'É campeão!' }),
       el('p', { class: 'win-team', text: label(teams[side]) }),
-      el('p', { class: 'win-score', text: `${label(teams.a, true)} ${shootoutGoals(s, 'a')} – ${shootoutGoals(s, 'b')} ${label(teams.b, true)}, on penalties` }),
-      el('div', { class: 'row' }, again, change)));
+      ...(level0 ? [el('p', { class: 'win-score', text: `${label(teams.a, true)} ${level0.us} – ${level0.them} ${label(teams.b, true)} after extra time` })] : []),
+      el('p', { class: 'win-score', text: `${label(teams.a, true)} ${pens.us} – ${pens.them} ${label(teams.b, true)}, on penalties` }),
+      el('div', { class: 'row' }, ...(cup ? [copa] : [again, change]))));
     overlay.removeAttribute('hidden');
     node.append(confetti(teams[side]));
   }
@@ -273,5 +293,5 @@ function shootout(root: HTMLElement, computer: boolean): () => void {
     render();
     void toss();
   }
-  return () => life.end();
+  return () => { document.body.classList.remove('night'); life.end(); };
 }

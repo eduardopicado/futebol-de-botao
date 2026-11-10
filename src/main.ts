@@ -25,6 +25,7 @@ const routes: Route[] = [
   { path: 'copa', title: 'Copa', load: () => import('./game/copa') },
   { path: 'copa-team', title: 'Copa', load: () => import('./game/pick').then((g) => ({ mount: g.mountCup })) },
   { path: 'copa-jogo', title: 'Copa', load: () => import('./game/partida').then((g) => ({ mount: g.mountCup })) },
+  { path: 'copa-penaltis', title: 'Copa', load: () => import('./game/penaltis').then((g) => ({ mount: g.mountCup })) },
   { path: 'settings', title: 'Settings', load: () => import('./game/settings') },
   { path: 'how-to-play', title: 'How to play', load: () => import('./game/guide') },
 ];

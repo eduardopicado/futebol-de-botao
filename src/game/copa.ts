@@ -13,7 +13,7 @@ import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
 import { LEVEL_NAMES } from './choices';
 import { confetti } from './confetti';
-import { ROUNDS, cupNow, cupsWon, justWon, roundOf, stageOf, type Cup } from './cup';
+import { ROUNDS, cupNow, cupsWon, justWon, roundOf, stageOf, won, type Cup } from './cup';
 import { narrate } from './narration';
 import { kit, label, teamById } from './teams';
 
@@ -34,7 +34,8 @@ export function mount(root: HTMLElement): () => void {
 
   if (!cup) {
     page.append(el('section', { class: 'panel copa-intro' },
-      el('p', { text: 'Three matches against the computer: a quarter-final, a semi-final and the final, each harder than the last. Win all three and the cup is yours.' }),
+      el('p', { text: 'Three matches against the computer: a quarter-final, a semi-final and the final under the floodlights, each harder than the last. Win all three and the cup is yours.' }),
+      el('p', { text: 'Cup matches are played against the clock: two halves of 8 turns each. Level at full time: extra time. Still level: penalties!' }),
       el('div', { class: 'kick-row' }, newCup('▶ Pick your team', true))), ...(tally ? [tally] : []));
     root.append(page);
     return () => life.end();
@@ -80,9 +81,9 @@ function bracket(cup: Cup): HTMLElement {
     const them = teamById(cup.opponents[i])!;
     const result = cup.results[i];
     const how = result
-      ? `${result.us > result.them ? 'Won' : 'Lost'} ${result.us} – ${result.them}`
+      ? `${won(result) ? 'Won' : 'Lost'} ${result.us} – ${result.them}${result.pens ? ` (${result.pens.us} – ${result.pens.them} on penalties)` : ''}`
       : i === next ? 'Next' : 'To come';
-    const state = result ? (result.us > result.them ? 'won' : 'lost') : i === next ? 'next' : 'later';
+    const state = result ? (won(result) ? 'won' : 'lost') : i === next ? 'next' : 'later';
     return el('li', { class: `copa-round ${state}`, 'data-round': String(i) },
       el('span', { class: 'copa-round-name', text: r.name }),
       el('span', { class: 'copa-opponent' }, kit(them, 32), el('span', { text: label(them) })),

@@ -136,6 +136,32 @@ test.describe('Pênaltis', () => {
     noProblems(watch);
   });
 
+  test('a Copa tie level after extra time: its penalties against the round\'s opponent, and the result kept with them', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.addInitScript(() => { Math.random = () => 0.1; });
+    await seed(page, {
+      cup: { team: 'brazil', opponents: ['spain', 'italy', 'france'], results: [] },
+      'cup-penalties': { team: 'brazil', round: 0, us: 1, them: 1 },
+      'shootout-setup': partWay('a', [true, false, true, true, false, false, true, false]),
+    });
+    await page.goto('/#/copa-penaltis');
+    await expect(page.getByRole('heading', { name: 'Quarter-final: pênaltis' })).toBeVisible();
+    await expect(game(page)).toHaveAttribute('data-phase', 'penalty', { timeout: 8000 });
+    const f = await aimed(page, 'a');
+    await kick(page, 'a', f.vx, f.vy);
+    await expect(game(page)).toHaveAttribute('data-winner', 'a', { timeout: 10000 });
+    await expect(page.locator('.win')).toContainText('Through to the semi-final!');
+    await expect(page.locator('.win')).toContainText('1 – 1');
+    await expect(page.locator('.win')).toContainText('4 – 1');
+    await page.getByRole('button', { name: '🏆 Back to the Copa' }).click();
+    await expect(page.locator('.copa-round').first()).toContainText('Won 1 – 1 (4 – 1 on penalties)');
+    await expect(page.locator('.copa-round').nth(1)).toHaveClass(/next/);
+    /* and with none waiting, the penalties' address goes back to the Copa */
+    await page.goto('/#/copa-penaltis');
+    await expect(page.locator('.copa')).toBeVisible();
+    noProblems(watch);
+  });
+
   test('against the computer: it takes its own kick', async ({ page }) => {
     const watch = watchPage(page);
     await seed(page, { 'shootout-setup': partWay('a', [true]) });

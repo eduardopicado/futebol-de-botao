@@ -30,18 +30,23 @@ const parked = (side: Side): Point[] => [
   { x: 6, y: side === 'a' ? 76 : 22 }, { x: 58, y: side === 'a' ? 76 : 22 }, { x: 58, y: side === 'a' ? 60 : 38 },
 ];
 
-/** your side with the ball in front of their goal, one goal from winning */
+/** a Copa tie's clock at the last turn of a half (8 turns a side, 3 in extra time) */
+const lastTurn = (half: 1 | 2 | 3 | 4): Partial<Match> => ({
+  clock: { turns: 8, extra: 3, half, start: 0, first: 'a' }, turnNo: half <= 2 ? 15 : 5,
+});
+
+/** your side with the ball in front of their goal, in the last turn: a goal wins it */
 const winning = (): Partial<Match> => ({
   turn: 'a', phase: 'play', touches: 0, used: [], attack: true, penalty: false, out: [],
   ball: { x: 32, y: 30 }, a: [{ x: 32, y: 42 }, ...parked('a').slice(1)], b: parked('b'),
-  keepers: { a: 32, b: 23 }, score: { a: 2, b: 0 },
+  keepers: { a: 32, b: 23 }, score: { a: 2, b: 0 }, ...lastTurn(2),
 });
 
-/** your side one goal from losing, the ball by your own goal and your button above it */
+/** your side behind, in the last turn, the ball by your own goal and your button above it */
 const losing = (): Partial<Match> => ({
   turn: 'a', phase: 'play', touches: 0, used: [], attack: false, penalty: false, out: [],
   ball: { x: 32, y: 88 }, a: [{ x: 32, y: 76 }, ...parked('a').slice(1).map((p) => ({ x: p.x, y: p.y - 30 }))], b: parked('b'),
-  keepers: { a: 50, b: 32 }, score: { a: 0, b: 2 },
+  keepers: { a: 50, b: 32 }, score: { a: 0, b: 2 }, ...lastTurn(2),
 });
 
 const cup = (results: { us: number; them: number }[]) => ({ team: 'brazil', opponents: ['spain', 'italy', 'france'], results });
@@ -79,6 +84,8 @@ test.describe('Copa', () => {
     await seed(page, { cup: cup([{ us: 3, them: 1 }, { us: 3, them: 2 }]), goals: 3, 'match-setup': winning() });
     await page.goto('/#/copa-jogo');
     await expect(page.getByRole('heading', { name: 'Final' })).toBeVisible();
+    /* the final is played at night, under the floodlights */
+    await expect(page.locator('body')).toHaveClass(/night/);
     await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await expect(page.locator('.game')).toHaveAttribute('data-phase', 'placing');
     await expect(page.locator('.game')).toHaveAttribute('data-phase', 'shot', { timeout: 8000 });
@@ -89,6 +96,7 @@ test.describe('Copa', () => {
     await expect(page.locator('.win')).toContainText('É campeão!');
     await page.getByRole('button', { name: '🏆 Back to the Copa' }).click();
     await expect(page.locator('.copa')).toHaveAttribute('data-stage', 'won');
+    await expect(page.locator('body')).not.toHaveClass(/night/);
     await expect(page.locator('.copa-trophy')).toContainText('won the Copa');
     await expect(page.locator('.copa-round.won')).toHaveCount(3);
     await expect(page.locator('.copa-tally')).toHaveText('Cups won on this iPad: 1');
@@ -135,6 +143,34 @@ test.describe('Copa', () => {
     await expect(page.locator('.copa-round').first()).toContainText('Lost 0 – 3');
     await page.getByRole('link', { name: '▶ Start a new cup' }).click();
     await expect(page.getByRole('button', { name: '▶ Start the Copa' })).toBeVisible();
+    noProblems(watch);
+  });
+
+  test('against the clock: the half and turns left shown, half time when they are played, and the other side kicks off', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { cup: cup([]), 'match-setup': { ...winning(), score: { a: 0, b: 0 }, ...lastTurn(1) } });
+    await page.goto('/#/copa-jogo');
+    await expect(page.locator('.bt-clock')).toHaveText('⏱ 1st half · 1 turn left');
+    /* not the quarter-final at night */
+    await expect(page.locator('body')).not.toHaveClass(/night/);
+    /* your button flicked away from the ball: the turn, and the half, are over */
+    await flick(page, 25, 0);
+    await expect(page.locator('.bt-say')).toContainText('Half time!', { timeout: 10000 });
+    await expect(page.locator('.game')).toHaveAttribute('data-phase', 'kickoff');
+    await expect(page.locator('.game')).toHaveAttribute('data-turn', 'b');
+    await expect(page.locator('.bt-clock')).toHaveText('⏱ 2nd half · 16 turns left');
+    noProblems(watch);
+  });
+
+  test('level after extra time: penalties, on their own screen, and the tie waits for them', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { cup: cup([]), 'match-setup': { ...winning(), score: { a: 1, b: 1 }, ...lastTurn(4) } });
+    await page.goto('/#/copa-jogo');
+    await expect(page.locator('.bt-clock')).toHaveText('⏱ Extra time, 2nd half · 1 turn left');
+    await flick(page, 25, 0);
+    await expect(page.locator('.bt-say')).toContainText('Still level after extra time: penalties!', { timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Quarter-final: pênaltis' })).toBeVisible({ timeout: 8000 });
+    await expect(page).toHaveURL(/#\/copa-penaltis$/);
     noProblems(watch);
   });
 
