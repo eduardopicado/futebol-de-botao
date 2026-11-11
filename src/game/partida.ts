@@ -365,7 +365,10 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     const miss = called ? missed(play, before.turn) : null;
     /* a goal or a near miss is slowed right down as the ball gets there */
     const big = play.event.kind === 'goal' || play.event.kind === 'champion' || play.event.kind === 'over' || miss !== null;
+    /* a called shot (or a penalty) seen from the TV camera, back to above once it is over */
+    if (called) board.tv(true, before.turn === 'a' ? 'top' : 'bottom');
     await board.play(play.frames, play.bumps, keepersOf(before), benchedOf(before), 1, big ? moment(play) : null);
+    if (called) life.later(() => board.tv(false), PACE.tvHold);
     m = play.next;
     node.dataset.event = play.event.kind;
     const saved = play.bumps.some((b) => b.what === 'keeper');

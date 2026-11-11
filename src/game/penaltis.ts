@@ -169,7 +169,10 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     /* a chip over the bar is a miss of its own */
     const miss = scored ? null : play.event.kind === 'over' ? 'over' : missed(play, taker);
     /* a goal or a near miss is slowed right down as the ball gets there */
+    /* the kick seen from the TV camera, back to above once it is over */
+    board.tv(true, taker === 'a' ? 'top' : 'bottom');
     await board.play(play.frames, play.bumps, keepersOf(m), [], 1, scored || miss ? moment(play) : null);
+    life.later(() => board.tv(false), PACE.tvHold);
     if (scored) celebrate(stage, teams[taker], life);
     const saved = !scored && play.bumps.some((b) => b.what === 'keeper');
     s = kicked(s, scored);

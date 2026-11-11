@@ -24,6 +24,7 @@ import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import { playerLabel, type Player } from './squads';
 import type { Team } from './teams';
+import { ballPiece, camAt, cssOf, goalPieces, goleiroPiece, type Attack, type Piece, type Shape } from './camera';
 
 /** a goleiro's place across its line, or null for none */
 export interface Keepers {
@@ -87,6 +88,10 @@ export interface Board {
   clearAim: () => void;
   /** a net shakes */
   bulge: (net: 'top' | 'bottom') => void;
+  /** the TV camera (camera.ts) on, for a shot at the goal at the top or the
+      bottom, or back to straight above; it turns over half a second, and
+      never under Reduce Motion */
+  tv: (on: boolean, attack?: Attack) => void;
   /** the finger's rules, from now on */
   listen: (f: Finger) => void;
   /** any drag in progress is dropped (a shot or Show me is starting) */
@@ -169,7 +174,9 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     goalFrame(), svg('g', { class: 'bt-goal-far', transform: FAR }, goalFrame()), band, dots, arrowEl, lifter, tag);
   const nets = { top: field.querySelector('.bt-net.ours')!, bottom: field.querySelector('.bt-goal-far .bt-net')! };
   /* the table's shape, for its size on the screen (app.css) */
-  const node = el('div', { class: 'bt-wrap', vars: SHAPE }, board);
+  /* the TV camera's layer: what stands up off the tilted table, drawn flat over it (camera.ts) */
+  const tvEl = svg('svg', { class: 'bt-tv', viewBox: `${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}`, 'aria-hidden': 'true' });
+  const node = el('div', { class: 'bt-wrap', vars: SHAPE }, board, tvEl);
 
   let buttons: Record<Side, SVGGElement[]> = { a: [], b: [] };
   let scene: Scene = { ball: { x: W / 2, y: L / 2 }, a: [], b: [] };
@@ -192,9 +199,74 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     y: b.net === 'top' ? TRAY_AT.y / 2 : L - TRAY_AT.y / 2 + 1,
   });
 
+  /* ── the TV camera (camera.ts) ─────────────────────────────────────── */
+
+  /** how far the camera has turned, 0 (straight above) to 1 (the TV view), and where to */
+  let cam = 0;
+  let camFrom = 0;
+  let camTo = 0;
+  let camStart = 0;
+  let camTurning = false;
+  let camAttack: Attack = 'top';
+  let seen: Keepers = { top: null, bottom: null };
+  const CAM_MS = 500;
+  const stillMotion = (): boolean => {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+  };
+  const shapeEl = (sh: Shape): SVGElement => {
+    const pts = (ps: Point[]): string => ps.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
+    if (sh.kind === 'poly') return svg('polygon', { points: pts(sh.pts), class: sh.cls, ...(sh.fill ? { fill: sh.fill } : {}) });
+    if (sh.kind === 'line') return svg('line', { x1: sh.a.x.toFixed(2), y1: sh.a.y.toFixed(2), x2: sh.b.x.toFixed(2), y2: sh.b.y.toFixed(2), class: sh.cls, 'stroke-width': sh.width.toFixed(2) });
+    return svg('ellipse', { cx: sh.at.x.toFixed(2), cy: sh.at.y.toFixed(2), rx: sh.rx.toFixed(2), ry: sh.ry.toFixed(2), class: sh.cls });
+  };
+  /** what stands up off the table, where the camera sees it, the far things first */
+  const drawTV = (): void => {
+    const c = camAt(cam, camAttack);
+    const pieces: Piece[] = [...goalPieces(c, 'top'), ...goalPieces(c, 'bottom'), ballPiece(c, scene.ball)];
+    if (seen.top !== null) pieces.push(goleiroPiece(c, 'top', goleiro, seen.top, seen.topOut ?? 0, top.block.getAttribute('fill') ?? '#888'));
+    if (seen.bottom !== null) pieces.push(goleiroPiece(c, 'bottom', goleiro, seen.bottom, seen.bottomOut ?? 0, bottom.block.getAttribute('fill') ?? '#888'));
+    pieces.sort((p, q) => p.near - q.near);
+    tvEl.replaceChildren(...pieces.flatMap((p) => p.shapes.map(shapeEl)));
+  };
+  /** the table tilted as far as the camera has turned, and what stands on it drawn to match */
+  const applyCam = (): void => {
+    node.classList.toggle('tv', cam > 0);
+    board.classList.toggle('tv', cam > 0);
+    if (cam <= 0) {
+      board.style.transform = '';
+      board.style.transformOrigin = '';
+      tvEl.replaceChildren();
+      return;
+    }
+    const { transform, origin } = cssOf(camAt(cam, camAttack), board.clientWidth / VIEW.w);
+    board.style.transformOrigin = origin;
+    board.style.transform = transform;
+    drawTV();
+  };
+  const turnCam = (): void => {
+    if (!life.alive()) return;
+    const t = Math.min(1, (performance.now() - camStart) / CAM_MS);
+    cam = camFrom + (camTo - camFrom) * t;
+    applyCam();
+    if (t < 1) life.later(turnCam, 16);
+    else camTurning = false;
+  };
+  const tv = (on: boolean, attack: Attack = 'top'): void => {
+    if (on && stillMotion()) return;
+    if (on) camAttack = attack;
+    const to = on ? 1 : 0;
+    if (to === camTo && (cam === to || camTurning)) return;
+    camFrom = cam;
+    camTo = to;
+    camStart = performance.now();
+    if (!camTurning) { camTurning = true; turnCam(); }
+  };
+
   const draw = (s: Scene, keepers: Keepers, benched: Benched[] = []): void => {
     scene = s;
+    seen = keepers;
     placeBall(s.ball);
+    if (cam > 0) drawTV();
     for (const side of ['a', 'b'] as const) {
       buttons[side].forEach((g, i) => {
         const p = s[side][i];
@@ -378,7 +450,8 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   const keeperOutAt = (which: 'top' | 'bottom'): number => Number((which === 'top' ? top.g : bottom.g).dataset.out ?? 0);
 
   board.addEventListener('pointerdown', (e) => {
-    if (drag || sliding) return;
+    /* the table tilted: nothing to pick up until it is back */
+    if (drag || sliding || cam > 0) return;
     const p = toTable(e);
     /* the goleiro being placed: a finger near it slides it; anywhere else
        on the table is for the buttons, if any may be flicked now */
@@ -479,6 +552,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     ghost,
     clearAim,
     bulge,
+    tv,
     listen: (f) => { finger = f; },
     drop: () => { drag = null; sliding = null; clearAim(); },
   };
