@@ -33,12 +33,12 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, coverKeeper, decide, standKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, golaco, inTheirArea, moment, timeUp, turnsLeft, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
+  EXTRA_TURNS, KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, golaco, inTheirArea, moment, timeUp, turnsLeft, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { GOLEIROS } from '../content/botao';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
-import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
+import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, speak } from './choices';
 import { confetti } from './confetti';
 import { CUP_CLOCK, cupShout, levelAfterExtraTime, noPenaltiesWaiting, recordResult, tieNow } from './cup';
 import { narrate, shoutCall } from './narration';
@@ -109,7 +109,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const docks: Record<Side, HTMLElement> = { a: el('div', { class: 'bt-dock a' }), b: el('div', { class: 'bt-dock b' }) };
   board.node.append(
     el('div', { class: 'bt-corner titles' }, el('h1', {}, occasion.title), el('p', { class: 'bt-touches' }, whose, pips)),
-    ...(tie ? [el('div', { class: 'bt-corner clock' }, clockEl)] : []),
+    el('div', { class: 'bt-corner clock' }, clockEl),
     docks.b, docks.a);
   const node = el('div', { class: 'game match', vars: SHAPE },
     el('header', { class: 'topbar' }, back, sayEl, scoreEl), stage);
@@ -124,8 +124,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const shotWords = (what: string): string => (chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : what);
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 
-  /** a new match: to the goals the settings chose, or a Copa tie's against the clock */
-  const fresh = (first: Side, size: number): Match => newMatch(goalsToWin(), first, size, rule, tie ? CUP_CLOCK : undefined);
+  /** a new match: to the goals the settings chose, or against the clock (theirs, or a Copa tie's) */
+  const half = matchHalf();
+  const fresh = (first: Side, size: number): Match => newMatch(goalsToWin(), first, size, rule, tie ? CUP_CLOCK : half ? { turns: half, extra: EXTRA_TURNS } : undefined);
   let m: Match = fresh('a', buttonsPerSide());
   /* the final is played at night, under the floodlights (app.css) */
   const night = tie?.name === 'Final';
@@ -446,7 +447,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     actions.replaceChildren();
     if (tie) levelAfterExtraTime(tie.cup, { us: m.score.a, them: m.score.b });
     await wait(PACE.halfTime);
-    if (life.alive()) go('copa-penaltis');
+    /* a tie's own shootout; any other match's is Pênaltis, with the same two teams */
+    if (life.alive()) go(tie ? 'copa-penaltis' : cpu ? 'penaltis-1' : 'penaltis-2');
     return true;
   }
 

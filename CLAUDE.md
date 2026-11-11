@@ -151,7 +151,7 @@ src/game/pick.ts          picking the teams before a match (or your team for a
                           Copa), kept for next time, and a crest for the team picked
 src/game/shirts.ts        a team as a shirt to tap, and the button that gives a
                           team its crest (the picker and the settings share them)
-src/game/settings.ts      the settings: goals to win, the rule, buttons a side,
+src/game/settings.ts      the settings: goals to win or halves on the clock, the rule, buttons a side,
                           computer level, commentator, sound effects, reading
                           aloud, crests and players
 src/game/teams.ts         the teams, their flags and kits; rivalFor picks the opponent

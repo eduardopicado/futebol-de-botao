@@ -33,6 +33,27 @@ test.describe('Settings', () => {
     noProblems(watch);
   });
 
+  test('on the clock instead of to goals: one choice of the two, kept, and a match is played in two halves', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/#/settings');
+    await expect(page.getByRole('button', { name: '3 goals' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: '⏱ 2 × 6 turns' }).click();
+    await expect(page.getByRole('button', { name: '⏱ 2 × 6 turns' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: '3 goals' })).toHaveAttribute('aria-pressed', 'false');
+    expect(await page.evaluate(() => localStorage.getItem('fdb:half'))).toBe('6');
+    await page.getByRole('button', { name: 'Back to the start' }).click();
+    await page.getByRole('link', { name: '👥 2 players' }).click();
+    await page.getByRole('button', { name: '▶ Kick off' }).click();
+    await expect(page.locator('.toss')).toContainText('Two halves of 6 turns each');
+    await expect(page.locator('.bt-clock')).toHaveText('⏱ 1st half · 12 turns left', { timeout: 8000 });
+    /* and back to goals */
+    await page.goto('/#/settings');
+    await expect(page.getByRole('button', { name: '⏱ 2 × 6 turns' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: '5 goals' }).click();
+    expect(await page.evaluate(() => [localStorage.getItem('fdb:goals'), localStorage.getItem('fdb:half')])).toEqual(['5', '0']);
+    noProblems(watch);
+  });
+
   test('buttons a side: four unless five is picked, and a match is played with them', async ({ page }) => {
     const watch = watchPage(page);
     await page.goto('/');
