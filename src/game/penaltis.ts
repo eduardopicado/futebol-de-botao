@@ -227,7 +227,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     if (from) board.arrow(from, { button: move.button, vx: move.vx, vy: move.vy });
     await wait(PACE.cpuAim);
     board.clearAim();
-    await shoot(move.button, move.vx, move.vy, true);
+    await shoot(move.button, move.vx, move.vy, true, move.lift ?? 0);
   }
 
   board.listen({
