@@ -647,3 +647,6 @@ label.btn input[type="file"] { position: absolute; top: 0; left: 0; width: 1px; 
 .guide-count { margin: 0; font: 700 14px var(--reading); color: var(--on-deep-soft); }
 /* the corners' words lie over the room, light or dark: paper, with a shadow */
 .bt-corner h1, .bt-corner .bt-touches, .bt-corner .bt-clock { color: var(--paper); text-shadow: 0 1px 3px rgba(0, 0, 0, .75); }
+/* what a goleiro wears: bands in its team's second colour, and its crest or flag */
+.bt-keeper-band, .tv-keeper-trim { stroke: rgba(0, 0, 0, .35); stroke-width: .12; }
+.bt-keeper-flag, .tv-keeper-flag, .bt-keeper-crest, .tv-keeper-crest { pointer-events: none; }

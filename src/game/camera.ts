@@ -65,7 +65,14 @@ export interface Piece { near: number; shapes: Shape[] }
 export type Shape =
   | { kind: 'poly'; pts: Point[]; cls: string; fill?: string }
   | { kind: 'line'; a: Point; b: Point; cls: string; width: number }
-  | { kind: 'ellipse'; at: Point; rx: number; ry: number; cls: string };
+  | { kind: 'ellipse'; at: Point; rx: number; ry: number; cls: string }
+  /** a flag, drawn as text `size` high round a point */
+  | { kind: 'text'; at: Point; size: number; text: string; cls: string }
+  /** a crest, a picture `size` across round a point */
+  | { kind: 'image'; at: Point; size: number; href: string; cls: string };
+
+/** what a goleiro wears on its front: bands in its team's second colour at each end, and its crest or its flag */
+export interface Mark { trim: string; flag?: string; crest?: string }
 
 const flat = (q: { x: number; y: number }): Point => ({ x: q.x, y: q.y });
 
@@ -108,7 +115,10 @@ export function goalPieces(cam: Cam, end: Attack): Piece[] {
 
 /** a goleiro standing in front of his line (`end`'s), at `x` across and
     `out` off it: a block, its far faces first and its near one and top last */
-export function goleiroPiece(cam: Cam, end: Attack, g: Goleiro, x: number, out: number, fill: string): Piece {
+/** how wide the band at each end of a goleiro is */
+export const BAND = 0.9;
+
+export function goleiroPiece(cam: Cam, end: Attack, g: Goleiro, x: number, out: number, fill: string, mark?: Mark): Piece {
   const dir = end === 'top' ? 1 : -1;
   const line = end === 'top' ? 0 : L;
   const [y0, y1] = [line + dir * (g.y[0] + out), line + dir * (g.y[1] + out)];
@@ -128,6 +138,12 @@ export function goleiroPiece(cam: Cam, end: Attack, g: Goleiro, x: number, out: 
       face([at(xa, ya, g.h), at(xb, ya, g.h), at(xb, yb, g.h), at(xa, yb, g.h)], 'tv-keeper'),
       { kind: 'poly', pts: [at(xa, ya, g.h), at(xb, ya, g.h), at(xb, yb, g.h), at(xa, yb, g.h)], cls: 'tv-light' },
       face([at(xa, yb, 0), at(xb, yb, 0), at(xb, yb, g.h), at(xa, yb, g.h)], 'tv-keeper'),
+      /* on the face towards the camera: its team's bands, and its crest or flag */
+      ...(mark ? [
+        ...[[xa, xa + BAND], [xb - BAND, xb]].map(([l, r]): Shape => ({ kind: 'poly', cls: 'tv-keeper-trim', fill: mark.trim, pts: [at(l, yb, 0), at(r, yb, 0), at(r, yb, g.h), at(l, yb, g.h)] })),
+        ...(mark.crest ? [{ kind: 'image', cls: 'tv-keeper-crest', href: mark.crest, at: at(x, yb, g.h / 2), size: g.h * 0.8 * project(cam, x, yb, g.h / 2).k } as Shape]
+          : mark.flag ? [{ kind: 'text', cls: 'tv-keeper-flag', text: mark.flag, at: at(x, yb, g.h / 2), size: g.h * 0.72 * project(cam, x, yb, g.h / 2).k } as Shape] : []),
+      ] : []),
     ],
   };
 }

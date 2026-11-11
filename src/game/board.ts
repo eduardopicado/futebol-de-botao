@@ -25,7 +25,8 @@ import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import { playerLabel, type Player } from './squads';
 import type { Team } from './teams';
-import { ballPiece, camAt, cssOf, goalPieces, goleiroPiece, type Attack, type Piece, type Shape } from './camera';
+import { BAND, ballPiece, camAt, cssOf, goalPieces, goleiroPiece, type Attack, type Mark, type Piece, type Shape } from './camera';
+import { crestOf } from '../lib/crests';
 
 /** a goleiro's place across its line, or null for none */
 export interface Keepers {
@@ -116,7 +117,7 @@ function rate(i: number, slowAt: number | null): number {
 const line = (pts: Point[]): string => pts.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
 
 /** a goleiro's block, drawn round x = 0 and moved by a transform, so it can slide across */
-function keeperBlock(bottom: boolean, size: Goleiro): { g: SVGGElement; block: SVGRectElement } {
+function keeperBlock(bottom: boolean, size: Goleiro): { g: SVGGElement; block: SVGRectElement; dress: (team: Team) => void } {
   const [lo, hi] = bottom ? [L - size.y[1], L - size.y[0]] : size.y;
   const shape = { x: -size.w / 2, y: lo, width: size.w, height: hi - lo, rx: KEEPER_RX };
   const block = svg('rect', { ...shape, class: 'bt-keeper-block' });
@@ -124,7 +125,21 @@ function keeperBlock(bottom: boolean, size: Goleiro): { g: SVGGElement; block: S
     svg('rect', { ...shape, x: shape.x + SHADOW.x, y: shape.y + SHADOW.y, class: 'bt-shadow' }),
     block,
     svg('rect', { ...shape, class: 'bt-keeper-shine' }));
-  return { g, block };
+  /* what it wears, seen from above: a band in its team's second colour at
+     each end, and in the middle the crest added for the team, or its flag */
+  const worn = svg('g', { class: 'bt-keeper-worn' });
+  g.insertBefore(worn, g.lastChild);
+  const [mid, deep] = [(lo + hi) / 2, hi - lo];
+  const dress = (team: Team): void => {
+    block.setAttribute('fill', team.colours[0]);
+    const crest = crestOf(team.id);
+    const flag = svg('text', { class: 'bt-keeper-flag', y: mid, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': deep * 0.95 });
+    flag.textContent = team.flag ?? '';
+    worn.replaceChildren(
+      ...[-size.w / 2 + 0.2, size.w / 2 - 0.2 - BAND].map((x) => svg('rect', { x, y: lo + 0.2, width: BAND, height: deep - 0.4, rx: 0.3, fill: team.colours[1], class: 'bt-keeper-band' })),
+      crest ? svg('image', { href: crest, x: -deep * 0.45, y: mid - deep * 0.45, width: deep * 0.9, height: deep * 0.9, preserveAspectRatio: 'xMidYMid slice', class: 'bt-keeper-crest' }) : flag);
+  };
+  return { g, block, dress };
 }
 
 /** the table's shape, width over height, for the CSS: on the table, and on a
@@ -183,6 +198,8 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   let scene: Scene = { ball: { x: W / 2, y: L / 2 }, a: [], b: [] };
 
   let players: { a: Player[]; b: Player[] } = { a: [], b: [] };
+  /* what each goleiro wears, for the TV camera */
+  let worn: { top?: Mark; bottom?: Mark } = {};
   const setUp = (a: Team, b: Team, counts: { a: number; b: number }, who?: { a: Player[]; b: Player[] }): void => {
     players = who ?? { a: [], b: [] };
     buttons = {
@@ -190,8 +207,10 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
       b: Array.from({ length: counts.b }, (_, i) => button(b, `them t${i}`, players.b[i]?.n)),
     };
     discs.replaceChildren(...buttons.b, ...buttons.a);
-    top.block.setAttribute('fill', b.colours[0]);
-    bottom.block.setAttribute('fill', a.colours[0]);
+    top.dress(b);
+    bottom.dress(a);
+    const mark = (t: Team): Mark => { const crest = crestOf(t.id); return { trim: t.colours[1], ...(crest ? { crest } : t.flag ? { flag: t.flag } : {}) }; };
+    worn = { top: mark(b), bottom: mark(a) };
   };
 
   /** on the tray's rim beside a net, where a button out of play waits */
@@ -218,14 +237,20 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     const pts = (ps: Point[]): string => ps.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
     if (sh.kind === 'poly') return svg('polygon', { points: pts(sh.pts), class: sh.cls, ...(sh.fill ? { fill: sh.fill } : {}) });
     if (sh.kind === 'line') return svg('line', { x1: sh.a.x.toFixed(2), y1: sh.a.y.toFixed(2), x2: sh.b.x.toFixed(2), y2: sh.b.y.toFixed(2), class: sh.cls, 'stroke-width': sh.width.toFixed(2) });
+    if (sh.kind === 'text') {
+      const t = svg('text', { x: sh.at.x.toFixed(2), y: sh.at.y.toFixed(2), 'font-size': sh.size.toFixed(2), 'text-anchor': 'middle', 'dominant-baseline': 'central', class: sh.cls });
+      t.textContent = sh.text;
+      return t;
+    }
+    if (sh.kind === 'image') return svg('image', { href: sh.href, x: (sh.at.x - sh.size / 2).toFixed(2), y: (sh.at.y - sh.size / 2).toFixed(2), width: sh.size.toFixed(2), height: sh.size.toFixed(2), preserveAspectRatio: 'xMidYMid slice', class: sh.cls });
     return svg('ellipse', { cx: sh.at.x.toFixed(2), cy: sh.at.y.toFixed(2), rx: sh.rx.toFixed(2), ry: sh.ry.toFixed(2), class: sh.cls });
   };
   /** what stands up off the table, where the camera sees it, the far things first */
   const drawTV = (): void => {
     const c = camAt(cam, camAttack);
     const pieces: Piece[] = [...goalPieces(c, 'top'), ...goalPieces(c, 'bottom'), ballPiece(c, scene.ball)];
-    if (seen.top !== null) pieces.push(goleiroPiece(c, 'top', goleiro, seen.top, seen.topOut ?? 0, top.block.getAttribute('fill') ?? '#888'));
-    if (seen.bottom !== null) pieces.push(goleiroPiece(c, 'bottom', goleiro, seen.bottom, seen.bottomOut ?? 0, bottom.block.getAttribute('fill') ?? '#888'));
+    if (seen.top !== null) pieces.push(goleiroPiece(c, 'top', goleiro, seen.top, seen.topOut ?? 0, top.block.getAttribute('fill') ?? '#888', worn.top));
+    if (seen.bottom !== null) pieces.push(goleiroPiece(c, 'bottom', goleiro, seen.bottom, seen.bottomOut ?? 0, bottom.block.getAttribute('fill') ?? '#888', worn.bottom));
     pieces.sort((p, q) => p.near - q.near);
     tvEl.replaceChildren(...pieces.flatMap((p) => p.shapes.map(shapeEl)));
   };

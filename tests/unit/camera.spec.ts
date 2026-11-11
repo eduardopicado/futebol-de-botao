@@ -64,6 +64,27 @@ describe('the TV camera', () => {
     expect(topLeft.y).toBeLessThan(bottomLeft.y);
   });
 
+  it('a goleiro wears its team on the face towards the camera: a band at each end, and its crest, or else its flag', () => {
+    const cam = camAt(1, 'top');
+    const g = GOLEIROS['3'];
+    const plain = goleiroPiece(cam, 'top', g, 32, 0, '#123456').shapes;
+    const flagged = goleiroPiece(cam, 'top', g, 32, 0, '#123456', { trim: '#abcdef', flag: '🇧🇷' }).shapes;
+    const worn = flagged.slice(plain.length);
+    expect(worn.map((s) => s.kind)).toEqual(['poly', 'poly', 'text']);
+    expect(worn.slice(0, 2).every((s) => s.kind === 'poly' && s.fill === '#abcdef')).toBe(true);
+    const [flag, front] = [worn[2], plain.at(-1)!];
+    if (flag.kind !== 'text' || front.kind !== 'poly') throw new Error('not a flag on a face');
+    expect(flag.text).toBe('🇧🇷');
+    /* in the middle of the face, and no taller than it */
+    const ys = front.pts.map((p) => p.y);
+    expect(flag.at.y).toBeGreaterThan(Math.min(...ys));
+    expect(flag.at.y).toBeLessThan(Math.max(...ys));
+    expect(flag.size).toBeLessThan(Math.max(...ys) - Math.min(...ys));
+    /* a crest added for the team goes on instead of the flag */
+    const crested = goleiroPiece(cam, 'top', g, 32, 0, '#123456', { trim: '#abcdef', flag: '🇧🇷', crest: 'data:image/png;base64,AAAA' }).shapes;
+    expect(crested.at(-1)!.kind).toBe('image');
+  });
+
   it('the ball in the air is drawn above its shadow, which stays on the felt', () => {
     const cam = camAt(1, 'top');
     const [shadow, ball] = ballPiece(cam, { x: 32, y: 20, z: 6 }).shapes;
