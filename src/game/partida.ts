@@ -315,7 +315,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         const why = `${ON_THE_LINE} Bola do goleiro!`;
         words.textContent = why;
         sayEl.classList.remove('flip');
-        speak(why);
+        sfx.groan();
+        narrate('keeper-ball', teams[event.side], () => undefined, life.later);
         await wait(PACE.noGoal);
         render(`Bola do goleiro! Goal kick to ${name(event.side)}.`);
         return;

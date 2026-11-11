@@ -66,7 +66,7 @@ export function unlockSfx(): Promise<void> {
 }
 
 /** the sounds that can be recorded (tools/make-sfx.ts says what each one is) */
-export type Recordable = 'cheer' | 'win' | 'whistle' | 'crowd' | 'kick' | 'clack' | 'post' | 'move' | 'take' | 'roll' | 'roar' | 'groan';
+export type Recordable = 'cheer' | 'win' | 'whistle' | 'crowd' | 'kick' | 'clack' | 'post' | 'move' | 'take' | 'roll' | 'roar' | 'groan' | 'torcida';
 
 /** the recordings that are ready, with how loud each one plays */
 const recorded = new Map<string, { buffer: AudioBuffer; gain: number }>();
@@ -384,22 +384,28 @@ export const sfx = {
 
 /** a crowd watching a flick: `to` says how near the ball is to a goal, from
     0 (nowhere near) to 1 (in the mouth), and `done` lets it die away */
-export interface Watching { to: (near: number) => void; done: () => void }
+export interface Watching { to: (near: number) => void; done: () => void; live: () => boolean }
 
-const QUIET: Watching = { to: () => undefined, done: () => undefined };
+const QUIET: Watching = { to: () => undefined, done: () => undefined, live: () => false };
 
 /**
  * The crowd's murmur under a flick, swelling as the ball nears a goal and
  * dying away when the flick is over: its recording looped, or noise made
  * here. Quiet with the ball far from both goals, so a flick in midfield is
  * not drowned; louder with the square of how near it is, so it builds.
+ *
+ * With `floor` above 0 it is the supporters all match long: never quieter
+ * than that share of its loudest, singing if their recording is there (the
+ * torcida) and murmuring if not. It lasts until it is done or the game is
+ * left; `live` says whether it can still be heard (iOS can take its audio
+ * context away), so whoever holds it knows to start another.
  */
-export function watching(): Watching {
+export function watching(floor = 0): Watching {
   if (!enabled) return QUIET;
   const ac = audio();
   if (!ac) return QUIET;
   try {
-    const take = recorded.get('crowd');
+    const take = (floor > 0 ? recorded.get('torcida') : undefined) ?? recorded.get('crowd');
     const source = ac.createBufferSource();
     const vol = ac.createGain();
     let peak: number;
@@ -422,6 +428,7 @@ export function watching(): Watching {
     }
     source.loop = true;
     vol.gain.setValueAtTime(0.0001, ac.currentTime);
+    if (floor > 0) vol.gain.setTargetAtTime(peak * floor, ac.currentTime, 0.6);
     vol.connect(ac.destination);
     source.start(ac.currentTime);
     /* until it is done: leaving the game hushes it before then */
@@ -431,8 +438,9 @@ export function watching(): Watching {
       to: (near) => {
         if (over) return;
         const k = Math.min(1, Math.max(0, near));
-        try { vol.gain.setTargetAtTime(Math.max(0.0001, peak * k * k), ac.currentTime, 0.12); } catch { /* its context was renewed */ }
+        try { vol.gain.setTargetAtTime(Math.max(0.0001, peak * Math.max(floor, k * k)), ac.currentTime, 0.12); } catch { /* its context was renewed */ }
       },
+      live: () => !over && ac === audio() && ac.state === 'running' && playing.has(source),
       done: () => {
         if (over) return;
         over = true;

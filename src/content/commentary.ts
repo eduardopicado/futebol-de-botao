@@ -27,6 +27,9 @@ export const enGolaco = (team?: string): string => (team ? `What a goal from ${t
 /** a chip over the crossbar, in Portuguese and in English */
 export const PT_OVER = ['Por cima!', 'Isolou!', 'Por cima do gol!'];
 export const EN_OVER = ['Over the bar!', 'Just over!', 'Over the top!'];
+/** the ball stopped on the goal line, not in: the goleiro's */
+export const PT_KEEPER_BALL = ['Bola do goleiro!', 'É do goleiro!', 'Em cima da linha!'];
+export const EN_KEEPER_BALL = ["Keeper's ball!", 'On the line!', "It stays out!"];
 
 /** a shot about to be taken (the goleiro placed, Pronto), in Portuguese and in English */
 export const PT_SHOTS = ['Lá vem ele!', 'Vai chutar!', 'Ajeitou pro chute!'];

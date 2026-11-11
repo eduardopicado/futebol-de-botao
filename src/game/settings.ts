@@ -15,7 +15,7 @@ import { setSfxEnabled } from '../lib/sfx';
 import { write } from '../lib/storage';
 import { LEVELS } from '../content/computer';
 import { GOALS, HALVES, RULES, SIZES } from '../content/match';
-import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, readAloud, soundsOn } from './choices';
+import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, readAloud, soundsOn, supportersOn } from './choices';
 import { narrationSelect } from './narration';
 import { crestButton, redrawShirts, shirtTile } from './shirts';
 import { POSITIONS, SQUADS, changedSquad, resetSquad, setPlayer, squadOf } from './squads';
@@ -121,6 +121,7 @@ export function mount(root: HTMLElement): void {
       el('h2', { class: 'lbl', text: 'Sound' }),
       el('label', { class: 'field' }, 'Commentator', narrationSelect()),
       toggle('Sound effects', soundsOn(), (on) => { write('sounds', on); setSfxEnabled(on); }),
+      toggle('Supporters all match long', supportersOn(), (on) => write('supporters', on)),
       toggle('Read the words aloud', readAloud(), (on) => write('read-aloud', on))),
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'Crests and players' }),

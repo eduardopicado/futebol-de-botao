@@ -230,6 +230,43 @@ describe('the crowd', () => {
     expect(gain.targets.at(-1)).toBeLessThan(0.001);
   });
 
+  it('the supporters all match long: their own recording, never silent between flicks, louder near a goal, and gone when the game is left', async () => {
+    serve({ 'sfx.json': { crowd: 0.25, torcida: 0.3 }, 'crowd.mp3': { seconds: 8 }, 'torcida.mp3': { seconds: 22 } });
+    const { watching, loadSfx, unlockSfx, hushSfx } = await import('../../src/lib/sfx');
+    await loadSfx();
+    await unlockSfx();
+    const crowd = watching(0.3);
+    const song = FakeSource.made.at(-1)!;
+    expect([song.loop, song.buffer]).toEqual([true, { duration: 22 }]);
+    expect(crowd.live()).toBe(true);
+    const { gain } = FakeContext.made[0].gains.at(-1)!;
+    const start = gain.targets.at(-1)!;
+    expect(start).toBeGreaterThan(0.05);
+    crowd.to(0);
+    crowd.to(0.3);
+    crowd.to(1);
+    const [none, far, near] = gain.targets.slice(-3);
+    /* between flicks, and with the ball in midfield: still there */
+    expect(none).toBeCloseTo(start, 6);
+    expect(far).toBeCloseTo(start, 6);
+    expect(near).toBeGreaterThan(start * 2);
+    /* a flick under way without them still gets the murmur */
+    watching();
+    expect(FakeSource.made.at(-1)!.buffer).toEqual({ duration: 8 });
+    hushSfx();
+    expect(song.cut).toBe(true);
+    expect(crowd.live()).toBe(false);
+  });
+
+  it('the supporters murmur where their song is not recorded', async () => {
+    serve({ 'sfx.json': { crowd: 0.25 }, 'crowd.mp3': { seconds: 8 } });
+    const { watching, loadSfx, unlockSfx } = await import('../../src/lib/sfx');
+    await loadSfx();
+    await unlockSfx();
+    watching(0.3);
+    expect(FakeSource.made.at(-1)!.buffer).toEqual({ duration: 8 });
+  });
+
   it('made from noise where it is not recorded; leaving the game hushes it; none with sound effects off', async () => {
     const { watching, hushSfx, setSfxEnabled } = await import('../../src/lib/sfx');
     watching().to(1);

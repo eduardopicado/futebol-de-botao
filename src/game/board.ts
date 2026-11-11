@@ -18,7 +18,8 @@
 
 import { el, svg } from '../lib/dom';
 import type { Life } from '../lib/life';
-import { sfx, watching } from '../lib/sfx';
+import { sfx, watching, type Watching } from '../lib/sfx';
+import { supportersOn } from './choices';
 import { BALL, GOLEIROS, KEEPER_RX, L, MOUTH, R, TRAY_AT, VIEW, W, flickFor, nearGoal, type Bump, type Flick, type Goleiro, type Point } from '../content/botao';
 import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
@@ -302,6 +303,20 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     life.later(() => n.classList.remove('bulge'), 900);
   };
 
+  /* the supporters all match long, for those who chose them (the settings):
+     one crowd held from the first touch or flick, never silent between
+     flicks, and started again if its audio was taken away (iOS) */
+  const BED = 0.3;
+  let bed: Watching | null = null;
+  const supporters = (): Watching | null => {
+    if (!supportersOn()) return null;
+    if (!bed?.live()) {
+      const made = watching(BED);
+      bed = made.live() ? made : null;
+    }
+    return bed;
+  };
+
   const play = (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched: Benched[] = [], speed = 1, slowAt: number | null = null): Promise<void> =>
     new Promise((done) => {
       const start = performance.now();
@@ -316,7 +331,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
       let heard = 0;
       let netted = false;
       /* the crowd, louder as the ball nears a goal */
-      const crowd = watching();
+      const crowd = supporters() ?? watching();
       const tick = (): void => {
         if (!life.alive()) { crowd.done(); return; }
         const now = performance.now() - start;
@@ -334,7 +349,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
           else if (what === 'post') sfx.post();
           else sfx.tap();
         }
-        if (i >= frames.length - 1) { crowd.done(); board.removeAttribute('data-slow'); done(); return; }
+        if (i >= frames.length - 1) { if (crowd === bed) crowd.to(0); else crowd.done(); board.removeAttribute('data-slow'); done(); return; }
         life.later(tick, 16);
       };
       tick();
@@ -453,6 +468,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   const keeperOutAt = (which: 'top' | 'bottom'): number => Number((which === 'top' ? top.g : bottom.g).dataset.out ?? 0);
 
   board.addEventListener('pointerdown', (e) => {
+    supporters();
     /* the table tilted: nothing to pick up until it is back */
     if (drag || sliding || cam > 0) return;
     const p = toTable(e);
