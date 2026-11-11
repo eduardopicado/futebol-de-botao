@@ -100,9 +100,19 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const rule = start?.rule && RULES.includes(start.rule) ? start.rule : matchRule();
   const board = makeBoard(life, `The table: ${teams.a.name} at the bottom, attacking the top, and ${teams.b.name}${cpu ? ', the computer,' : ''} at the top`, GOLEIROS[rule]);
   const stage = el('div', { class: 'bt-stage' }, board.node);
-  const node = el('div', { class: 'game', vars: SHAPE },
-    el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, occasion.title), el('p', { class: 'bt-touches' }, whose, pips), ...(tie ? [clockEl] : [])), scoreEl),
-    sayEl, stage);
+  /* the table gets the screen: one row above it (←, the note, the score), and
+     the rest in the corners beside the nets, where nothing is played. Top
+     right, the match's name, whose turn it is and the touches; bottom left, a
+     tie's clock; and each side's own buttons ("Pro gol!", Pronto, Cobertura)
+     at its own end, to the right of its goal as it sits, there only when it
+     has something to tap */
+  const docks: Record<Side, HTMLElement> = { a: el('div', { class: 'bt-dock a' }), b: el('div', { class: 'bt-dock b' }) };
+  board.node.append(
+    el('div', { class: 'bt-corner titles' }, el('h1', {}, occasion.title), el('p', { class: 'bt-touches' }, whose, pips)),
+    ...(tie ? [el('div', { class: 'bt-corner clock' }, clockEl)] : []),
+    docks.b, docks.a);
+  const node = el('div', { class: 'game match', vars: SHAPE },
+    el('header', { class: 'topbar' }, back, sayEl, scoreEl), stage);
   root.append(node);
 
   /* the call players forget most: loud on the note, its 📣 shaking (app.css) */
@@ -145,10 +155,15 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   /** the note: what to do, said to whoever has to do it, facing them */
   const tell = (text: string, facing: Side, ...buttons: HTMLElement[]): void => {
     words.textContent = text;
-    actions.replaceChildren(...buttons);
+    /* its buttons go to that side's own end of the table (yours, against the computer) */
+    const mine: Side = cpu ? other(cpu) : facing;
+    docks[mine].replaceChildren(...buttons);
+    docks[other(mine)].replaceChildren();
     /* against the computer the note always faces you, at the bottom */
     sayEl.classList.toggle('flip', facing === 'b' && !cpu);
   };
+
+  const clearDocks = (): void => { docks.a.replaceChildren(); docks.b.replaceChildren(); };
 
   /** everything as it is now, and what the side to play may do, after the
       news if there is some (given, or kept from the last time) */
@@ -285,6 +300,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         await wait(PACE.goal);
         /* watching it again: play on when it is over */
         while (replaying) await replaying;
+        clearDocks();
         actions.replaceChildren();
         delete node.dataset.goal;
         render('');
@@ -349,6 +365,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     busy = true;
     board.drop();
     board.glow(null);
+    clearDocks();
     actions.replaceChildren();
     const called = m.phase === 'shot' || m.phase === 'penalty';
     const before = m;
@@ -404,6 +421,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       speak(what);
       render(`${what} ${name(w.side)} kick off.`);
       board.glow(null);
+      clearDocks();
       actions.replaceChildren();
       await wait(PACE.halfTime);
       render('');
@@ -417,6 +435,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     showScore();
     tell(what, 'a');
     board.glow(null);
+    clearDocks();
     actions.replaceChildren();
     if (tie) levelAfterExtraTime(tie.cup, { us: m.score.a, them: m.score.b });
     await wait(PACE.halfTime);
@@ -523,6 +542,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     node.dataset.winner = side;
     board.glow(null);
     words.textContent = `${name(side)} win!`;
+    clearDocks();
     actions.replaceChildren();
     const again = el('button', { class: 'btn', type: 'button', text: '🔁 Play again' });
     again.addEventListener('click', () => {
