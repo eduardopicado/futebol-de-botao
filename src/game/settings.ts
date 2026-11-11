@@ -14,8 +14,8 @@ import { go } from '../lib/router';
 import { setSfxEnabled } from '../lib/sfx';
 import { write } from '../lib/storage';
 import { LEVELS } from '../content/computer';
-import { GOALS, RULES, SIZES } from '../content/match';
-import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, readAloud, soundsOn } from './choices';
+import { GOALS, HALVES, RULES, SIZES } from '../content/match';
+import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, readAloud, soundsOn } from './choices';
 import { narrationSelect } from './narration';
 import { crestButton, redrawShirts, shirtTile } from './shirts';
 import { POSITIONS, SQUADS, changedSquad, resetSquad, setPlayer, squadOf } from './squads';
@@ -98,7 +98,15 @@ export function mount(root: HTMLElement): void {
     el('header', { class: 'topbar' }, back, el('div', { class: 'titles' }, el('h1', {}, 'Settings'))),
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'A match is won by' }),
-      chips('Goals to win', GOALS.map((g) => ({ value: g, text: `${g} goals` })), goalsToWin(), (g) => write('goals', g))),
+      /* to a number of goals, or on the clock: one choice of the two */
+      chips('How a match is won', [
+        ...GOALS.map((g) => ({ value: `g${g}`, text: `${g} goals` })),
+        ...HALVES.map((h) => ({ value: `h${h}`, text: `⏱ 2 × ${h} turns` })),
+      ], matchHalf() ? `h${matchHalf()}` : `g${goalsToWin()}`, (v) => {
+        const n = Number(v.slice(1));
+        if (v.startsWith('g')) { write('goals', n); write('half', 0); } else write('half', n);
+      }),
+      el('p', { class: 'tag', text: 'On the clock: two halves of that many turns a side. Level at the end, extra time; still level, penalties.' })),
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'The rule' }),
       chips('Rule', RULES.map((r) => ({ value: r, text: RULE_NAMES[r] })), matchRule(), (r) => write('rule', r)),

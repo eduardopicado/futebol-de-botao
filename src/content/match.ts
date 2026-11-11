@@ -75,6 +75,10 @@ export const KICKOFF_TOUCHES = 2;
 export const CIRCLE = 8;
 /** how many goals win: the first is the one a match starts with */
 export const GOALS = [3, 5, 10] as const;
+/** or a match against the clock: two halves of this many turns a side, to choose from */
+export const HALVES = [6, 8, 10] as const;
+/** and the turns a side in each half of its extra time, if it ends level */
+export const EXTRA_TURNS = 3;
 /** the rule a match is played to: 3 Toques, or 1 Toque; the first is the one a match starts with */
 export const RULES = ['3', '1'] as const;
 export type Rule = (typeof RULES)[number];

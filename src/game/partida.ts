@@ -31,14 +31,14 @@ import { pick } from '../lib/random';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
-import { COMPUTER, decide, placeKeeper } from '../content/computer';
+import { COMPUTER, coverKeeper, decide, standKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, golaco, inTheirArea, moment, timeUp, turnsLeft, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
+  EXTRA_TURNS, KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, golaco, inTheirArea, moment, timeUp, turnsLeft, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { GOLEIROS } from '../content/botao';
 import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
-import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchRule, speak } from './choices';
+import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, speak } from './choices';
 import { confetti } from './confetti';
 import { CUP_CLOCK, cupShout, levelAfterExtraTime, noPenaltiesWaiting, recordResult, tieNow } from './cup';
 import { narrate, shoutCall } from './narration';
@@ -109,7 +109,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const docks: Record<Side, HTMLElement> = { a: el('div', { class: 'bt-dock a' }), b: el('div', { class: 'bt-dock b' }) };
   board.node.append(
     el('div', { class: 'bt-corner titles' }, el('h1', {}, occasion.title), el('p', { class: 'bt-touches' }, whose, pips)),
-    ...(tie ? [el('div', { class: 'bt-corner clock' }, clockEl)] : []),
+    el('div', { class: 'bt-corner clock' }, clockEl),
     docks.b, docks.a);
   const node = el('div', { class: 'game match', vars: SHAPE },
     el('header', { class: 'topbar' }, back, sayEl, scoreEl), stage);
@@ -124,8 +124,9 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   const shotWords = (what: string): string => (chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : what);
   const prontoBtn = el('button', { class: 'btn small pronto', type: 'button', text: '✋ Pronto' });
 
-  /** a new match: to the goals the settings chose, or a Copa tie's against the clock */
-  const fresh = (first: Side, size: number): Match => newMatch(goalsToWin(), first, size, rule, tie ? CUP_CLOCK : undefined);
+  /** a new match: to the goals the settings chose, or against the clock (theirs, or a Copa tie's) */
+  const half = matchHalf();
+  const fresh = (first: Side, size: number): Match => newMatch(goalsToWin(), first, size, rule, tie ? CUP_CLOCK : half ? { turns: half, extra: EXTRA_TURNS } : undefined);
   let m: Match = fresh('a', buttonsPerSide());
   /* the final is played at night, under the floodlights (app.css) */
   const night = tie?.name === 'Final';
@@ -446,7 +447,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     actions.replaceChildren();
     if (tie) levelAfterExtraTime(tie.cup, { us: m.score.a, them: m.score.b });
     await wait(PACE.halfTime);
-    if (life.alive()) go('copa-penaltis');
+    /* a tie's own shootout; any other match's is Pênaltis, with the same two teams */
+    if (life.alive()) go(tie ? 'copa-penaltis' : cpu ? 'penaltis-1' : 'penaltis-2');
     return true;
   }
 
@@ -460,18 +462,23 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     else life.later(() => { void cpuMove(cpu); }, PACE.cpuMove);
   }
 
-  /** it slides its goleiro to where it wants it, and says Pronto */
-  async function cpuPlace(me: Side): Promise<void> {
-    busy = true;
-    const from = m.keepers[me];
-    const to = placeKeeper(m, level);
+  /** its goleiro seen moving to where it wants it, along its line and off it */
+  async function slideKeeper(me: Side, to: { x: number; out: number }): Promise<void> {
+    const from = { x: m.keepers[me], out: m.keepersOut[me] };
     for (let i = 1; i <= 8; i += 1) {
-      m = { ...m, keepers: { ...m.keepers, [me]: from + (to - from) * i / 8 } };
+      m = { ...m, keepers: { ...m.keepers, [me]: from.x + (to.x - from.x) * i / 8 }, keepersOut: { ...m.keepersOut, [me]: from.out + (to.out - from.out) * i / 8 } };
       board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m), benchedOf(m));
       await wait(PACE.slideStep);
     }
+  }
+
+  /** it slides its goleiro to where it wants it, and says Pronto */
+  async function cpuPlace(me: Side): Promise<void> {
+    busy = true;
+    const to = standKeeper(m, level);
+    await slideKeeper(me, to);
     sfx.tap();
-    m = pronto(m, to);
+    m = pronto(m, to.x, to.out);
     narrate('shot', teams[m.turn], () => undefined, life.later);
     busy = false;
     thinking = false;
@@ -481,6 +488,15 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   /** its turn: "Pro gol!", or a flick, its arrow shown for a moment first */
   async function cpuMove(me: Side): Promise<void> {
     if (m.turn !== me || m.phase === 'placing' || m.phase === 'over') { thinking = false; return; }
+    /* 1 Toque: its goleiro moved to cover the ball first, as a player may */
+    const cover = m.touches === 0 ? coverKeeper(m, level) : null;
+    if (cover && (Math.abs(cover.x - m.keepers[me]) > 0.5 || Math.abs(cover.out - m.keepersOut[me]) > 0.5)) {
+      busy = true;
+      await slideKeeper(me, cover);
+      m = moveGoleiro(m, cover.x, cover.out);
+      busy = false;
+      if (!life.alive()) return;
+    }
     const move = decide(m, level);
     if (move.kind === 'call') {
       sfx.whistle();
@@ -496,7 +512,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     await wait(PACE.cpuAim);
     board.clearAim();
     thinking = false;
-    await shoot(me, move.button, move.vx, move.vy, true);
+    await shoot(me, move.button, move.vx, move.vy, true, move.lift ?? 0);
   }
 
   board.listen({

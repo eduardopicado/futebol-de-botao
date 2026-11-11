@@ -3,8 +3,8 @@
    against itself that ends with a winner. */
 
 import { describe, expect, it } from 'vitest';
-import { GOLEIROS, L, MOUTH, W, keeperFor, type Point } from '../../src/content/botao';
-import { LEVELS, SKILL, decide, placeKeeper, shotFor, wobble, type Level } from '../../src/content/computer';
+import { GOLEIROS, L, MOUTH, W, chipPlan, keeperFor, keeperOut, simulate, type Point } from '../../src/content/botao';
+import { LEVELS, SKILL, coverKeeper, decide, placeKeeper, shotFor, standKeeper, wobble, type Level } from '../../src/content/computer';
 import { RULES, SIZES, call, clampKeeper, flick, inAttack, mayCall, newMatch, other, pronto, tableFor, type Match, type Side } from '../../src/content/match';
 
 const G3 = GOLEIROS['3'];
@@ -201,4 +201,82 @@ describe('a whole match, the computer against itself', () => {
       expect(m.winner).not.toBeNull();
     }
   }, 120_000);
+});
+
+describe('its chip (Cobertura)', () => {
+  /* the ball straight in front of goal, its button straight behind it, their goleiro in the way */
+  const table = { ball: { x: MID, y: 22 }, us: [{ x: MID, y: 34 }], them: [], keeper: MID };
+
+  it('a chip that goes in over the goleiro, where the same flick along the felt is saved; a little off, it still goes in', () => {
+    const f = chipPlan(table, [0])!;
+    expect(f.lift).toBeGreaterThan(0.5);
+    expect(simulate(table, f).goal).toBe(true);
+    expect(simulate(table, { ...f, lift: 0 }).goal).toBe(false);
+    for (const k of [0.975, 1.025]) expect(simulate(table, { ...f, vx: f.vx * k, vy: f.vy * k }).goal, `speed × ${k}`).toBe(true);
+  });
+
+  /** the first choice (to chip or not) as given, everything after it steady */
+  const first = (n: number): (() => number) => { let i = 0; return () => (i++ === 0 ? n : 0.5); };
+
+  for (const side of ['a', 'b'] as const) {
+    it(`side ${side}: with their goleiro in the way of its called shot, medium and hard chip him now and then, and score; easy never`, () => {
+      const put = side === 'a' ? (p: Point): Point => p : turned;
+      const m = pronto(call(chance(side, { ball: put(table.ball), [side]: [put(table.us[0]), ...parked(side).slice(1)] })), MID);
+      for (const level of ['medium', 'hard'] as const) {
+        const move = decide(m, level, first(0.1));
+        if (move.kind !== 'flick') throw new Error('no flick');
+        expect(move.lift, level).toBeGreaterThan(0.5);
+        expect(flick(m, move.button, move.vx, move.vy, move.lift).event, level).toEqual({ kind: 'goal', side, own: false });
+        /* and not every time: there is a way in along the felt too */
+        const low = decide(m, level, first(0.9));
+        expect(low.kind === 'flick' && low.lift === undefined, level).toBe(true);
+      }
+      const low = decide(m, 'easy', first(0.1));
+      expect(low.kind === 'flick' && low.lift === undefined).toBe(true);
+    });
+  }
+});
+
+describe('its goleiro at 1 Toque', () => {
+  const G1 = GOLEIROS['1'];
+  const one = (m: Match): Match => ({ ...m, rule: '1' });
+
+  it('comes off its line for a called shot, towards the ball: further on hard than medium, never on easy, never at 3 Toques', () => {
+    /* a's shot from the left of the area: b's goleiro, at the top */
+    const m = call(one(chance('a', { ball: { x: MID - 10, y: 30 }, a: [{ x: MID - 12, y: 42 }, ...parked('a').slice(1)] })));
+    const [easy, medium, hard] = (['easy', 'medium', 'hard'] as const).map((level) => standKeeper(m, level, steady));
+    expect(easy.out).toBe(0);
+    expect(medium.out).toBeCloseTo(0.4 * keeperOut(G1), 6);
+    expect(hard.out).toBeCloseTo(0.8 * keeperOut(G1), 6);
+    /* out along the way to the ball: nearer the ball's side than on the line */
+    expect(hard.x).toBeLessThan(medium.x);
+    expect(medium.x).toBeLessThan(easy.x);
+    /* and Pronto takes it there */
+    const ready = pronto(m, hard.x, hard.out);
+    expect(ready.keepers.b).toBeCloseTo(hard.x, 6);
+    expect(ready.keepersOut.b).toBeCloseTo(hard.out, 6);
+    expect(standKeeper({ ...m, rule: '3' }, 'hard', steady).out).toBe(0);
+  });
+
+  it('stays on its line for a penalty', () => {
+    const m = { ...call(one(chance('a'))), penalty: true };
+    expect(standKeeper(m, 'hard', steady).out).toBe(0);
+  });
+
+  it('on its own turn, moves to cover the ball before it flicks: both sides, not on easy, not at 3 Toques, not right on top of the ball', () => {
+    for (const side of ['a', 'b'] as const) {
+      const put = side === 'a' ? (p: Point): Point => p : turned;
+      /* the ball in its own half, to one side */
+      const m = one(chance(side, { ball: put({ x: MID + 12, y: 70 }) }));
+      const at = coverKeeper(m, 'hard')!;
+      expect(at.out).toBeCloseTo(0.8 * keeperOut(G1), 6);
+      /* towards the ball's side of its goal */
+      expect(Math.sign(at.x - MID)).toBe(Math.sign(m.ball.x - MID));
+      expect(coverKeeper(m, 'easy')).toBeNull();
+      expect(coverKeeper({ ...m, rule: '3' }, 'hard')).toBeNull();
+      /* the ball almost on it: it stays back */
+      const near = one(chance(side, { ball: put({ x: MID, y: L - 6 }) }));
+      expect(coverKeeper(near, 'hard')!.out).toBe(0);
+    }
+  });
 });

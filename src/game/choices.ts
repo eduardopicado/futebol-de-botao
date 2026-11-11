@@ -5,12 +5,18 @@
 import { say } from '../lib/speech';
 import { read } from '../lib/storage';
 import { LEVELS, type Level } from '../content/computer';
-import { GOALS, RULES, SIZES, type Rule } from '../content/match';
+import { GOALS, HALVES, RULES, SIZES, type Rule } from '../content/match';
 
 /** how many goals win a match */
 export const goalsToWin = (): number => {
   const n = read<number>('goals', GOALS[0]);
   return (GOALS as readonly number[]).includes(n) ? n : GOALS[0];
+};
+
+/** against the clock instead: the turns a side in each half, or 0 for a match to goals */
+export const matchHalf = (): number => {
+  const n = read<number>('half', 0);
+  return (HALVES as readonly number[]).includes(n) ? n : 0;
 };
 
 /** buttons a side, besides the goleiro */

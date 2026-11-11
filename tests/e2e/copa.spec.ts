@@ -162,6 +162,18 @@ test.describe('Copa', () => {
     noProblems(watch);
   });
 
+  test('any match on the clock, level after extra time: Pênaltis between the same two', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { half: 8, 'match-setup': { ...winning(), score: { a: 1, b: 1 }, ...lastTurn(4) } });
+    await page.goto('/#/partida');
+    await expect(page.locator('.bt-clock')).toHaveText('⏱ Extra time, 2nd half · 1 turn left');
+    await flick(page, 25, 0);
+    await expect(page.locator('.bt-say')).toContainText('Still level after extra time: penalties!', { timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Pênaltis' })).toBeVisible({ timeout: 8000 });
+    await expect(page).toHaveURL(/#\/penaltis-2$/);
+    noProblems(watch);
+  });
+
   test('level after extra time: penalties, on their own screen, and the tie waits for them', async ({ page }) => {
     const watch = watchPage(page);
     await seed(page, { cup: cup([]), 'match-setup': { ...winning(), score: { a: 1, b: 1 }, ...lastTurn(4) } });

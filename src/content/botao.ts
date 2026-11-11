@@ -427,8 +427,31 @@ const TURN = 1.5 * Math.PI / 180;
 const [COS, SIN] = [Math.cos(TURN), Math.sin(TURN)];
 const SPEEDS = [50, 65, 80, 100, 120];
 
-const turned = (f: Flick, sin: number): Flick => ({ button: f.button, vx: f.vx * COS - f.vy * sin, vy: f.vx * sin + f.vy * COS });
-const scaled = (f: Flick, k: number): Flick => ({ button: f.button, vx: f.vx * k, vy: f.vy * k });
+const turned = (f: Flick, sin: number): Flick => ({ ...f, vx: f.vx * COS - f.vy * sin, vy: f.vx * sin + f.vy * COS });
+const scaled = (f: Flick, k: number): Flick => ({ ...f, vx: f.vx * k, vy: f.vy * k });
+
+/**
+ * A chip that scores from here (Cobertura), if there is one: a button that
+ * meets the ball square towards the goal, lifted all the way or most of it,
+ * at a speed that takes it over the goleiro and in under the bar, and still
+ * does a little harder, softer or to either side. The window is narrow, as
+ * it is for a finger.
+ */
+export function chipPlan(t: Table, buttons: readonly number[]): Flick | null {
+  for (const b of buttons) {
+    for (const x of [MID, MID - 4, MID + 4]) {
+      const aim = aimAt(t, b, { x, y: -2.5 });
+      if (!aim || aim.cut < 0.85) continue;
+      for (const lift of [1, 0.75]) {
+        for (let speed = 48; speed <= 120; speed += 3) {
+          const f: Flick = { button: b, vx: aim.x * speed, vy: aim.y * speed, lift };
+          if ([f, scaled(f, 0.975), scaled(f, 1.025), turned(f, SIN / 2), turned(f, -SIN / 2)].every((g) => simulate(t, g).goal)) return f;
+        }
+      }
+    }
+  }
+  return null;
+}
 
 /** does it still go in if the flick is a little out? */
 export function robust(t: Table, f: Flick): boolean {

@@ -15,29 +15,30 @@
  * moment before it lets go. */
 
 import {
-  BALL, L, MOUTH, POST, W, aimAt, goleiroOf, keeperFor, oneTouch, passPlan,
+  BALL, L, MOUTH, POST, W, aimAt, chipPlan, goleiroOf, keeperFor, keeperOut, oneTouch, passPlan,
   type Flick, type Point, type Table,
 } from './botao';
-import { clampKeeper, flick, inAttack, mayCall, mayFlick, mustFree, tableFor, touchesFor, type Match } from './match';
+import { clampKeeper, flick, inAttack, mayCall, mayFlick, mayMoveGoleiro, mustFree, placeGoleiro, tableFor, touchesFor, type Match, type Side } from './match';
 
 export type Level = 'easy' | 'medium' | 'hard';
 export const LEVELS: readonly Level[] = ['easy', 'medium', 'hard'];
 
 /** how well it plays: how far off it may aim (degrees), how far off its
     power (a share either way), whether it plays off the wall or passes,
-    and how far off it stands its goleiro (table units) */
-export interface Skill { turn: number; power: number; walls: boolean; passes: boolean; keeper: number }
+    how far off it stands its goleiro (table units), how often it chips when it can, and how
+    far off its line its goleiro comes at 1 Toque (a share of the small area) */
+export interface Skill { turn: number; power: number; walls: boolean; passes: boolean; keeper: number; chip: number; out: number }
 
 export const SKILL: Record<Level, Skill> = {
-  easy: { turn: 8, power: 0.25, walls: false, passes: false, keeper: 6 },
-  medium: { turn: 4, power: 0.12, walls: true, passes: false, keeper: 3 },
-  hard: { turn: 1.5, power: 0.06, walls: true, passes: true, keeper: 1 },
+  easy: { turn: 8, power: 0.25, walls: false, passes: false, keeper: 6, chip: 0, out: 0 },
+  medium: { turn: 4, power: 0.12, walls: true, passes: false, keeper: 3, chip: 0.35, out: 0.4 },
+  hard: { turn: 1.5, power: 0.06, walls: true, passes: true, keeper: 1, chip: 0.6, out: 0.8 },
 };
 
 type Rand = () => number;
 
 /** what it does on its turn */
-export type Move = { kind: 'call' } | { kind: 'flick'; button: number; vx: number; vy: number };
+export type Move = { kind: 'call' } | { kind: 'flick'; button: number; vx: number; vy: number; lift?: number };
 
 const spread = (rand: Rand): number => rand() * 2 - 1;
 
@@ -47,7 +48,7 @@ export function wobble(f: Flick, level: Level, rand: Rand): Flick {
   const a = spread(rand) * turn * Math.PI / 180;
   const k = 1 + spread(rand) * power;
   const [c, s] = [Math.cos(a), Math.sin(a)];
-  return { button: f.button, vx: (f.vx * c - f.vy * s) * k, vy: (f.vx * s + f.vy * c) * k };
+  return { ...f, vx: (f.vx * c - f.vy * s) * k, vy: (f.vx * s + f.vy * c) * k };
 }
 
 const MID = (MOUTH[0] + MOUTH[1]) / 2;
@@ -83,7 +84,7 @@ const dist = (p: Point, q: Point): number => Math.sqrt((p.x - q.x) ** 2 + (p.y -
 
 /** a flick from the side to play's own table (attacking the top) as seen on the screen */
 const onScreen = (m: Match, f: Flick, index: number): Move =>
-  ({ kind: 'flick', button: index, vx: m.turn === 'a' ? f.vx : -f.vx, vy: m.turn === 'a' ? f.vy : -f.vy });
+  ({ kind: 'flick', button: index, vx: m.turn === 'a' ? f.vx : -f.vx, vy: m.turn === 'a' ? f.vy : -f.vy, ...(f.lift ? { lift: f.lift } : {}) });
 
 /** how near their goal the ball has to be for a shot that is only a fair
     try: on any flick, or on the turn's last, when a try beats handing the
@@ -199,7 +200,11 @@ export function decide(m: Match, level: Level, rand: Rand = Math.random): Move {
   const { table: t, ours } = tableFor(m);
   const may = ours.map((_, k) => k).filter((k) => mayFlick(m, ours[k]));
   if (m.phase === 'shot' || m.phase === 'penalty') {
-    const f = wobble(shotFor(t, may, level), level, rand);
+    /* a chip over their goleiro (Cobertura), if one is on: whenever there is
+       no sure way in along the felt, and now and then when there is */
+    const { chip: often, walls } = SKILL[level];
+    const chip = often > 0 && (rand() < often || !oneTouch(t, may, walls)) ? chipPlan(t, may) : null;
+    const f = wobble(chip ?? shotFor(t, may, level), level, rand);
     return onScreen(m, f, ours[f.button]);
   }
   if (mayCall(m) && worthCalling(m, t, may, level)) return { kind: 'call' };
@@ -232,6 +237,39 @@ export function placeKeeper(m: Match, level: Level, rand: Rand = Math.random): n
   const x = (keeperFor('middle', t.ball, goleiroOf(t)) ?? MID) + spread(rand) * SKILL[level].keeper;
   /* back from the shooter's table to the screen */
   return clampKeeper(m.turn === 'a' ? x : W - x, goleiroOf(t));
+}
+
+/** the goal `side` defends, and which way is out of it, on the screen */
+const goalOf = (side: Side): { line: number; into: number } => (side === 'a' ? { line: L, into: -1 } : { line: 0, into: 1 });
+
+/**
+ * 1 Toque lets a goleiro come off its line, anywhere in its small area, and
+ * the computer's does: out towards the ball along the line from where it
+ * would stand to the ball, to make the goal smaller. Further at the harder
+ * levels, never at the easiest, and never so far that the ball is beside it.
+ * `x` is where it would stand on its line, on the screen.
+ */
+function comeOut(m: Match, side: Side, x: number, level: Level, forShot: boolean): { x: number; out: number } {
+  const g = goleiroOf(tableFor(m).table);
+  const far = Math.abs(m.ball.y - goalOf(side).line);
+  const out = m.rule === '1' ? Math.max(0, Math.min(SKILL[level].out * keeperOut(g), far - g.y[1] - 8)) : 0;
+  return placeGoleiro(m.rule, x + (m.ball.x - x) * (out / Math.max(far, 1)), out, forShot);
+}
+
+/** where it stands its goleiro for a called shot: placeKeeper's place on the line, and at 1 Toque out from it */
+export function standKeeper(m: Match, level: Level, rand: Rand = Math.random): { x: number; out: number } {
+  const side: Side = m.turn === 'a' ? 'b' : 'a';
+  return m.penalty ? { x: placeKeeper(m, level, rand), out: 0 } : comeOut(m, side, placeKeeper(m, level, rand), level, true);
+}
+
+/** 1 Toque, its own turn: where it moves its goleiro before it flicks, to
+    cover the ball; null when it may not, or would not (the easiest level) */
+export function coverKeeper(m: Match, level: Level): { x: number; out: number } | null {
+  if (!mayMoveGoleiro(m) || SKILL[level].out === 0) return null;
+  const { line } = goalOf(m.turn);
+  const g = goleiroOf(tableFor(m).table);
+  const far = Math.max(Math.abs(m.ball.y - line), g.y[1]);
+  return comeOut(m, m.turn, clampKeeper(MID + (m.ball.x - MID) * (g.y[1] / far), g), level, false);
 }
 
 /** in a penalty shootout it guesses: anywhere across its goal, the same at every level */
