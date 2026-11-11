@@ -29,6 +29,11 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
   drag, and a finger still down when a shot starts is no flick.
 - Nothing guide-like stays on the table when no button is held. Say what
   happened in words, above the table, or animate it and then clear it.
+- A match's screen is one row (←, the note, the score) and the table. The
+  match's name, whose turn and the touches, a tie's clock, and each side's
+  own buttons ("Pro gol!", Pronto, Cobertura, at its own end and only when
+  it has one to tap) sit in the table's corners beside the nets.
+- A goal or a near miss is slowed only under the TV camera.
 - The TV camera (`src/game/camera.ts`) is presentation only: it tilts the
   table for a called shot or a penalty while nothing can be flicked, draws
   what stands up (goals, goleiros, the ball) on a flat layer from the same

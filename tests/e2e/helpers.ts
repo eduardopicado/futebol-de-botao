@@ -25,7 +25,7 @@ export function watchPage(page: Page, origin = 'http://localhost:4173'): { error
 
 export async function openGame(page: Page, path: string): Promise<void> {
   await page.goto('/#/' + path);
-  await expect(page.locator('.topbar h1')).toBeVisible();
+  await expect(page.locator('.topbar')).toBeVisible();
 }
 
 /** the setup panel is behind the gear, so the child never lands on it */

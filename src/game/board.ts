@@ -305,6 +305,9 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   const play = (frames: Scene[], bumps: { what: Bump; frame: number }[], keepers: Keepers, benched: Benched[] = [], speed = 1, slowAt: number | null = null): Promise<void> =>
     new Promise((done) => {
       const start = performance.now();
+      /* the moment is only slowed under the TV camera, where the ball can be
+         seen going in; from straight above it only made the game wait */
+      if (camTo !== 1) slowAt = null;
       /* when each frame is shown, in ms from the start: a 60th of a second
          apart, and more round the moment */
       const at = [0];

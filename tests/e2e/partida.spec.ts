@@ -127,10 +127,19 @@ test.describe('Partida', () => {
   test('"Pro gol!": called, the goleiro slid along the line and Pronto, and the shot past him scores', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance());
+    /* each side's buttons are at its own end of the table, and only when it has one to tap */
+    await expect(page.locator('.bt-dock.a .btn.call')).toBeVisible();
+    await expect(page.locator('.bt-dock.b .btn')).toHaveCount(0);
+    await expect(page.locator('.bt-say .btn')).toHaveCount(0);
     await page.getByRole('button', { name: '📣 Pro gol!' }).click();
     await expect(game(page)).toHaveAttribute('data-phase', 'placing');
-    /* the note turns to face the defender, at the top */
+    /* the note turns to face the defender, at the top, and Pronto is at their end */
     await expect(page.locator('.bt-say')).toHaveClass(/flip/);
+    await expect(page.locator('.bt-dock.b .btn.pronto')).toBeVisible();
+    await expect(page.locator('.bt-dock.a .btn')).toHaveCount(0);
+    /* the corners are beside the nets: no button of theirs lies over the pitch */
+    const [dock, pitch] = [(await page.locator('.bt-dock.b .btn').boundingBox())!, await screen(page, { x: 0, y: 0 })];
+    expect(dock.y + dock.height).toBeLessThanOrEqual(pitch.y + 1);
     await expect(page.locator('.bt-keeper.away')).toHaveClass(/placing/);
     /* their goleiro slid to its left post */
     const from = await screen(page, { x: 32, y: (G3.y[0] + G3.y[1]) / 2 });
@@ -173,8 +182,10 @@ test.describe('Partida', () => {
       const plan = oneTouch({ ball: { x: 32, y: 30 }, us: [{ x: 32, y: 42 }], them: parked('b'), keeper }, [0], false)!;
       /* the shake and the flash last half a second: noted as they start */
       await page.evaluate(() => {
-        const w = window as unknown as { __shook: string[]; __flashed: string[] };
-        [w.__shook, w.__flashed] = [[], []];
+        const w = window as unknown as { __shook: string[]; __flashed: string[]; __slowed: boolean };
+        [w.__shook, w.__flashed, w.__slowed] = [[], [], false];
+        const table = document.querySelector('.bt-table')!;
+        new MutationObserver(() => { if (table.hasAttribute('data-slow')) w.__slowed = true; }).observe(table, { attributes: true, attributeFilter: ['data-slow'] });
         const stage = document.querySelector('.bt-stage')!;
         new MutationObserver(() => {
           if (stage.classList.contains('shake')) w.__shook.push(getComputedStyle(stage.querySelector('.bt-wrap')!).animationName);
@@ -183,7 +194,8 @@ test.describe('Partida', () => {
         }).observe(stage, { attributes: true, attributeFilter: ['class'], childList: true });
       });
       await flick(page, 'a', 0, plan.flicks[0].vx, plan.flicks[0].vy);
-      await expect(page.locator('.bt-table')).toHaveAttribute('data-slow', '');
+      /* slowed only under the TV camera, which never turns under Reduce Motion */
+      if (!reduced) await expect(page.locator('.bt-table')).toHaveAttribute('data-slow', '');
       const banner = page.locator('.bt-gooool');
       await expect(banner).toHaveText('GOOOL!');
       const look = await banner.evaluate((b) => {
@@ -193,9 +205,10 @@ test.describe('Partida', () => {
         document.body.append(probe);
         const want = getComputedStyle(probe).color;
         probe.remove();
-        const w = window as unknown as { __shook: string[]; __flashed: string[] };
-        return { colour: getComputedStyle(span).color, want, shook: w.__shook, flashed: w.__flashed };
+        const w = window as unknown as { __shook: string[]; __flashed: string[]; __slowed: boolean };
+        return { colour: getComputedStyle(span).color, want, shook: w.__shook, flashed: w.__flashed, slowed: w.__slowed };
       });
+      expect(look.slowed).toBe(!reduced);
       expect(look.colour).toBe(look.want);
       expect(look.shook.length).toBeGreaterThan(0);
       expect(look.flashed.length).toBeGreaterThan(0);

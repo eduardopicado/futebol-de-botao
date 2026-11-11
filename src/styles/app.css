@@ -300,6 +300,44 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .bt-say::before { right: 100%; margin-right: 4px; }
 .bt-say::after { left: 100%; margin-left: 4px; transform: scaleX(-1); }
 @media (max-width: 700px) { .bt-say::before, .bt-say::after { display: none; } }
+/* a match (partida.ts): the table gets the screen. One row above it: ←, the
+   note and the score; on a phone the note takes a row of its own under them */
+.game.match { grid-template-rows: auto minmax(0, 1fr); }
+.game.match .topbar { align-items: center; }
+.game.match .topbar .bt-say { flex: 1; min-width: 0; width: auto; min-height: var(--tap); font-size: clamp(14px, 2.1vw, 18px); }
+.game.match .bt-say::before, .game.match .bt-say::after { display: none; }
+@media (max-width: 700px) {
+  .game.match .topbar { flex-wrap: wrap; justify-content: space-between; row-gap: 6px; }
+  .game.match .topbar .bt-say { order: 3; flex-basis: 100%; min-height: calc(2.5em + 10px); font-size: 15px; }
+}
+@media (min-aspect-ratio: 5/4) {
+  .game.match .topbar .bt-say { order: 3; flex-basis: 100%; margin-top: 2px; }
+}
+/* the corners of the table beside the nets, where nothing is played: as deep
+   as a net and the tray's rim (13 of the 124 the table is high), from the
+   edge to the goal. Top right, the match's name, whose turn and the touches;
+   bottom left, a tie's clock */
+.bt-corner, .bt-dock {
+  position: absolute; z-index: 3; width: 33%; height: 10.4%;
+  display: flex; align-items: center; gap: 4px 10px; pointer-events: none;
+}
+.bt-corner.titles { top: 0; right: 0; height: 5.2%; flex-direction: column; flex-wrap: nowrap; gap: 1px; align-items: flex-end; justify-content: flex-end; padding: 0 6px 2px 0; text-align: right; white-space: nowrap; }
+.bt-corner.titles h1 { margin: 0; font-size: clamp(13px, 2.4vw, 20px); line-height: 1.05; }
+.bt-corner.titles .bt-touches { font-size: clamp(11px, 1.9vw, 15px); gap: 5px; }
+.bt-corner.clock { bottom: 0; left: 0; align-items: flex-end; padding: 0 0 2px 6px; }
+@media (max-width: 700px) {
+  /* on a phone the corner is one line deep: whose turn and the touches */
+  .bt-corner.titles h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .bt-corner .bt-pip { width: 9px; height: 9px; border-width: 2px; }
+  .bt-corner .bt-pips { gap: 3px; }
+  .bt-corner .bt-clock { font-size: 11px; }
+}
+/* each side's own buttons ("Pro gol!", Pronto, Cobertura) at its own end, on
+   the right of its goal as it sits: the side at the top reads its upside down */
+.bt-dock.a { bottom: 0; right: 0; justify-content: flex-end; align-items: flex-end; padding: 0 4px 4px 0; }
+.bt-dock.b { top: 0; left: 0; justify-content: flex-end; align-items: flex-end; padding: 0 4px 4px 0; transform: rotate(180deg); }
+.bt-dock .btn { pointer-events: auto; min-height: var(--tap); white-space: nowrap; }
+@media (max-width: 700px) { .bt-dock .btn { padding-inline: 10px; font-size: 14px; } .bt-dock .btn.call { font-size: 14px; } }
 .bt-stage { container-type: size; display: grid; place-items: center; min-height: 0; position: relative; }
 /* the note's buttons ("Pro gol!", Pronto) beside its words; the whole note
    turns round to face the player at the top when it is talking to them */
@@ -607,3 +645,5 @@ label.btn input[type="file"] { position: absolute; top: 0; left: 0; width: 1px; 
 .guide-now { margin: 0; min-height: 1.3em; font: 800 clamp(15px, 3.6vw, 19px) / 1.3 var(--display); color: #8A4B00; }
 .guide-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .guide-count { margin: 0; font: 700 14px var(--reading); color: var(--on-deep-soft); }
+/* the corners' words lie over the room, light or dark: paper, with a shadow */
+.bt-corner h1, .bt-corner .bt-touches, .bt-corner .bt-clock { color: var(--paper); text-shadow: 0 1px 3px rgba(0, 0, 0, .75); }
