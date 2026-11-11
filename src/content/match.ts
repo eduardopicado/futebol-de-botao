@@ -24,6 +24,9 @@
  *   flicks by different buttons, and the ball has to go forward, past the
  *   centre spot towards the goal it attacks, or it is taken again (agreed in
  *   place of Art. 67's leaving the centre circle).
+ * - A ball that stops on a goal line between the posts, not all of it over,
+ *   is no goal and the goleiro's: a goal kick to the side defending it
+ *   (Art. 42c; the same at both rules).
  * - A button that goes wholly over a goal line, into the net, is out of play
  *   (Art. 28); one only partly over it is still in play (Art. 27). It sits
  *   out one whole turn of its side, then comes back on that goal line where
@@ -160,6 +163,8 @@ export type Event =
   | { kind: 'parked'; side: Side }
   /** `side` sent the ball over a crossbar: a goal kick */
   | { kind: 'over'; side: Side }
+  /** the ball stopped on `side`'s own goal line, not in: the goleiro's ball, a goal kick to `side` */
+  | { kind: 'keeper-ball'; side: Side }
   /** the kick-off did not send the ball forward: again */
   | { kind: 'retake'; side: Side }
   /** the turn passes to `side` */
@@ -589,6 +594,16 @@ export function flick(m: Match, button: number, vx: number, vy: number, lift = 0
   if (shot.goal) {
     goalKick(next, you);
     return result({ kind: 'uncalled', side: me, couldCall: m.attack });
+  }
+
+  /* stopped on a goal line between the posts, not all of it over: no goal,
+     and the goleiro's ball (3 Toques Art. 42c; at 1 Toque a ball stopped in
+     the small area is a goal kick, Art. 36a). Behind or beside the goleiro
+     it could only be knocked in */
+  if (onTheLine(next.ball)) {
+    const keeper: Side = Math.abs(next.ball.y - ownGoal('a').line) < BALL ? 'a' : 'b';
+    goalKick(next, keeper);
+    return result({ kind: 'keeper-ball', side: keeper });
   }
 
   const last = [...shot.bumps].reverse().find((b) => b.what === 'touch' || b.what === 'block' || b.what === 'keeper' || b.what === 'home');

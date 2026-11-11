@@ -689,6 +689,7 @@ test.describe('Partida', () => {
     await open(page, chance({ ball, a: [me, ...parked('a').slice(1)], keepers: { a: 32, b: keeper } }));
     await flick(page, 'a', 0, 0, -29);
     await expect(page.locator('.say-words')).toContainText('On the line! The whole ball has to cross it.', { timeout: 10000 });
+    await expect(page.locator('.say-words')).toContainText('Bola do goleiro!');
     await expect(game(page)).toHaveAttribute('data-score', '0-0');
     /* what is seen is what counts: the ball's edge is still on the goal line drawn */
     const { ballEdge, lineOuter, lineInner } = await page.evaluate(() => {
@@ -705,6 +706,10 @@ test.describe('Partida', () => {
     expect(ballEdge).toBeGreaterThan(lineOuter + 0.05);
     /* at the line, not out on the pitch */
     expect(ballEdge).toBeLessThan(lineInner + 2 * BALL);
+    /* then it is their goleiro's: a goal kick, out in their small area */
+    await expect(page.locator('.say-words')).toContainText('Goal kick to', { timeout: 6000 });
+    await expect(game(page)).toHaveAttribute('data-turn', 'b');
+    await expect(game(page)).toHaveAttribute('data-event', 'keeper-ball');
     noProblems(watch);
   });
 

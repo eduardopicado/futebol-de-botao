@@ -767,7 +767,7 @@ describe('a slow shot that stops across the line', () => {
     keepers: { a: W / 2, b: MOUTH[0] + G3.w / 2 },
   });
 
-  it('is no goal, called or not: the ball stays on the line, in play', () => {
+  it('is no goal, called or not, and the goleiro\'s ball: a goal kick to the side defending that goal', () => {
     const called = slow(pronto(call(setUp()), MOUTH[0] + G3.w / 2));
     const free = slow(setUp());
     for (const play of [called, free]) {
@@ -776,9 +776,14 @@ describe('a slow shot that stops across the line', () => {
       expect(at.y).toBeGreaterThan(-BALL);
       expect(['goal', 'champion', 'uncalled']).not.toContain(play.event.kind);
       expect(play.next.score).toEqual({ a: 0, b: 0 });
-      expect(play.next.ball).toEqual(at);
-      /* and the screens say so: it looks in, and is not */
-      expect(onTheLine(play.next.ball)).toBe(true);
+      /* it looks in, and is not: the screens say so */
+      expect(onTheLine(at)).toBe(true);
+      /* behind the goleiro it could only be knocked in: b's ball, out in its small area */
+      expect(play.event).toEqual({ kind: 'keeper-ball', side: 'b' });
+      expect(play.next.turn).toBe('b');
+      expect(play.next.phase).toBe('play');
+      expect(play.next.touches).toBe(0);
+      expect(play.next.ball).toEqual({ x: W / 2, y: 6 });
     }
   });
 

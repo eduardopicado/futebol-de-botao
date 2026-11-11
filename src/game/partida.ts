@@ -33,7 +33,7 @@ import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
 import { COMPUTER, decide, placeKeeper } from '../content/computer';
 import {
-  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, golaco, inTheirArea, moment, timeUp, turnsLeft, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, onTheLine, other, placeGoleiro, pronto, touchesFor,
+  KICKOFF_TOUCHES, ON_THE_LINE, RULES, call, flick, golaco, inTheirArea, moment, timeUp, turnsLeft, mayCall, mayFlick, mayMoveGoleiro, missed, moveGoleiro, mustFree, newMatch, other, placeGoleiro, pronto, touchesFor,
   type Event, type Match, type Play, type Scene, type Side,
 } from '../content/match';
 import { GOLEIROS } from '../content/botao';
@@ -309,6 +309,16 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       case 'champion':
         champion(event.side);
         return;
+      case 'keeper-ball': {
+        /* seen on the line first, then the goal kick */
+        const why = `${ON_THE_LINE} Bola do goleiro!`;
+        words.textContent = why;
+        sayEl.classList.remove('flip');
+        speak(why);
+        await wait(PACE.noGoal);
+        render(`Bola do goleiro! Goal kick to ${name(event.side)}.`);
+        return;
+      }
       case 'over': {
         /* a chip too high: the commentator, and the goal kick */
         render(`Over the bar! Goal kick to ${name(other(event.side))}.`);
@@ -346,19 +356,16 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
         return;
       case 'turn': {
         const shotWords = event.why === 'penalty' ? (saved ? 'Saved!' : 'Missed!') : called ? (saved ? 'Saved!' : 'No goal.') : event.why === 'touches' && m.rule === '1' ? '' : WHY[event.why];
-        render(`${lineWords()}${shotWords}`.trim());
+        render(shotWords);
         /* the handover: nothing can be flicked for a moment */
         await wait(PACE.handover);
         return;
       }
       case 'on':
-        render(`${lineWords()}${called ? (saved ? 'Saved! Play on.' : 'No goal. Play on.') : ''}`.trim());
+        render(called ? (saved ? 'Saved! Play on.' : 'No goal. Play on.') : '');
         return;
     }
   }
-
-  /** a ball stopped across a goal line looks in and is not: say so */
-  const lineWords = (): string => (onTheLine(m.ball) ? `${ON_THE_LINE} ` : '');
 
   async function shoot(side: Side, index: number, vx: number, vy: number, byComputer = false, lift = 0): Promise<void> {
     if ((busy && !byComputer) || side !== m.turn || !mayFlick(m, index)) return;
