@@ -5,14 +5,17 @@
 - **The commentator** (`*.mp3`, listed in `clips.json`): everything he
   shouts, in Portuguese and in English. That is every goal, for every team;
   the saves; "Na trave!" off the post; "Quase!" just wide; "Gol contra!";
-  "Bola do goleiro!" when the ball stops on the goal line, not in; and
-  "É campeão!".
+  "Bola do goleiro!" when the ball stops on the goal line, not in;
+  "É campeão!"; the kick-off, half time, extra time and penalties; a foul,
+  a penalty, a goal that does not count and a chip; and the classic radio
+  cries ("Tem peixe na rede!", "Olho no lance!", "Gol de placa!").
 - **The sound effects** (`sfx/*.mp3`, listed in `sfx/sfx.json` with how loud
   each one plays): cheer, win, whistle, crowd, kick, clack, post, move, take
   and roll; and the stadium's roar for a goal and its groan ("uuuh") for a
   near miss. The crowd's murmur swells under a flick as the ball nears a
   goal. The torcida is the supporters singing all match long, by choice in
-  the settings.
+  the settings: they have three songs (`torcida`, `torcida2`, `torcida3`),
+  one picked for each match.
 
 The first lines and the first ten sound effects were made with ElevenLabs
 for `eduardopicado/sounds-of-reading` and copied here as they were; the rest
