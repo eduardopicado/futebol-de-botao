@@ -66,7 +66,7 @@ export function unlockSfx(): Promise<void> {
 }
 
 /** the sounds that can be recorded (tools/make-sfx.ts says what each one is) */
-export type Recordable = 'cheer' | 'win' | 'whistle' | 'crowd' | 'kick' | 'clack' | 'post' | 'move' | 'take' | 'roll' | 'roar' | 'groan' | 'torcida';
+export type Recordable = 'cheer' | 'win' | 'whistle' | 'crowd' | 'kick' | 'clack' | 'post' | 'move' | 'take' | 'roll' | 'roar' | 'groan' | 'torcida' | 'torcida2' | 'torcida3';
 
 /** the recordings that are ready, with how loud each one plays */
 const recorded = new Map<string, { buffer: AudioBuffer; gain: number }>();
@@ -405,7 +405,9 @@ export function watching(floor = 0): Watching {
   const ac = audio();
   if (!ac) return QUIET;
   try {
-    const take = (floor > 0 ? recorded.get('torcida') : undefined) ?? recorded.get('crowd');
+    /* the supporters sing one of their songs, a different one from match to match */
+    const songs = (['torcida', 'torcida2', 'torcida3'] as const).flatMap((n) => recorded.get(n) ?? []);
+    const take = (floor > 0 && songs.length ? songs[Math.floor(Math.random() * songs.length)] : undefined) ?? recorded.get('crowd');
     const source = ac.createBufferSource();
     const vol = ac.createGain();
     let peak: number;

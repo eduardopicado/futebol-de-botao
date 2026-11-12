@@ -62,6 +62,9 @@ export const EFFECTS: Record<Recordable, Effect> = {
   /* a shot just wide, off the post or saved */
   /* the supporters all match long, for those who choose them (the settings) */
   torcida: { prompt: 'A Brazilian football stadium full of supporters singing and chanting together with samba drums and clapping, lively and steady from start to finish, no commentator, no whistle, no clear words', seconds: 22, gain: 0.3, loop: true },
+  /* more of their songs, one picked for each match */
+  torcida2: { prompt: 'A huge Brazilian football crowd chanting a rhythmic olé chant together, with a brass band and trumpets playing along, stadium echo, lively and steady from start to finish, no commentator, no whistle, no clear words', seconds: 22, gain: 0.3, loop: true },
+  torcida3: { prompt: 'Brazilian football supporters in the stands clapping in rhythm and singing a slow rising chant, with big bass drums and tambourines, lively and steady from start to finish, no commentator, no whistle, no clear words', seconds: 22, gain: 0.3, loop: true },
   groan: { prompt: "A big football stadium crowd groaning together at a shot that just missed: one long disappointed 'ooooh' that rises and falls, no cheering, no music, no clear words", seconds: 2, gain: 0.45 },
 };
 
