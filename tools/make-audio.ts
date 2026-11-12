@@ -34,7 +34,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clipId, speakable } from '../src/lib/clip-id.ts';
 import {
-  EN_CLOSE, EN_DANGER, EN_OVER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_DANGER, PT_OVER, PT_OWN_GOALS,
+  EN_CLOSE, EN_DANGER, EN_KEEPER_BALL, EN_OVER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_DANGER, PT_KEEPER_BALL, PT_OVER, PT_OWN_GOALS,
   PT_POSTS, PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, ptGoals, ptGolacos,
 } from '../src/content/commentary.ts';
 import { TEAMS, real } from '../src/game/teams.ts';
@@ -63,10 +63,10 @@ export function clips(): Clip[] {
     if (key && !out.has(key)) out.set(key, { text: text.trim(), voice });
   };
   /* in English a real team is named, a made-up side is not */
-  for (const line of [...EN_SAVES, ...EN_POSTS, ...EN_CLOSE, ...EN_OVER, ...EN_OWN_GOALS, ...EN_SHOTS, ...EN_DANGER, enGoal(), enGolaco(), enChampion()]) add(line, 'en');
+  for (const line of [...EN_SAVES, ...EN_POSTS, ...EN_CLOSE, ...EN_OVER, ...EN_KEEPER_BALL, ...EN_OWN_GOALS, ...EN_SHOTS, ...EN_DANGER, enGoal(), enGolaco(), enChampion()]) add(line, 'en');
   for (const t of TEAMS.filter(real)) for (const line of [enGoal(t.name), enGolaco(t.name), enChampion(t.name)]) add(line, 'en');
   /* in Portuguese a team with its article ("do Brasil"), or none */
-  for (const line of [PT_CALL, ...PT_SAVES, ...PT_POSTS, ...PT_CLOSE, ...PT_OVER, ...PT_OWN_GOALS, ...PT_SHOTS, ...PT_DANGER, ...ptGoals(), ...ptGolacos(), ...PT_CHAMPIONS]) add(line, 'pt-commentator');
+  for (const line of [PT_CALL, ...PT_SAVES, ...PT_POSTS, ...PT_CLOSE, ...PT_OVER, ...PT_KEEPER_BALL, ...PT_OWN_GOALS, ...PT_SHOTS, ...PT_DANGER, ...ptGoals(), ...ptGolacos(), ...PT_CHAMPIONS]) add(line, 'pt-commentator');
   for (const t of TEAMS) if (t.pt) for (const line of [...ptGoals(t.pt), ...ptGolacos(t.pt)]) add(line, 'pt-commentator');
   return [...out.values()].sort((a, b) => speakable(a.text).localeCompare(speakable(b.text)));
 }

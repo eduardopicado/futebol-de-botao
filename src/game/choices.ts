@@ -49,5 +49,8 @@ export const readAloud = (): boolean => read<boolean>('read-aloud', true);
 /** the words, said aloud, if that is chosen */
 export const speak = (words: string): void => { if (readAloud()) say(words); };
 
+/** the supporters heard all match long, not only as the ball nears a goal? */
+export const supportersOn = (): boolean => read<boolean>('supporters', false);
+
 /** are the sound effects on? */
 export const soundsOn = (): boolean => read<boolean>('sounds', true);
