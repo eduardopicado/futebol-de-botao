@@ -28,6 +28,11 @@ export const PT_GOLACO_CRIES = ['Gol de placa!'];
 export const ptGolacos = (team?: string): string[] =>
   team ? [`Golaço ${team}!`, `Que golaço ${team}!`] : ['Golaço!', 'Que golaço!'];
 
+/** a team's name on its own, as he calls it: "Brasil!", "Manchester United!";
+    in Portuguese from its name with its article ("do Brasil"), in English from its name */
+export const ptTeam = (pt: string): string => `${pt.replace(/^(do|da|de|dos|das) /, '')}!`;
+export const enTeam = (name: string): string => `${name}!`;
+
 /** a great goal, in English */
 export const enGolaco = (team?: string): string => (team ? `What a goal from ${team}!` : 'What a goal!');
 

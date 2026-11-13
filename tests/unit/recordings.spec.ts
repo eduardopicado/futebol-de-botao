@@ -9,7 +9,8 @@ import { EFFECTS } from '../../tools/make-sfx';
 import { clipId } from '../../src/lib/clip-id';
 import { EN_SAVES, PT_SAVES, enGoal, ptGoals } from '../../src/content/commentary';
 import { callFor, type Moment } from '../../src/game/narration';
-import { TEAMS } from '../../src/game/teams';
+import { TEAMS, real } from '../../src/game/teams';
+import { enTeam, ptTeam } from '../../src/content/commentary';
 
 const AUDIO = 'public/audio';
 const mp3s = (dir: string): string[] => readdirSync(dir).filter((f) => f.endsWith('.mp3')).map((f) => f.slice(0, -4)).sort();
@@ -30,6 +31,17 @@ describe('the commentator\'s recordings', () => {
     const have = new Set(mp3s(AUDIO));
     expect(clips().filter((c) => !have.has(clipId(c.text))).map((c) => c.text)).toEqual([]);
     for (const line of [...ptGoals('do Brasil'), ...ptGoals(), enGoal('Brazil'), enGoal(), ...PT_SAVES, ...EN_SAVES]) expect(have.has(clipId(line)), line).toBe(true);
+  });
+
+  it("every real team's name is known to the tool, both ways, to be called on its own", () => {
+    const known = new Set(clips().map((c) => c.text));
+    for (const team of TEAMS.filter(real)) {
+      expect(known.has(enTeam(team.name)), team.name).toBe(true);
+      expect(known.has(ptTeam(team.pt!)), team.name).toBe(true);
+    }
+    expect(ptTeam('do Brasil')).toBe('Brasil!');
+    expect(ptTeam('da Alemanha')).toBe('Alemanha!');
+    expect(ptTeam('do Manchester United')).toBe('Manchester United!');
   });
 
   it('the tool knows every line the game can have him say, so none is left to the device voice', () => {

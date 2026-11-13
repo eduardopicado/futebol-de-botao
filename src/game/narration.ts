@@ -16,7 +16,7 @@ import { hasClip } from '../lib/audio';
 import { read, write } from '../lib/storage';
 import {
   EN_CLOSE, EN_DANGER, EN_KEEPER_BALL, EN_KICKOFF, EN_HALF_TIME, EN_EXTRA_TIME, EN_TO_PENALTIES, EN_FOULS, EN_PENALTIES, EN_NO_GOAL, EN_CHIPS, EN_OVER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_GOAL_CRIES, PT_GOLACO_CRIES, PT_CLOSE, PT_DANGER, PT_KEEPER_BALL, PT_KICKOFF, PT_HALF_TIME, PT_EXTRA_TIME, PT_TO_PENALTIES, PT_FOULS, PT_PENALTIES, PT_NO_GOAL, PT_CHIPS, PT_OVER, PT_OWN_GOALS,
-  PT_POSTS, PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, ptGoals, ptGolacos,
+  PT_POSTS, PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, enTeam, ptGoals, ptGolacos, ptTeam,
 } from '../content/commentary';
 import { real, type Team } from './teams';
 
@@ -93,6 +93,20 @@ export function narrate(moment: Moment, team: Team, then: () => void, later: (fn
   const sayName = (): void => say(name, { lang: lang && canSpeak(lang) ? lang : undefined, onEnd: next });
   say(call, { lang, onEnd: name ? sayName : next });
   later(next, (hasClip(call) ? RECORDED : SPOKEN) + (name ? NAME : 0));
+}
+
+/** a real team's name on its own, called by the commentator: who kicks off,
+    who takes the first penalty. In his recorded voice in the language he
+    speaks; nothing for a made-up side or with no commentator */
+export function callTeam(team: Team, then: () => void, later: (fn: () => void, ms: number) => void): void {
+  const choice = narrationChoice();
+  if (choice === 'off' || !real(team)) { then(); return; }
+  let done = false;
+  const next = (): void => { if (!done) { done = true; then(); } };
+  const pt = choice === 'pt' && team.pt ? ptTeam(team.pt) : '';
+  const [line, lang] = pt && (hasClip(pt) || canSpeak(PT)) ? [pt, PT] : [enTeam(team.name), undefined];
+  say(line, { lang, onEnd: next });
+  later(next, hasClip(line) ? RECORDED : SPOKEN);
 }
 
 /** "Pro gol!": a shot called, by a player or the computer, shouted in the
