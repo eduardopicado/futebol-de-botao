@@ -286,12 +286,14 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
   }
   replayBtn.addEventListener('click', () => { sfx.tap(); void replay(); });
 
-  async function after(event: Event, called: boolean, saved: boolean, great = false): Promise<void> {
+  async function after(event: Event, called: boolean, saved: boolean, great = false, chipped = false): Promise<void> {
     switch (event.kind) {
       case 'goal': {
         sfx.roar();
         celebrate(stage, teams[event.side], life, event.own ? 'GOL CONTRA!' : 'GOOOL!');
-        narrate(event.own ? 'own-goal' : great ? 'golaco' : 'goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
+        /* a goal chipped over the goleiro gets its own cry first */
+        const goalCry = (): void => narrate(event.own ? 'own-goal' : great ? 'golaco' : 'goal', teams[event.side], () => undefined, life.later, scorer?.name ?? '');
+        if (chipped && !event.own) narrate('chip', teams[event.side], goalCry, life.later); else goalCry();
         node.dataset.goal = event.side;
         showScore();
         const by = scorer ? ` ${scorer.name ? `${scorer.name} (${scorer.n})` : `Number ${scorer.n}`},` : '';
@@ -330,7 +332,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       case 'uncalled': {
         sfx.whistle();
         const why = event.couldCall ? 'No goal: the shot was not called. Call "Pro gol!" first.' : 'No goal: a shot only counts in a turn that starts in the other half.';
-        speak(why);
+        narrate('no-goal', teams[event.side], () => speak(why), life.later);
         render(`${why} Goal kick to ${name(other(event.side))}.`);
         await wait(PACE.noGoal);
         return;
@@ -338,7 +340,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       case 'foul': {
         sfx.whistle();
         const why = event.penalty ? `Foul in the area! Penalty to ${name(event.side)}.` : `Foul! Free kick to ${name(event.side)}.`;
-        speak(why);
+        narrate(event.penalty ? 'penalty' : 'foul', teams[event.side], () => speak(why), life.later);
         render(event.penalty ? 'Foul in the area!' : why);
         await wait(PACE.foul);
         return;
@@ -346,7 +348,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
       case 'parked': {
         sfx.whistle();
         const why = `Parked ball! Free kick to ${name(event.side)}: the ball was left between the other side's own buttons.`;
-        speak(why);
+        narrate('foul', teams[event.side], () => speak(why), life.later);
         render(why);
         await wait(PACE.parked);
         return;
@@ -409,7 +411,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     if (!called && (play.event.kind === 'on' || play.event.kind === 'turn') && inTheirArea(m.ball, before.turn) && !inTheirArea(before.ball, before.turn)) {
       narrate('danger', teams[before.turn], () => undefined, life.later);
     }
-    await after(play.event, called, saved, golaco(play, before.turn));
+    await after(play.event, called, saved, golaco(play, before.turn), lift > 0);
     if (m.phase === 'over') return;
     if (await whistle()) return;
     busy = false;
@@ -427,7 +429,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     sfx.whistle();
     if (w.kind === 'half') {
       const what = w.half === 2 ? 'Half time!' : w.half === 3 ? 'Full time, and level: extra time!' : 'Half time in extra time!';
-      speak(what);
+      narrate(w.half === 3 ? 'extra-time' : 'half-time', teams[w.side], () => speak(what), life.later);
       render(`${what} ${name(w.side)} kick off.`);
       board.glow(null);
       clearDocks();
@@ -440,7 +442,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     /* level after extra time: penalties, on their own screen */
     node.dataset.phase = 'over';
     const what = 'Still level after extra time: penalties!';
-    speak(what);
+    narrate('to-penalties', teams[m.turn], () => speak(what), life.later);
     showScore();
     tell(what, 'a');
     board.glow(null);
@@ -553,7 +555,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     await wait(PACE.toss);
     overlay.setAttribute('hidden', '');
     m = fresh(first, m.size);
-    speak(`Kick-off: ${teams[first].name}!`);
+    narrate('kickoff', teams[first], () => speak(`Kick-off: ${teams[first].name}!`), life.later);
     busy = false;
     render('');
   }

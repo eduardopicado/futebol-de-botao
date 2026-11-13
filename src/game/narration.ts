@@ -15,13 +15,13 @@ import { canSpeak, say } from '../lib/speech';
 import { hasClip } from '../lib/audio';
 import { read, write } from '../lib/storage';
 import {
-  EN_CLOSE, EN_DANGER, EN_KEEPER_BALL, EN_OVER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_CLOSE, PT_DANGER, PT_KEEPER_BALL, PT_OVER, PT_OWN_GOALS,
+  EN_CLOSE, EN_DANGER, EN_KEEPER_BALL, EN_KICKOFF, EN_HALF_TIME, EN_EXTRA_TIME, EN_TO_PENALTIES, EN_FOULS, EN_PENALTIES, EN_NO_GOAL, EN_CHIPS, EN_OVER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_GOAL_CRIES, PT_GOLACO_CRIES, PT_CLOSE, PT_DANGER, PT_KEEPER_BALL, PT_KICKOFF, PT_HALF_TIME, PT_EXTRA_TIME, PT_TO_PENALTIES, PT_FOULS, PT_PENALTIES, PT_NO_GOAL, PT_CHIPS, PT_OVER, PT_OWN_GOALS,
   PT_POSTS, PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, ptGoals, ptGolacos,
 } from '../content/commentary';
 import { real, type Team } from './teams';
 
 export type Narration = 'pt' | 'en' | 'off';
-export type Moment = 'goal' | 'golaco' | 'save' | 'champion' | 'post' | 'close' | 'over' | 'keeper-ball' | 'own-goal' | 'shot' | 'danger';
+export type Moment = 'goal' | 'golaco' | 'save' | 'champion' | 'post' | 'close' | 'over' | 'keeper-ball' | 'own-goal' | 'kickoff' | 'half-time' | 'extra-time' | 'to-penalties' | 'foul' | 'penalty' | 'no-goal' | 'chip' | 'shot' | 'danger';
 
 const KEY = 'football-narration';
 const PT = 'pt-BR';
@@ -32,6 +32,9 @@ export const narrationChoice = (): Narration => {
 };
 export const setNarration = (v: Narration): void => write(KEY, v);
 
+/** how often a goal gets one of the old radio cries */
+const CRY = 0.3;
+
 /** the same moment, whoever it was for */
 const SAME: Record<Exclude<Moment, 'goal' | 'golaco' | 'champion'>, { pt: string[]; en: string[] }> = {
   save: { pt: PT_SAVES, en: EN_SAVES },
@@ -39,6 +42,14 @@ const SAME: Record<Exclude<Moment, 'goal' | 'golaco' | 'champion'>, { pt: string
   close: { pt: PT_CLOSE, en: EN_CLOSE },
   over: { pt: PT_OVER, en: EN_OVER },
   'keeper-ball': { pt: PT_KEEPER_BALL, en: EN_KEEPER_BALL },
+  'kickoff': { pt: PT_KICKOFF, en: EN_KICKOFF },
+  'half-time': { pt: PT_HALF_TIME, en: EN_HALF_TIME },
+  'extra-time': { pt: PT_EXTRA_TIME, en: EN_EXTRA_TIME },
+  'to-penalties': { pt: PT_TO_PENALTIES, en: EN_TO_PENALTIES },
+  'foul': { pt: PT_FOULS, en: EN_FOULS },
+  'penalty': { pt: PT_PENALTIES, en: EN_PENALTIES },
+  'no-goal': { pt: PT_NO_GOAL, en: EN_NO_GOAL },
+  'chip': { pt: PT_CHIPS, en: EN_CHIPS },
   'own-goal': { pt: PT_OWN_GOALS, en: EN_OWN_GOALS },
   shot: { pt: PT_SHOTS, en: EN_SHOTS },
   danger: { pt: PT_DANGER, en: EN_DANGER },
@@ -48,7 +59,13 @@ const SAME: Record<Exclude<Moment, 'goal' | 'golaco' | 'champion'>, { pt: string
     that is the same whoever it was for */
 export function callFor(moment: Moment, team: Team, lang: 'pt' | 'en'): string {
   if (moment !== 'goal' && moment !== 'golaco' && moment !== 'champion') return pick(SAME[moment][lang]);
-  if (lang === 'pt') return pick(moment === 'champion' ? PT_CHAMPIONS : moment === 'golaco' ? ptGolacos(team.pt) : ptGoals(team.pt));
+  if (lang === 'pt') {
+    if (moment === 'champion') return pick(PT_CHAMPIONS);
+    /* now and then, one of the old radio cries instead of the team's own */
+    const cry = Math.random() < CRY;
+    if (moment === 'golaco') return cry ? pick(PT_GOLACO_CRIES) : pick(ptGolacos(team.pt));
+    return cry ? pick(PT_GOAL_CRIES) : pick(ptGoals(team.pt));
+  }
   const name = real(team) ? team.name : undefined;
   if (moment === 'champion') return enChampion(name);
   return moment === 'golaco' ? enGolaco(name) : enGoal(name);

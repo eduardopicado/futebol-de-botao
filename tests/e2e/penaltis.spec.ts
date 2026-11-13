@@ -8,7 +8,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectTapTargets, heard, inOrder, noProblems, plays, recordPlays, recordSpeech, said, seed, watchPage } from './helpers';
 import { GOLEIROS, L, MARKS, PULL, VIEW, W, oneTouch, type Point } from '../../src/content/botao';
 import type { Shootout, Side } from '../../src/content/match';
-import { PT_CHAMPIONS, enGoal, ptGoals } from '../../src/content/commentary';
+import { PT_CHAMPIONS, PT_GOAL_CRIES, enGoal, ptGoals } from '../../src/content/commentary';
+
+/** what he may shout for Brazil's goal: Brazil's own, or now and then one of the old radio cries */
+const brazilGoal = [...ptGoals('do Brasil'), ...PT_GOAL_CRIES];
 import { clipId } from '../../src/lib/clip-id';
 import { SQUADS } from '../../src/game/squads';
 
@@ -212,10 +215,10 @@ test.describe('Pênaltis', () => {
       await recordSpeech(page, ['pt-BR']);
       await recordPlays(page);
       await brazilScores(page);
-      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      await expect.poll(() => played(page, brazilGoal)).toHaveLength(1);
       await expect.poll(() => name(page)).toEqual({ text: expect.any(String), lang: 'pt-BR' });
       /* the call is the recording, never the device voice as well */
-      expect((await said(page)).filter((t) => ptGoals('do Brasil').includes(t))).toEqual([]);
+      expect((await said(page)).filter((t) => brazilGoal.includes(t))).toEqual([]);
       /* and the words are read aloud once he has finished, not over him */
       const { text } = (await name(page))!;
       await expect.poll(async () => (await said(page)).slice(-2)).toEqual([text, `GOL! ${text.slice(0, -1)} scores for 🇧🇷 Brazil.`]);
@@ -229,7 +232,7 @@ test.describe('Pênaltis', () => {
       await recordSpeech(page);
       await recordPlays(page);
       await brazilScores(page);
-      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      await expect.poll(() => played(page, brazilGoal)).toHaveLength(1);
       await expect.poll(() => name(page)).toEqual({ text: expect.any(String), lang: 'en-AU' });
       noProblems(watch);
     });
@@ -257,7 +260,7 @@ test.describe('Pênaltis', () => {
       const f = await aimed(page, 'a');
       await kick(page, 'a', f.vx, f.vy);
       await expect(game(page)).toHaveAttribute('data-winner', 'a', { timeout: 10000 });
-      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      await expect.poll(() => played(page, brazilGoal)).toHaveLength(1);
       const { text } = (await name(page))!;
       /* "É campeão!" recorded where it was, and said where not; after the
          name, with nothing in between */
@@ -265,7 +268,7 @@ test.describe('Pênaltis', () => {
       await expect.poll(async () => champion((await inOrder(page)).at(-1) ?? '')).toBe(true);
       const all = await inOrder(page);
       expect(all.at(-2)).toBe(text);
-      expect(ptGoals('do Brasil').some((line) => all.at(-3)?.endsWith(`/audio/${clipId(line)}.mp3`))).toBe(true);
+      expect(brazilGoal.some((line) => all.at(-3)?.endsWith(`/audio/${clipId(line)}.mp3`))).toBe(true);
       noProblems(watch);
     });
 
@@ -286,7 +289,7 @@ test.describe('Pênaltis', () => {
       await recordSpeech(page, ['pt-BR']);
       await recordPlays(page);
       await brazilScores(page);
-      await expect.poll(() => played(page, ptGoals('do Brasil'))).toHaveLength(1);
+      await expect.poll(() => played(page, brazilGoal)).toHaveLength(1);
       const before = await contexts();
       expect(before).toBeGreaterThan(0);
       await tap();
