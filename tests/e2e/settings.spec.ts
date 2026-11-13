@@ -126,11 +126,11 @@ test.describe('Settings', () => {
     const watch = watchPage(page);
     await page.goto('/#/settings');
     await page.getByRole('group', { name: 'Team for a crest' }).getByRole('button', { name: 'Brazil' }).click();
-    const name = page.getByRole('textbox', { name: 'Forward: name' });
+    const name = page.getByRole('textbox', { name: 'Forward 1: name' });
     await expect(name).toHaveValue('Vinícius Júnior');
     await name.fill('Pelé');
     await name.press('Tab');
-    const number = page.getByRole('spinbutton', { name: 'Forward: number' });
+    const number = page.getByRole('spinbutton', { name: 'Forward 1: number' });
     await number.fill('10');
     await number.press('Tab');
     await expect(page.locator('.settings .players-said')).toContainText('Saved');
@@ -138,10 +138,33 @@ test.describe('Settings', () => {
     /* and they are there the next time */
     await page.reload();
     await page.getByRole('group', { name: 'Team for a crest' }).getByRole('button', { name: 'Brazil' }).click();
-    await expect(page.getByRole('textbox', { name: 'Forward: name' })).toHaveValue('Pelé');
+    await expect(page.getByRole('textbox', { name: 'Forward 1: name' })).toHaveValue('Pelé');
     await page.getByRole('button', { name: '↺ Back to the real squad' }).click();
-    await expect(page.getByRole('textbox', { name: 'Forward: name' })).toHaveValue('Vinícius Júnior');
-    await expect(page.getByRole('spinbutton', { name: 'Forward: number' })).toHaveValue('7');
+    await expect(page.getByRole('textbox', { name: 'Forward 1: name' })).toHaveValue('Vinícius Júnior');
+    await expect(page.getByRole('spinbutton', { name: 'Forward 1: number' })).toHaveValue('7');
+    noProblems(watch);
+  });
+
+  test("who plays: Pelé ticked in for a midfielder, kept, and he is on the table", async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/#/settings');
+    await page.getByRole('group', { name: 'Team for a crest' }).getByRole('button', { name: 'Brazil' }).click();
+    const pele = page.getByRole('button', { name: 'Midfielder 3, Pelé: plays' });
+    await expect(pele).toHaveAttribute('aria-pressed', 'false');
+    await pele.click();
+    await expect(page.locator('.settings .players-said')).toHaveText('Five outfield players already play: take one off first.');
+    await page.getByRole('button', { name: 'Midfielder 2, Douglas Luiz: plays' }).click();
+    await pele.click();
+    await expect(pele).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.settings .players-said')).toHaveText('Pelé plays.');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('fdb:lineup') ?? '{}').brazil)).toEqual([0, 1, 2, 3, 5, 8]);
+    /* kept for next time; and the first six come back with one tap */
+    await page.reload();
+    await page.getByRole('group', { name: 'Team for a crest' }).getByRole('button', { name: 'Brazil' }).click();
+    await expect(page.getByRole('button', { name: 'Midfielder 3, Pelé: plays' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: '↺ The first six play' }).click();
+    await expect(page.getByRole('button', { name: 'Midfielder 3, Pelé: plays' })).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('button', { name: 'Midfielder 2, Douglas Luiz: plays' })).toHaveAttribute('aria-pressed', 'true');
     noProblems(watch);
   });
 

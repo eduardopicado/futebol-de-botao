@@ -562,6 +562,13 @@ body[data-route="penaltis-1"] .app, body[data-route="penaltis-2"] .app, body[dat
 .settings label.field { display: grid; gap: 4px; font-weight: 700; }
 .settings .players { display: grid; gap: 6px; }
 .settings .player { display: grid; grid-template-columns: 6.5em 4.2em minmax(0, 1fr); gap: 8px; align-items: center; }
+/* with a bench: a tick for who plays first, and the bench a little apart */
+.settings .player:has(.plays) { grid-template-columns: var(--tap) 6.5em 4.2em minmax(0, 1fr); }
+.settings .player.first-bench { margin-top: 10px; }
+.settings .player:not(.on) .position { opacity: .7; }
+.settings .plays { width: var(--tap); height: var(--tap); border-radius: 12px; border: 2px solid rgba(255, 246, 231, .35); background: transparent; color: var(--deep-2); font: 800 22px var(--display); cursor: pointer; }
+.settings .plays[aria-pressed="true"] { background: var(--mustard); border-color: var(--mustard); }
+@media (max-width: 420px) { .settings .player:has(.plays) { grid-template-columns: var(--tap) 4.6em 3.6em minmax(0, 1fr); gap: 6px; } .settings .player .position { font-size: 12px; } }
 .settings .player .position { font-size: 14px; color: var(--on-deep-soft); }
 .settings .player input { min-height: var(--tap); padding: 6px 10px; border-radius: 10px; border: 2px solid rgba(255, 246, 231, .25); background: rgba(255, 246, 231, .08); color: var(--on-deep); font: 600 16px var(--reading); min-width: 0; }
 .settings .crest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
