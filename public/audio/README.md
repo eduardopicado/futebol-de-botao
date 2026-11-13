@@ -9,6 +9,8 @@
   "É campeão!"; the kick-off, half time, extra time and penalties; a foul,
   a penalty, a goal that does not count and a chip; and the classic radio
   cries ("Tem peixe na rede!", "Olho no lance!", "Gol de placa!").
+  Each team's name on its own ("Brasil!", "Manchester United!"), for the
+  kick-off, each half and the first penalty.
 - **The sound effects** (`sfx/*.mp3`, listed in `sfx/sfx.json` with how loud
   each one plays): cheer, win, whistle, crowd, kick, clack, post, move, take
   and roll; and the stadium's roar for a goal and its groan ("uuuh") for a
