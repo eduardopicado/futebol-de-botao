@@ -24,7 +24,7 @@ import {
 import { type Keepers, makeBoard, SHAPE } from './board';
 import { computerLevel, speak } from './choices';
 import { confetti } from './confetti';
-import { narrate } from './narration';
+import { callTeam, narrate, narrationChoice } from './narration';
 import { celebrate } from './moment';
 import { PACE } from './pace';
 import { cupShout, noPenaltiesWaiting, recordResult, tieNow, waitingForPenalties } from './cup';
@@ -267,7 +267,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     m = penaltyFor(s.turn);
     setUpKick();
     busy = false;
-    speak(`First kick: ${teams[s.turn].name}!`);
+    callTeam(teams[s.turn], () => { if (narrationChoice() === 'off') speak(`First kick: ${teams[s.turn].name}!`); }, life.later);
     render();
   }
 

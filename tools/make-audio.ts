@@ -35,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { clipId, speakable } from '../src/lib/clip-id.ts';
 import {
   EN_CLOSE, EN_DANGER, EN_KEEPER_BALL, EN_KICKOFF, EN_HALF_TIME, EN_EXTRA_TIME, EN_TO_PENALTIES, EN_FOULS, EN_PENALTIES, EN_NO_GOAL, EN_CHIPS, EN_OVER, EN_OWN_GOALS, EN_POSTS, EN_SAVES, EN_SHOTS, PT_CALL, PT_CHAMPIONS, PT_GOAL_CRIES, PT_GOLACO_CRIES, PT_CLOSE, PT_DANGER, PT_KEEPER_BALL, PT_KICKOFF, PT_HALF_TIME, PT_EXTRA_TIME, PT_TO_PENALTIES, PT_FOULS, PT_PENALTIES, PT_NO_GOAL, PT_CHIPS, PT_OVER, PT_OWN_GOALS,
-  PT_POSTS, PT_SAVES, PT_SHOTS, enChampion, enGolaco, enGoal, ptGoals, ptGolacos,
+  PT_POSTS, PT_SAVES, PT_SHOTS, enChampion, enTeam, ptTeam, enGolaco, enGoal, ptGoals, ptGolacos,
 } from '../src/content/commentary.ts';
 import { TEAMS, real } from '../src/game/teams.ts';
 
@@ -64,10 +64,10 @@ export function clips(): Clip[] {
   };
   /* in English a real team is named, a made-up side is not */
   for (const line of [...EN_SAVES, ...EN_POSTS, ...EN_CLOSE, ...EN_OVER, ...EN_KEEPER_BALL, ...EN_KICKOFF, ...EN_HALF_TIME, ...EN_EXTRA_TIME, ...EN_TO_PENALTIES, ...EN_FOULS, ...EN_PENALTIES, ...EN_NO_GOAL, ...EN_CHIPS, ...EN_OWN_GOALS, ...EN_SHOTS, ...EN_DANGER, enGoal(), enGolaco(), enChampion()]) add(line, 'en');
-  for (const t of TEAMS.filter(real)) for (const line of [enGoal(t.name), enGolaco(t.name), enChampion(t.name)]) add(line, 'en');
+  for (const t of TEAMS.filter(real)) for (const line of [enGoal(t.name), enGolaco(t.name), enChampion(t.name), enTeam(t.name)]) add(line, 'en');
   /* in Portuguese a team with its article ("do Brasil"), or none */
   for (const line of [PT_CALL, ...PT_SAVES, ...PT_POSTS, ...PT_CLOSE, ...PT_OVER, ...PT_KEEPER_BALL, ...PT_KICKOFF, ...PT_HALF_TIME, ...PT_EXTRA_TIME, ...PT_TO_PENALTIES, ...PT_FOULS, ...PT_PENALTIES, ...PT_NO_GOAL, ...PT_CHIPS, ...PT_OWN_GOALS, ...PT_SHOTS, ...PT_DANGER, ...ptGoals(), ...ptGolacos(), ...PT_CHAMPIONS, ...PT_GOAL_CRIES, ...PT_GOLACO_CRIES]) add(line, 'pt-commentator');
-  for (const t of TEAMS) if (t.pt) for (const line of [...ptGoals(t.pt), ...ptGolacos(t.pt)]) add(line, 'pt-commentator');
+  for (const t of TEAMS) if (t.pt) for (const line of [...ptGoals(t.pt), ...ptGolacos(t.pt), ptTeam(t.pt)]) add(line, 'pt-commentator');
   return [...out.values()].sort((a, b) => speakable(a.text).localeCompare(speakable(b.text)));
 }
 

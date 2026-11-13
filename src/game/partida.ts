@@ -41,7 +41,7 @@ import { type Benched, type Keepers, makeBoard, SHAPE } from './board';
 import { RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, speak } from './choices';
 import { confetti } from './confetti';
 import { CUP_CLOCK, cupShout, levelAfterExtraTime, noPenaltiesWaiting, recordResult, tieNow } from './cup';
-import { narrate, shoutCall } from './narration';
+import { callTeam, narrate, narrationChoice, shoutCall } from './narration';
 import { celebrate } from './moment';
 import { PACE } from './pace';
 import { buttonsOf, type Player } from './squads';
@@ -429,7 +429,7 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     sfx.whistle();
     if (w.kind === 'half') {
       const what = w.half === 2 ? 'Half time!' : w.half === 3 ? 'Full time, and level: extra time!' : 'Half time in extra time!';
-      narrate(w.half === 3 ? 'extra-time' : 'half-time', teams[w.side], () => speak(what), life.later);
+      narrate(w.half === 3 ? 'extra-time' : 'half-time', teams[w.side], () => callTeam(teams[w.side], () => speak(what), life.later), life.later);
       render(`${what} ${name(w.side)} kick off.`);
       board.glow(null);
       clearDocks();
@@ -555,7 +555,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     await wait(PACE.toss);
     overlay.setAttribute('hidden', '');
     m = fresh(first, m.size);
-    narrate('kickoff', teams[first], () => speak(`Kick-off: ${teams[first].name}!`), life.later);
+    /* "Rola a bola!", then who kicks off; the words read aloud only with no commentator */
+    narrate('kickoff', teams[first], () => callTeam(teams[first], () => { if (narrationChoice() === 'off') speak(`Kick-off: ${teams[first].name}!`); }, life.later), life.later);
     busy = false;
     render('');
   }
