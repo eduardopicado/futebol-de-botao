@@ -27,6 +27,16 @@ let enabled = true;
    does for one iOS says is interrupted. */
 let stale = false;
 
+/* The commentator's recordings (src/lib/audio.ts) play through this same
+   context, so there is one way out for every sound and iOS has no other
+   audio to silence this one for. Told of each new context, inside the tap
+   that made it, so the recordings follow it there. */
+let follow: ((ac: AudioContext) => void) | null = null;
+export function followContext(fn: (ac: AudioContext) => void): void {
+  follow = fn;
+  if (ctx) fn(ctx);
+}
+
 /** start a context, or try to: one that will not start (WebKit with no
     sound device says "AudioDestinationNode is not initialized") only means
     no sound, never an error */
@@ -46,6 +56,7 @@ function audio(): AudioContext | null {
     ctx = new Ctor();
     /* a new one has heard nothing yet */
     stale = false;
+    try { follow?.(ctx); } catch { /* the recordings play on their own */ }
     return ctx;
   } catch {
     return null;

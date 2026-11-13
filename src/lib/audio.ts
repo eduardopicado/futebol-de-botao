@@ -16,7 +16,7 @@
  * clips or fifteen hundred and the app works either way. */
 
 import { clipId, speakable } from './clip-id';
-import { staleSfx } from './sfx';
+import { followContext, staleSfx } from './sfx';
 
 /** ids we have a file for; empty until the manifest loads, or if it never does */
 let have: Set<string> | null = null;
@@ -79,6 +79,36 @@ const element = (): HTMLAudioElement => {
   return player;
 };
 
+/* The element plays through the sound effects' audio context once there is
+   one (src/lib/sfx.ts): with two ways out, iOS silenced the sound effects
+   after every recording, until the next tap, which in a game against the
+   computer could be a whole turn later. An element can be joined to one
+   context only, so a new context (made in a tap, after the app was away)
+   gets a new element, unlocked in that same tap. */
+let routed: AudioContext | null = null;
+function route(ac: AudioContext): void {
+  try {
+    if (routed && player) {
+      player.onended = null;
+      player.pause();
+      player = null;
+      holding = '';
+      unlocked = false;
+    }
+    const audio = element();
+    ac.createMediaElementSource(audio).connect(ac.destination);
+    routed = ac;
+    if (have?.size) {
+      void audio.play()?.catch(() => undefined);
+      audio.pause();
+    }
+  } catch {
+    /* it plays on its own, as before */
+    routed = null;
+  }
+}
+followContext(route);
+
 /**
  * Unlocks the player inside a tap, called on every tap until a recording has
  * played. It is stopped again before a sound comes out (and usually holds
@@ -134,8 +164,8 @@ export async function playClip(
     audio.onended = options.onEnd ? () => { if (!ended) { ended = true; options.onEnd?.(); } } : null;
     await audio.play();
     unlocked = true;
-    /* iOS can silence the sound effects once this has played (src/lib/sfx.ts) */
-    staleSfx();
+    /* played on its own, iOS can silence the sound effects (src/lib/sfx.ts) */
+    if (!routed) staleSfx();
     return true;
   } catch {
     /* cut short: the next word, or leaving the game, has taken over */

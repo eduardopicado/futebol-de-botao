@@ -272,7 +272,7 @@ test.describe('Pênaltis', () => {
       noProblems(watch);
     });
 
-    test('after his recording, the next tap starts the sound effects afresh, and after the app was away: iOS can silence them', async ({ page }) => {
+    test('his recording plays through the sound effects, so they stay awake after it; after the app was away, the next tap starts them afresh', async ({ page }) => {
       const watch = watchPage(page);
       /* how many audio contexts the sound effects have made */
       await page.addInitScript(() => {
@@ -292,11 +292,9 @@ test.describe('Pênaltis', () => {
       await expect.poll(() => played(page, brazilGoal)).toHaveLength(1);
       const before = await contexts();
       expect(before).toBeGreaterThan(0);
+      /* one way out for every sound: nothing for iOS to silence, so no new context is needed */
       await tap();
-      expect(await contexts()).toBe(before + 1);
-      /* once is enough */
-      await tap();
-      expect(await contexts()).toBe(before + 1);
+      expect(await contexts()).toBe(before);
       /* away and back, as when the iPad sleeps or another app is opened */
       await page.evaluate(() => {
         for (const hidden of [true, false]) {
@@ -305,7 +303,10 @@ test.describe('Pênaltis', () => {
         }
       });
       await tap();
-      expect(await contexts()).toBe(before + 2);
+      expect(await contexts()).toBe(before + 1);
+      /* once is enough */
+      await tap();
+      expect(await contexts()).toBe(before + 1);
       noProblems(watch);
     });
   });

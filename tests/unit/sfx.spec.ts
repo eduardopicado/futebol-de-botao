@@ -380,3 +380,68 @@ describe('iOS silencing the sound effects', () => {
     expect(FakeSource.made.map((s) => s.buffer)).toEqual([{ duration: 1.5 }]);
   });
 });
+
+describe("the commentator's recordings, through the same sound", () => {
+  /** an audio element that plays at once, and the contexts it is joined to */
+  class FakeElement {
+    static made: FakeElement[] = [];
+    src = '';
+    paused = true;
+    onended: (() => void) | null = null;
+    currentTime = 0;
+    playbackRate = 1;
+    defaultPlaybackRate = 1;
+    joined: unknown[] = [];
+    constructor() { FakeElement.made.push(this); }
+    play() { this.paused = false; return Promise.resolve(); }
+    pause() { this.paused = true; }
+  }
+  class JoiningContext extends FakeContext {
+    createMediaElementSource(el: FakeElement) {
+      el.joined.push(this);
+      return { connect: (n: unknown) => n };
+    }
+  }
+
+  beforeEach(() => {
+    vi.resetModules();
+    FakeContext.made = [];
+    FakeElement.made = [];
+    vi.stubGlobal('Audio', FakeElement);
+    vi.stubGlobal('window', { AudioContext: JoiningContext, localStorage: { getItem: () => null, setItem: () => undefined } });
+    vi.stubGlobal('document', { hidden: false });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('a recording plays through the sound effects\' context, and leaves them awake: no new context at the next tap', async () => {
+    const { clipId } = await import('../../src/lib/clip-id');
+    serve({ 'clips.json': [clipId('Gol!')], 'sfx.json': {} });
+    const { loadClips, playClip } = await import('../../src/lib/audio');
+    const sfx = await import('../../src/lib/sfx');
+    await loadClips('./audio/clips.json');
+    await sfx.unlockSfx();
+    const [ac] = FakeContext.made;
+    expect(await playClip('Gol!')).toBe(true);
+    const el = FakeElement.made.at(-1)!;
+    expect(el.joined).toEqual([ac]);
+    /* the next tap: the same context, still running */
+    sfx.wakeSfx();
+    expect(FakeContext.made).toHaveLength(1);
+  });
+
+  it('a new context, after the app was away, gets a new element joined to it in the same tap', async () => {
+    serve({ 'clips.json': [], 'sfx.json': {} });
+    const audio = await import('../../src/lib/audio');
+    const sfx = await import('../../src/lib/sfx');
+    await sfx.unlockSfx();
+    const first = FakeElement.made.at(-1)!;
+    sfx.staleSfx();
+    sfx.wakeSfx();
+    expect(FakeContext.made).toHaveLength(2);
+    const second = FakeElement.made.at(-1)!;
+    expect(second).not.toBe(first);
+    expect(second.joined).toEqual([FakeContext.made[1]]);
+    expect(first.joined).toEqual([FakeContext.made[0]]);
+    void audio;
+  });
+});
