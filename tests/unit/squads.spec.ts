@@ -23,18 +23,56 @@ async function load(seed: Record<string, unknown> = {}) {
 describe('the squads', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('every real team has six, each a name and a shirt number, no number twice; You and the Rivals have numbers only', async () => {
-    const { SQUADS, TEAMS, real, squadOf } = await load();
+  it('every real team has twelve, each a name and a shirt number, its first six with no number twice; You and the Rivals have six numbers only', async () => {
+    const { SQUADS, TEAMS, real, squadOf, POSITIONS } = await load();
+    expect(POSITIONS).toHaveLength(12);
     for (const t of TEAMS) {
-      const six = squadOf(t);
-      expect(six, t.id).toHaveLength(6);
-      for (const p of six) {
+      const all = squadOf(t);
+      expect(all, t.id).toHaveLength(real(t) ? 12 : 6);
+      for (const p of all) {
         expect(Number.isInteger(p.n) && p.n >= 1 && p.n <= 99, `${t.id} ${p.n}`).toBe(true);
         expect(real(t) ? p.name.length > 0 : p.name === '', `${t.id} ${p.name}`).toBe(true);
       }
-      expect(new Set(six.map((p) => p.n)).size, t.id).toBe(6);
+      expect(new Set(all.slice(0, 6).map((p) => p.n)).size, t.id).toBe(6);
+      /* nobody twice in a squad */
+      expect(new Set(all.map((p) => p.name)).size, t.id).toBe(real(t) ? 12 : 1);
       expect(Boolean(SQUADS[t.id]), t.id).toBe(real(t));
     }
+  });
+
+  it('the first six play unless others are picked: a goleiro picked takes the other one\'s place, five outfield at most, and they line up defenders, midfielders, forwards', async () => {
+    const { lineupOf, squadOf, togglePlayer, picked, resetLineup, teamById, buttonsOf } = await load();
+    const brazil = teamById('brazil')!;
+    const all = squadOf(brazil);
+    expect(lineupOf(brazil)).toEqual(all.slice(0, 6));
+    /* Taffarel in goal */
+    expect(togglePlayer(brazil, 6)).toBe('in');
+    expect(lineupOf(brazil)[0].name).toBe('Taffarel');
+    expect(picked(brazil).filter((k) => k === 0 || k === 6)).toEqual([6]);
+    /* the goleiro playing cannot simply be taken off */
+    expect(togglePlayer(brazil, 6)).toBe('keeper');
+    /* five outfield already: Pelé waits until one comes off */
+    expect(togglePlayer(brazil, 8)).toBe('full');
+    expect(togglePlayer(brazil, 4)).toBe('out');
+    expect(togglePlayer(brazil, 8)).toBe('in');
+    /* Pelé in midfield, after the defenders, before the forward */
+    expect(lineupOf(brazil).map((p) => p.name)).toEqual(['Taffarel', 'Marquinhos', 'Gabriel Magalhães', 'Bruno Guimarães', 'Pelé', 'Vinícius Júnior']);
+    expect(buttonsOf(brazil, 5).map((p) => p.name)).toEqual(['Marquinhos', 'Gabriel Magalhães', 'Bruno Guimarães', 'Pelé', 'Vinícius Júnior']);
+    /* with only four picked, the fifth comes from the top of the list */
+    expect(togglePlayer(brazil, 2)).toBe('out');
+    expect(lineupOf(brazil)).toHaveLength(6);
+    expect(lineupOf(brazil).map((p) => p.name)).toContain('Gabriel Magalhães');
+    resetLineup(brazil);
+    expect(lineupOf(brazil)).toEqual(all.slice(0, 6));
+  });
+
+  it('a lineup saved wrongly is ignored where it is wrong', async () => {
+    const { lineupOf, squadOf, teamById } = await load({ lineup: { brazil: [99, -1, 'x', 6, 6, 1, 2, 3, 4, 5] } });
+    const brazil = teamById('brazil')!;
+    expect(lineupOf(brazil)[0]).toEqual(squadOf(brazil)[6]);
+    expect(lineupOf(brazil)).toHaveLength(6);
+    const odd = await load({ lineup: 'nonsense' });
+    expect(odd.lineupOf(odd.teamById('spain')!)).toEqual(odd.squadOf(odd.teamById('spain')!).slice(0, 6));
   });
 
   it('five a side, the five outfield players in line-up order; four a side, the second midfielder sits out', async () => {

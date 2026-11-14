@@ -18,7 +18,7 @@ import { GOALS, HALVES, RULES, SIZES } from '../content/match';
 import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, readAloud, soundsOn, supportersOn } from './choices';
 import { narrationSelect } from './narration';
 import { crestButton, redrawShirts, shirtTile } from './shirts';
-import { POSITIONS, SQUADS, changedSquad, resetSquad, setPlayer, squadOf } from './squads';
+import { PLAY, POSITIONS, SQUADS, changedSquad, picked, resetLineup, resetSquad, setPlayer, squadOf, togglePlayer } from './squads';
 import { TEAMS, type Team } from './teams';
 
 /** one choice of a few, as a row of chips; the one chosen is pressed */
@@ -47,35 +47,45 @@ export function mount(root: HTMLElement): void {
   back.addEventListener('click', () => go('home'));
 
   /* a crest for any team: tap its shirt, then add the picture */
-  let picked: Team = TEAMS[0];
+  let shownTeam: Team = TEAMS[0];
   const tiles = TEAMS.map((t) => {
     const tile = shirtTile(t);
-    tile.addEventListener('click', () => { picked = t; drawCrest(); });
+    tile.addEventListener('click', () => { shownTeam = t; drawCrest(); });
     return tile;
   });
   const grid = el('div', { class: 'teams', role: 'group', 'aria-label': 'Team for a crest' }, ...tiles);
   const shown = el('span', { class: 'shown' });
   const remove = el('button', { class: 'btn ghost small', type: 'button', text: 'Remove' });
   const said = el('p', { class: 'said crest-said', 'aria-live': 'polite' });
-  const add = crestButton(() => picked, (t, words) => { redrawShirts(grid, t); drawCrest(words); });
+  const add = crestButton(() => shownTeam, (t, words) => { redrawShirts(grid, t); drawCrest(words); });
   function drawCrest(words = ''): void {
-    const crest = crestOf(picked.id);
-    for (const tile of tiles) tile.setAttribute('aria-pressed', String(tile.dataset.team === picked.id));
-    shown.replaceChildren(crest ? el('img', { src: crest, alt: `The crest for ${picked.name}` }) : el('span', { class: 'none', text: 'No crest' }));
+    const crest = crestOf(shownTeam.id);
+    for (const tile of tiles) tile.setAttribute('aria-pressed', String(tile.dataset.team === shownTeam.id));
+    shown.replaceChildren(crest ? el('img', { src: crest, alt: `The crest for ${shownTeam.name}` }) : el('span', { class: 'none', text: 'No crest' }));
     remove.hidden = !crest;
     add.update();
     said.textContent = words;
   }
-  remove.addEventListener('click', () => { clearCrest(picked.id); redrawShirts(grid, picked); drawCrest('Removed.'); });
+  remove.addEventListener('click', () => { clearCrest(shownTeam.id); redrawShirts(grid, shownTeam); drawCrest('Removed.'); });
 
-  /* the same team's players: a number and a name for each, the goleiro first */
+  /* the same team's players: a number and a name for each, the goleiro
+     first, and which six play (a goleiro and five outfield) */
   const roster = el('div', { class: 'players' });
   const reset = el('button', { class: 'btn ghost small', type: 'button' });
+  const firstSix = el('button', { class: 'btn ghost small', type: 'button', text: '↺ The first six play' });
+  const playing = el('p', { class: 'tag players-playing' });
   const rosterSaid = el('p', { class: 'said players-said', 'aria-live': 'polite' });
   function drawPlayers(words = ''): void {
-    const team = picked;
-    roster.replaceChildren(...squadOf(team).map((p, slot) => {
-      const position = POSITIONS[slot];
+    const team = shownTeam;
+    const squad = squadOf(team);
+    const chosen = picked(team);
+    const bench = squad.length > PLAY;
+    /* each position counted, so every field has its own name: "Forward 2: name" */
+    const seen: Record<string, number> = {};
+    roster.replaceChildren(...squad.map((p, slot) => {
+      const kind = POSITIONS[slot];
+      seen[kind] = (seen[kind] ?? 0) + 1;
+      const position = `${kind} ${seen[kind]}`;
       const number = el('input', { type: 'number', inputmode: 'numeric', min: '1', max: '99', value: String(p.n), 'aria-label': `${position}: number` }) as HTMLInputElement;
       const name = el('input', { type: 'text', maxlength: '30', value: p.name, placeholder: 'Name', 'aria-label': `${position}: name` }) as HTMLInputElement;
       number.addEventListener('change', () => {
@@ -83,13 +93,25 @@ export function mount(root: HTMLElement): void {
         if (Number.isInteger(n) && n >= 1 && n <= 99) { setPlayer(team, slot, { n }); drawPlayers(`Saved: ${position.toLowerCase()} number ${n}.`); } else number.value = String(squadOf(team)[slot].n);
       });
       name.addEventListener('change', () => { setPlayer(team, slot, { name: name.value }); drawPlayers('Saved.'); });
-      return el('div', { class: 'player' }, el('span', { class: 'position', text: position }), number, name);
+      const plays = chosen.includes(slot);
+      const pick = el('button', { class: 'plays', type: 'button', 'aria-pressed': String(plays), 'aria-label': `${position}${p.name ? `, ${p.name}` : ''}: plays`, text: plays ? '✓' : '' });
+      pick.addEventListener('click', () => {
+        const done = togglePlayer(team, slot);
+        const who = p.name || `Number ${p.n}`;
+        drawPlayers(done === 'in' ? `${who} plays.` : done === 'out' ? `${who} on the bench.` : done === 'full' ? 'Five outfield players already play: take one off first.' : 'A team always has a goleiro: pick the other one to change him.');
+      });
+      return el('div', { class: `player${plays ? ' on' : ''}${slot === PLAY ? ' first-bench' : ''}` }, ...(bench ? [pick] : []), el('span', { class: 'position', text: kind }), number, name);
     }));
+    const outfield = chosen.filter((k) => POSITIONS[k] !== 'Goleiro').length;
+    playing.hidden = !bench;
+    playing.textContent = outfield < PLAY - 1 ? `Tick who plays: a goleiro and five outfield. ${outfield} of five shownTeam; the rest come from the top of the list.` : 'Tick who plays: a goleiro and five outfield.';
     reset.textContent = SQUADS[team.id] ? '↺ Back to the real squad' : '↺ Clear the names';
     reset.hidden = !changedSquad(team);
+    firstSix.hidden = !bench || (chosen.length === PLAY && chosen.every((k) => k < PLAY));
     rosterSaid.textContent = words;
   }
-  reset.addEventListener('click', () => { resetSquad(picked); drawPlayers('Back as it was.'); });
+  firstSix.addEventListener('click', () => { resetLineup(shownTeam); drawPlayers('The first six play.'); });
+  reset.addEventListener('click', () => { resetSquad(shownTeam); drawPlayers('Back as it was.'); });
   for (const tile of tiles) tile.addEventListener('click', () => drawPlayers());
   drawCrest();
   drawPlayers();
@@ -128,6 +150,6 @@ export function mount(root: HTMLElement): void {
       el('p', { class: 'tag', text: "Put a team's crest on its shirt and its buttons, from your own photos, and change its players' numbers and names. Tap the team:" }),
       grid,
       el('div', { class: 'crest' }, shown, add.node, remove), said,
-      el('h3', { class: 'lbl', text: 'Players' }), roster, el('div', { class: 'row' }, reset), rosterSaid),
+      el('h3', { class: 'lbl', text: 'Players' }), playing, roster, el('div', { class: 'row' }, firstSix, reset), rosterSaid),
     el('p', { class: 'tag', text: 'Everything here stays on this device. Nothing is sent anywhere.' })));
 }

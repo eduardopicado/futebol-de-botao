@@ -157,8 +157,10 @@ src/game/settings.ts      the settings: goals to win or halves on the clock, the
                           computer level, commentator, sound effects, reading
                           aloud, crests and players
 src/game/teams.ts         the teams, their flags and kits; rivalFor picks the opponent
-src/game/squads.ts        the players: each real team's six (men's squads, October
-                          2026), numbers and names, changed by anyone on the device
+src/game/squads.ts        the players: each real team's twelve (six of its men's squad,
+                          October 2026, then famous and classic ones), the six
+                          picked to play, numbers and names, changed by anyone
+                          on the device
 src/game/narration.ts     the commentator ("Goooool do Brasil!", "Na trave!")
 src/game/confetti.ts      confetti in the winners' colours, over a win
 src/game/moment.ts        a goal felt: a flash, the table shaking, GOOOL! in the
