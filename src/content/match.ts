@@ -685,8 +685,8 @@ export function kicked(s: Shootout, scored: boolean): Shootout {
 
 /** the table for one kick: the ball on the spot in front of the other side's
     goal, the taker behind it, no one else; the defender's goleiro to place */
-export function penaltyFor(taker: Side): Match {
-  const m = newMatch(1, taker);
+export function penaltyFor(taker: Side, rule: Rule = RULES[0]): Match {
+  const m = newMatch(1, taker, BUTTONS, rule);
   const { line, into } = ownGoal(other(taker));
   const spot = { x: W / 2, y: line + into * MARKS.spot };
   const behind = { x: W / 2, y: line + into * (MARKS.spot + 9) };

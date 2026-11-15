@@ -5,7 +5,14 @@
  * ball on the spot in front of the other side's goal, the defender slides
  * their goleiro along the line and taps Pronto, and the taker has one flick.
  * Decided as soon as one side cannot be caught; level after five each, a
- * kick each until one scores and the other does not. Side a kicks at the
+ * kick each until one scores and the other does not.
+ *
+ * The goleiro is placed as the match's rule says (1 Toque: anywhere in the
+ * small area, a bigger goleiro), and hidden from the taker until the kick:
+ * the taker guesses where he stands, as in football. Two on one iPad, the
+ * taker looks away while it is placed; the computer kicks without seeing
+ * him either. The taker has a few seconds to kick once he is set (the shot
+ * clock, on unless turned off in the settings); time up, the kick is lost. Side a kicks at the
  * goal at the top, side b at the bottom, as in a match. The note turns to
  * face whoever has to act, as in a match. The rules are in
  * src/content/match.ts; the table on the screen is board.ts. */
@@ -16,13 +23,14 @@ import { pick } from '../lib/random';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
 import { read, write } from '../lib/storage';
-import { COMPUTER, decide, guessKeeper } from '../content/computer';
+import { COMPUTER, guessKeeper, penaltyKick } from '../content/computer';
+import { GOLEIROS } from '../content/botao';
 import {
-  ON_THE_LINE, SHOOTOUT_KICKS, clampKeeper, flick, kicked, mayFlick, missed, moment, newShootout, onTheLine, other, penaltyFor, pronto, scoredFrom,
+  ON_THE_LINE, SHOOTOUT_KICKS, flick, placeGoleiro, kicked, mayFlick, missed, moment, newShootout, onTheLine, other, penaltyFor, pronto, scoredFrom,
   shootoutGoals, shootoutTaken, type Match, type Shootout, type Side,
 } from '../content/match';
 import { type Keepers, makeBoard, SHAPE } from './board';
-import { computerLevel, speak } from './choices';
+import { computerLevel, matchRule, shotClockOn, speak } from './choices';
 import { confetti } from './confetti';
 import { callTeam, narrate, narrationChoice } from './narration';
 import { celebrate } from './moment';
@@ -62,9 +70,14 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   const scoreEl = el('p', { class: 'score match-score', 'aria-live': 'polite' });
   const words = el('span', { class: 'say-words' });
   const actions = el('span', { class: 'say-actions' });
+  /* the seconds left to kick: on the table's corner, so the note above never changes size under a finger */
+  const clockEl = el('span', { class: 'pen-clock', 'aria-hidden': 'true' });
   const sayEl = el('div', { class: 'bt-say', 'aria-live': 'polite' }, words, actions);
   const rows = { a: el('span', { class: 'pen-row', role: 'img' }), b: el('span', { class: 'pen-row', role: 'img' }) };
-  const board = makeBoard(life, `The table: a penalty shootout, ${teams.a.name} kicking at the top goal and ${teams.b.name}${cpu ? ', the computer,' : ''} at the bottom one`);
+  const rule = matchRule();
+  const goleiro = GOLEIROS[rule];
+  const board = makeBoard(life, `The table: a penalty shootout, ${teams.a.name} kicking at the top goal and ${teams.b.name}${cpu ? ', the computer,' : ''} at the bottom one`, goleiro);
+  board.node.append(clockEl);
   const stage = el('div', { class: 'bt-stage' }, board.node);
   const overlay = el('div', { class: 'bt-overlay', hidden: '' });
   stage.append(overlay);
@@ -78,15 +91,23 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   const chipBtn = el('button', { class: 'btn small chip', type: 'button', 'aria-pressed': 'false', 'aria-label': '🌈 Cobertura' }, el('span', { text: '🌈' }), el('span', { class: 'chip-label', text: ' Cobertura' }));
 
   let s: Shootout = newShootout('a');
-  let m: Match = penaltyFor('a');
+  let m: Match = penaltyFor('a', rule);
   /* a kick, a pause or the toss is under way: no finger does anything */
   let busy = true;
-  let sliding = 0;
+  let sliding = { x: 0, out: 0 };
 
-  const keepersOf = (x: Match): Keepers => ({ top: x.keepers.b, bottom: x.keepers.a });
+  const keepersOf = (x: Match): Keepers => ({ top: x.keepers.b, bottom: x.keepers.a, topOut: x.keepersOut.b, bottomOut: x.keepersOut.a });
+  /** what the taker may see: the goleiro set for the kick is hidden from a
+      player taking it, until the ball is struck */
+  const hiddenFromTaker = (): boolean => m.phase === 'penalty' && m.turn !== cpu;
+  const seenKeepers = (): Keepers => {
+    const k = keepersOf(m);
+    if (!hiddenFromTaker()) return k;
+    return defender() === 'a' ? { ...k, bottom: null } : { ...k, top: null };
+  };
   const defender = (): Side => other(m.turn);
   const keeperLine = (side: Side): 'top' | 'bottom' => (side === 'a' ? 'bottom' : 'top');
-  const draw = (): void => board.draw({ ball: m.ball, a: m.a, b: m.b }, keepersOf(m));
+  const draw = (): void => board.draw({ ball: m.ball, a: m.a, b: m.b }, seenKeepers());
 
   /** each side's taker for its next kick, on the table: the forward first, then back through the team */
   const setUpKick = (): void => board.setUp(teams.a, teams.b, { a: 1, b: 1 },
@@ -124,40 +145,98 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     showKicks();
     node.dataset.turn = m.turn;
     node.dataset.phase = m.phase;
+    /* where the hidden goleiro stands, for the tests: nowhere on the screen */
+    if (m.phase === 'penalty') node.dataset.keeper = m.keepers[defender()].toFixed(2); else delete node.dataset.keeper;
     const placing = m.phase === 'placing';
     board.glow(busy || placing ? null : m.turn);
-    board.placing(placing && defender() !== cpu && !busy ? keeperLine(defender()) : null, (x) => {
-      sliding = clampKeeper(x);
-      m = { ...m, keepers: { ...m.keepers, [defender()]: sliding } };
+    board.placing(placing && defender() !== cpu && !busy ? keeperLine(defender()) : null, (x, out) => {
+      sliding = placeGoleiro(rule, x, out, true);
+      m = { ...m, keepers: { ...m.keepers, [defender()]: sliding.x }, keepersOut: { ...m.keepersOut, [defender()]: sliding.out } };
       draw();
-    });
-    if (placing) sliding = m.keepers[defender()];
+    }, rule === '1');
+    if (placing) sliding = { x: m.keepers[defender()], out: m.keepersOut[defender()] };
     const kick = `Kick ${shootoutTaken(s, m.turn) + 1}`;
     if (cpu && (placing ? defender() === cpu : m.turn === cpu)) {
       tell(`${lead}${kick} for ${name(m.turn)}. ${placing ? `${name(cpu)} places its goleiro…` : `${name(cpu)} steps up…`}`, 'a');
       if (!busy) life.later(() => { void (placing ? cpuPlace() : cpuKick()); }, placing ? PACE.cpuPlace : PACE.cpuMove);
       return;
     }
-    if (placing) tell(`${lead}${kick} for ${name(m.turn)}. ${name(defender())}: slide your goleiro along the line, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
+    const where = rule === '1' ? 'put your goleiro anywhere in the small area' : 'slide your goleiro along the line';
+    const away = cpu ? '' : ` ${name(m.turn)}, look away!`;
+    if (placing) tell(`${lead}${kick} for ${name(m.turn)}.${away} ${name(defender())}: ${where}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
     else {
       chipBtn.setAttribute('aria-pressed', String(chipArmed));
-      const how = chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : 'take your penalty! One flick.';
+      const how = chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : 'the goleiro is hidden: guess where he stands, and take your penalty! One flick.';
       tell(`${lead}${name(m.turn)}: ${how}`, m.turn, ...(m.turn !== cpu && !busy ? [chipBtn] : []));
+      if (!busy && m.turn !== cpu) startClock();
     }
   }
 
   prontoBtn.addEventListener('click', () => {
     if (busy || m.phase !== 'placing') return;
     sfx.tap();
-    m = pronto(m, sliding);
+    m = pronto(m, sliding.x, sliding.out);
     narrate('shot', teams[m.turn], () => undefined, life.later);
     render();
   });
+
+  /* ── the shot clock ─────────────────────────────────────────────────── */
+
+  /** seconds to kick once the goleiro is set */
+  const SHOT_CLOCK = 6;
+  /* the kick the clock runs for, and how to stop it */
+  let clockFor = -1;
+  let stopClock: (() => void) | null = null;
+  const kickNo = (): number => s.kicks.length;
+  function endClock(): void {
+    stopClock?.();
+    stopClock = null;
+    clockEl.textContent = '';
+    delete node.dataset.clock;
+  }
+  /** for this kick, once: a second at a time; at none, the kick is lost */
+  function startClock(): void {
+    if (!shotClockOn() || clockFor === kickNo()) return;
+    clockFor = kickNo();
+    let left = SHOT_CLOCK;
+    const tick = (): void => {
+      clockEl.textContent = `⏱ ${left}`;
+      node.dataset.clock = String(left);
+      if (left === 0) { void timeUp(); return; }
+      left -= 1;
+      stopClock = life.later(tick, 1000);
+    };
+    tick();
+  }
+  /** too slow: the kick is lost, as a miss */
+  async function timeUp(): Promise<void> {
+    if (busy || m.phase !== 'penalty') return;
+    busy = true;
+    endClock();
+    board.drop();
+    board.glow(null);
+    actions.replaceChildren();
+    const taker = m.turn;
+    s = kicked(s, false);
+    node.dataset.kick = 'time';
+    showKicks();
+    sfx.whistle();
+    const said = `Time! ${name(taker)} took too long: the kick is lost.`;
+    tell(said, 'a');
+    speak(said);
+    await wait(PACE.kick);
+    if (s.winner) { champion(s.winner); return; }
+    m = penaltyFor(s.turn, rule);
+    setUpKick();
+    busy = false;
+    render(said);
+  }
 
   /** the flick: a goal or not, the kick counted, then the next kick or the winner */
   async function shoot(index: number, vx: number, vy: number, byComputer = false, lift = 0): Promise<void> {
     if ((busy && !byComputer) || m.phase !== 'penalty' || !mayFlick(m, index)) return;
     busy = true;
+    endClock();
     board.drop();
     board.glow(null);
     actions.replaceChildren();
@@ -191,7 +270,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     if (!s.winner) void called.then(() => speak(said));
     await wait(PACE.kick);
     if (s.winner) { await called; champion(s.winner); return; }
-    m = penaltyFor(s.turn);
+    m = penaltyFor(s.turn, rule);
     setUpKick();
     busy = false;
     render(said);
@@ -199,17 +278,12 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
 
   /* ── the computer ───────────────────────────────────────────────────── */
 
-  /** it guesses where to stand, slides its goleiro there, and says Pronto */
+  /** it guesses where to stand, out of sight, and says Pronto */
   async function cpuPlace(): Promise<void> {
     if (busy || m.phase !== 'placing' || defender() !== cpu) return;
     busy = true;
-    const from = m.keepers[cpu];
-    const to = guessKeeper();
-    for (let i = 1; i <= 8; i += 1) {
-      m = { ...m, keepers: { ...m.keepers, [cpu]: from + (to - from) * i / 8 } };
-      draw();
-      await wait(PACE.slideStep);
-    }
+    const to = guessKeeper(Math.random, goleiro);
+    await wait(PACE.slideStep * 8);
     sfx.tap();
     m = pronto(m, to);
     narrate('shot', teams[m.turn], () => undefined, life.later);
@@ -220,7 +294,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   /** it takes its kick, its arrow shown for a moment first */
   async function cpuKick(): Promise<void> {
     if (busy || m.phase !== 'penalty' || m.turn !== cpu) return;
-    const move = decide(m, level);
+    const move = penaltyKick(m, level);
     if (move.kind !== 'flick') return;
     busy = true;
     const from = m[cpu][move.button];
@@ -232,7 +306,8 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
 
   board.listen({
     side: () => (busy || m.phase !== 'penalty' || m.turn === cpu ? null : m.turn),
-    may: (_side, index) => mayFlick(m, index),
+    /* a finger on the button stops the clock: the kick is on its way */
+    may: (_side, index) => { if (!mayFlick(m, index)) return false; endClock(); return true; },
     flick: (_side, index, f) => { void shoot(index, f.vx, f.vy, false, f.lift ?? 0); },
     chip: () => chipArmed && m.phase === 'penalty',
   });
@@ -264,7 +339,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
 
   function begin(from: Shootout): void {
     s = from;
-    m = penaltyFor(s.turn);
+    m = penaltyFor(s.turn, rule);
     setUpKick();
     busy = false;
     callTeam(teams[s.turn], () => { if (narrationChoice() === 'off') speak(`First kick: ${teams[s.turn].name}!`); }, life.later);

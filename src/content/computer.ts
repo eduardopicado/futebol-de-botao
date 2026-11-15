@@ -15,8 +15,8 @@
  * moment before it lets go. */
 
 import {
-  BALL, L, MOUTH, POST, W, aimAt, chipPlan, goleiroOf, keeperFor, keeperOut, oneTouch, passPlan,
-  type Flick, type Point, type Table,
+  BALL, GOLEIROS, L, MOUTH, POST, W, aimAt, chipPlan, goleiroOf, keeperFor, keeperOut, oneTouch, passPlan,
+  type Flick, type Goleiro, type Point, type Table,
 } from './botao';
 import { clampKeeper, flick, inAttack, mayCall, mayFlick, mayMoveGoleiro, mustFree, placeGoleiro, tableFor, touchesFor, type Match, type Side } from './match';
 
@@ -273,8 +273,16 @@ export function coverKeeper(m: Match, level: Level): { x: number; out: number } 
 }
 
 /** in a penalty shootout it guesses: anywhere across its goal, the same at every level */
-export const guessKeeper = (rand: Rand = Math.random): number =>
-  clampKeeper(MOUTH[0] + rand() * (MOUTH[1] - MOUTH[0]));
+export const guessKeeper = (rand: Rand = Math.random, g: Goleiro = GOLEIROS['3']): number =>
+  clampKeeper(MOUTH[0] + rand() * (MOUTH[1] - MOUTH[0]), g);
+
+/** its penalty, not knowing where the goleiro stands (he is hidden until the
+    kick): it aims as if he stood where it guesses he will be */
+export function penaltyKick(m: Match, level: Level, rand: Rand = Math.random): Move {
+  const defender: Side = m.turn === 'a' ? 'b' : 'a';
+  const g = GOLEIROS[m.rule];
+  return decide({ ...m, keepers: { ...m.keepers, [defender]: guessKeeper(rand, g) }, keepersOut: { ...m.keepersOut, [defender]: 0 } }, level, rand);
+}
 
 /** the computer's side, in a match against it: the top */
 export const COMPUTER = 'b' as const;

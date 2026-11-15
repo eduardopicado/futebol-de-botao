@@ -15,7 +15,7 @@ import { setSfxEnabled } from '../lib/sfx';
 import { write } from '../lib/storage';
 import { LEVELS } from '../content/computer';
 import { GOALS, HALVES, RULES, SIZES } from '../content/match';
-import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, readAloud, soundsOn, supportersOn } from './choices';
+import { LEVEL_NAMES, RULE_NAMES, buttonsPerSide, computerLevel, goalsToWin, matchHalf, matchRule, readAloud, shotClockOn, soundsOn, supportersOn } from './choices';
 import { narrationSelect } from './narration';
 import { crestButton, redrawShirts, shirtTile } from './shirts';
 import { PLAY, POSITIONS, SQUADS, changedSquad, picked, resetLineup, resetSquad, setPlayer, squadOf, togglePlayer } from './squads';
@@ -133,6 +133,10 @@ export function mount(root: HTMLElement): void {
       el('h2', { class: 'lbl', text: 'The rule' }),
       chips('Rule', RULES.map((r) => ({ value: r, text: RULE_NAMES[r] })), matchRule(), (r) => write('rule', r)),
       el('p', { class: 'tag', text: '3 toques: up to three flicks a turn. 1 toque: one flick a turn, and no parking the ball between your own buttons.' })),
+    el('section', { class: 'panel' },
+      el('h2', { class: 'lbl', text: 'Pênaltis' }),
+      toggle('Shot clock: six seconds to kick', shotClockOn(), (on) => write('shot-clock', on)),
+      el('p', { class: 'tag', text: 'The goleiro is hidden from the taker until the kick, and placed as the rule says.' })),
     el('section', { class: 'panel' },
       el('h2', { class: 'lbl', text: 'Buttons a side' }),
       chips('Buttons a side', SIZES.map((n) => ({ value: n, text: `${n} and a goleiro` })), buttonsPerSide(), (n) => write('buttons', n))),

@@ -47,7 +47,8 @@ async function aimed(page: Page, side: Side): Promise<{ vx: number; vy: number }
   /* the spot in front of the goal it kicks at */
   const ball = { x: W / 2, y: side === 'a' ? MARKS.spot : L - MARKS.spot };
   const me = await at(taker(side));
-  const keeper = Number(await page.locator(side === 'a' ? '.bt-keeper.away' : '.bt-keeper.home').getAttribute('data-x'));
+  /* hidden from the taker on the screen: where it stands, as the game knows it */
+  const keeper = Number(await game(page).getAttribute('data-keeper'));
   const put = side === 'a' ? (p: Point): Point => p : turned;
   const plan = oneTouch({ ball: put(ball), us: [put(me)], them: [], keeper: side === 'a' ? keeper : W - keeper }, [0], false)!;
   const f = plan.flicks[0];
@@ -90,6 +91,80 @@ test.describe('Pênaltis', () => {
     await expect(page.locator('.pen-mark.goal')).toHaveCount(1);
     /* and then the other side's kick */
     await expect(game(page)).toHaveAttribute('data-turn', side === 'a' ? 'b' : 'a', { timeout: 6000 });
+    noProblems(watch);
+  });
+
+  test('the goleiro is hidden from the taker once set, and seen again as the ball is struck; the taker is told to look away while it is placed', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { 'shootout-setup': partWay('a', []) });
+    await page.goto('/#/penaltis-2');
+    await expect(page.locator('.say-words')).toContainText('look away!');
+    const keeper = page.locator('.bt-keeper.away');
+    await expect(keeper).not.toHaveAttribute('hidden');
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect(game(page)).toHaveAttribute('data-phase', 'penalty');
+    await expect(keeper).toHaveAttribute('hidden', '');
+    await expect(page.locator('.say-words')).toContainText('the goleiro is hidden');
+    /* the kick: he is there again for the ball to meet */
+    await page.evaluate(() => {
+      const w = window as unknown as { __seen: boolean };
+      w.__seen = false;
+      const k = document.querySelector('.bt-keeper.away')!;
+      new MutationObserver(() => { if (!k.hasAttribute('hidden')) w.__seen = true; }).observe(k, { attributes: true });
+    });
+    await kick(page, 'a', 0, -60);
+    await expect(game(page)).toHaveAttribute('data-kick', /goal|saved|missed/, { timeout: 10000 });
+    expect(await page.evaluate(() => (window as unknown as { __seen: boolean }).__seen)).toBe(true);
+    noProblems(watch);
+  });
+
+  test('the shot clock: six seconds once the goleiro is set, stopped by a finger on the button; time up, the kick is lost', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { 'shootout-setup': partWay('a', []) });
+    await page.goto('/#/penaltis-2');
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect(page.locator('.pen-clock')).toHaveText('⏱ 6');
+    await expect(page.locator('.pen-clock')).toHaveText('⏱ 5', { timeout: 2000 });
+    await expect(game(page)).toHaveAttribute('data-kick', 'time', { timeout: 8000 });
+    await expect(page.locator('.say-words')).toContainText('Time!');
+    await expect(page.locator('.pen-mark.miss')).toHaveCount(1);
+    await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 6000 });
+    /* the next kick: a finger on the button stops it */
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect(page.locator('.pen-clock')).toHaveText('⏱ 6');
+    const b = page.locator(taker('b'));
+    const { x, y } = await screen(page, { x: Number(await b.getAttribute('data-x')), y: Number(await b.getAttribute('data-y')) });
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await expect(page.locator('.pen-clock')).toHaveText('');
+    await page.waitForTimeout(6500);
+    await expect(game(page)).toHaveAttribute('data-phase', 'penalty');
+    await page.mouse.up();
+    noProblems(watch);
+  });
+
+  test('the shot clock can be turned off in the settings', async ({ page }) => {
+    await seed(page, { 'shot-clock': false, 'shootout-setup': partWay('a', []) });
+    await page.goto('/#/penaltis-2');
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await page.waitForTimeout(7000);
+    await expect(page.locator('.pen-clock')).toHaveText('');
+    await expect(game(page)).toHaveAttribute('data-phase', 'penalty');
+  });
+
+  test('at 1 Toque, the goleiro may come off its line for a penalty, and is the bigger one', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { rule: '1', 'shootout-setup': partWay('a', []) });
+    await page.goto('/#/penaltis-2');
+    await expect(page.locator('.say-words')).toContainText('anywhere in the small area');
+    const G1 = GOLEIROS['1'];
+    const from = await screen(page, { x: 32, y: (G1.y[0] + G1.y[1]) / 2 });
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x, from.y + 3 * from.scale, { steps: 6 });
+    await page.mouse.up();
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect(game(page)).toHaveAttribute('data-phase', 'penalty');
     noProblems(watch);
   });
 
