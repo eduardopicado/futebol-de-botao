@@ -657,3 +657,8 @@ label.btn input[type="file"] { position: absolute; top: 0; left: 0; width: 1px; 
 /* what a goleiro wears: bands in its team's second colour, and its crest or flag */
 .bt-keeper-band, .tv-keeper-trim { stroke: rgba(0, 0, 0, .35); stroke-width: .12; }
 .bt-keeper-flag, .tv-keeper-flag, .bt-keeper-crest, .tv-keeper-crest { pointer-events: none; }
+
+/* Pênaltis: the seconds left to kick, big in the table's top-left corner
+   beside the net, where nothing is played */
+.pen-clock { position: absolute; top: 1%; left: 3%; z-index: 3; pointer-events: none; font: 800 clamp(20px, 4vw, 34px) var(--display); color: #fff; background: #C7361A; border-radius: 12px; padding: 2px 10px; box-shadow: 0 3px 0 #8E2410; }
+.pen-clock:empty { display: none; }

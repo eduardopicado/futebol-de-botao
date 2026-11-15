@@ -138,7 +138,9 @@ src/game/cup.ts           the Copa: three opponents drawn, a level for each roun
                           results kept, the cups won
 src/game/copa.ts          the Copa's page: the rounds, the next match, the trophy
 src/game/penaltis.ts      Pênaltis: a penalty shootout, two players or one
-                          against the computer, or a Copa tie's penalties
+                          against the computer, or a Copa tie's penalties; the
+                          goleiro placed as the rule says and hidden from the
+                          taker until the kick, and the shot clock
 src/game/treino.ts        Treino: three touches, free shooting, Show me
 src/game/goleiro.ts       Treino: Goleiro, ten shots by the computer to save
 src/game/guide.ts         How to play: the steps to tap through, each demo played

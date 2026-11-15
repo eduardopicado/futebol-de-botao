@@ -280,3 +280,17 @@ describe('its goleiro at 1 Toque', () => {
     }
   });
 });
+
+describe('its penalty', () => {
+  it('kicks without seeing the goleiro: the same kick wherever he really stands, and at 1 Toque the bigger goleiro is guessed', async () => {
+    const { penaltyFor, pronto } = await import('../../src/content/match');
+    const { penaltyKick } = await import('../../src/content/computer');
+    for (const rule of ['3', '1'] as const) {
+      const set = (x: number) => pronto(penaltyFor('b', rule), x);
+      const kicks = [MOUTH[0] + 4, MID, MOUTH[1] - 4].map((x) => penaltyKick(set(x), 'hard', seeded(7)));
+      expect(kicks[1], rule).toEqual(kicks[0]);
+      expect(kicks[2], rule).toEqual(kicks[0]);
+      expect(set(MID).rule).toBe(rule);
+    }
+  });
+});

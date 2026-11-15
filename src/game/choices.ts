@@ -52,5 +52,8 @@ export const speak = (words: string): void => { if (readAloud()) say(words); };
 /** the supporters heard all match long, not only as the ball nears a goal? */
 export const supportersOn = (): boolean => read<boolean>('supporters', false);
 
+/** Pênaltis: a few seconds to kick once the goleiro is set? */
+export const shotClockOn = (): boolean => read<boolean>('shot-clock', true);
+
 /** are the sound effects on? */
 export const soundsOn = (): boolean => read<boolean>('sounds', true);
