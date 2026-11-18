@@ -797,3 +797,42 @@ describe('a slow shot that stops across the line', () => {
     expect(onTheLine({ x: MOUTH[1] + BALL, y: L - BALL + 0.5 })).toBe(false);
   });
 });
+
+describe('Pênaltis, arcade: the dive', () => {
+  it('until the ball nears the goleiro, where he dives changes nothing; then a dive the right way saves a kick that went in', async () => {
+    const { DIVE, dived, diveFrame } = await import('../../src/content/match');
+    for (const taker of ['a', 'b'] as const) {
+      const keeper = taker === 'a' ? 'b' : 'a';
+      /* a kick into the far corner: the planner's, against a goleiro by the other post */
+      const post = taker === 'a' ? MOUTH[0] + G3.w / 2 : W - MOUTH[0] - G3.w / 2;
+      const f = oneTouch(tableFor(pronto(penaltyFor(taker), post)).table, [0], false)!.flicks[0];
+      const [vx, vy] = taker === 'a' ? [f.vx, f.vy] : [-f.vx, -f.vy];
+      /* the goleiro as near the kick's way as he can stand and still be beaten */
+      const toward = Math.sign(W / 2 - post);
+      let at = post;
+      while (scoredFrom(flick(pronto(penaltyFor(taker), at + toward), 0, vx, vy), taker)) at += toward;
+      const ready = pronto(penaltyFor(taker), at);
+      const first = flick(ready, 0, vx, vy);
+      expect(scoredFrom(first, taker), taker).toBe(true);
+      const cut = diveFrame(first, keeper, G3);
+      expect(cut).toBeGreaterThan(0);
+      expect(cut).toBeLessThan(first.frames.length - 1);
+      /* a dive the way the ball goes, as far as he can */
+      const to = dived(ready, at, at + toward * 50);
+      expect(Math.abs(to.keepers[keeper] - at)).toBeCloseTo(DIVE, 9);
+      const again = flick(to, 0, vx, vy);
+      /* the same kick up to the cut */
+      for (let i = 0; i <= cut; i += 1) expect(again.frames[i].ball, `${taker} ${i}`).toEqual(first.frames[i].ball);
+      expect(scoredFrom(again, taker), taker).toBe(false);
+      /* a dive the wrong way still lets it in */
+      expect(scoredFrom(flick(dived(ready, at, at - toward * 50), 0, vx, vy), taker), taker).toBe(true);
+    }
+  });
+
+  it('a dive goes no further than DIVE from where he stood', async () => {
+    const { DIVE, dived } = await import('../../src/content/match');
+    const ready = pronto(penaltyFor('a'), W / 2);
+    expect(dived(ready, W / 2, W / 2 + 50).keepers.b).toBeCloseTo(W / 2 + DIVE, 9);
+    expect(dived(ready, W / 2, W / 2 - 50).keepers.b).toBeCloseTo(W / 2 - DIVE, 9);
+  });
+});

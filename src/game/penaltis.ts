@@ -12,9 +12,16 @@
  * the taker guesses where he stands, as in football. Two on one iPad, the
  * taker looks away while it is placed; the computer kicks without seeing
  * him either. The taker has a few seconds to kick once he is set (the shot
- * clock, on unless turned off in the settings); time up, the kick is lost. Side a kicks at the
- * goal at the top, side b at the bottom, as in a match. The note turns to
- * face whoever has to act, as in a match. The rules are in
+ * clock, on unless turned off in the settings); time up, the kick is lost.
+ *
+ * Arcade (Pênaltis on its own, chosen on its picker, never a Copa's): the
+ * goleiro is seen, and once the ball is struck it comes on slowly while the
+ * one defending drags him to save it (the computer dives on its own, better
+ * at the harder levels). The kick is then worked out again with him where
+ * he ended up, the same flick on the same table, so it stays exact.
+ *
+ * Side a kicks at the goal at the top, side b at the bottom, as in a match.
+ * The note turns to face whoever has to act, as in a match. The rules are in
  * src/content/match.ts; the table on the screen is board.ts. */
 
 import { el } from '../lib/dom';
@@ -26,11 +33,11 @@ import { read, write } from '../lib/storage';
 import { COMPUTER, guessKeeper, penaltyKick } from '../content/computer';
 import { GOLEIROS } from '../content/botao';
 import {
-  ON_THE_LINE, SHOOTOUT_KICKS, flick, placeGoleiro, kicked, mayFlick, missed, moment, newShootout, onTheLine, other, penaltyFor, pronto, scoredFrom,
+  ON_THE_LINE, SHOOTOUT_KICKS, dived, diveFrame, flick, placeGoleiro, kicked, mayFlick, missed, moment, newShootout, onTheLine, other, penaltyFor, pronto, scoredFrom,
   shootoutGoals, shootoutTaken, type Match, type Shootout, type Side,
 } from '../content/match';
 import { type Keepers, makeBoard, SHAPE } from './board';
-import { computerLevel, matchRule, shotClockOn, speak } from './choices';
+import { computerLevel, matchRule, penArcade, shotClockOn, speak } from './choices';
 import { confetti } from './confetti';
 import { callTeam, narrate, narrationChoice } from './narration';
 import { celebrate } from './moment';
@@ -75,6 +82,8 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   const sayEl = el('div', { class: 'bt-say', 'aria-live': 'polite' }, words, actions);
   const rows = { a: el('span', { class: 'pen-row', role: 'img' }), b: el('span', { class: 'pen-row', role: 'img' }) };
   const rule = matchRule();
+  /* the arcade way: Pênaltis on its own only */
+  const arcade = !tie && penArcade();
   const goleiro = GOLEIROS[rule];
   const board = makeBoard(life, `The table: a penalty shootout, ${teams.a.name} kicking at the top goal and ${teams.b.name}${cpu ? ', the computer,' : ''} at the bottom one`, goleiro);
   board.node.append(clockEl);
@@ -99,7 +108,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   const keepersOf = (x: Match): Keepers => ({ top: x.keepers.b, bottom: x.keepers.a, topOut: x.keepersOut.b, bottomOut: x.keepersOut.a });
   /** what the taker may see: the goleiro set for the kick is hidden from a
       player taking it, until the ball is struck */
-  const hiddenFromTaker = (): boolean => m.phase === 'penalty' && m.turn !== cpu;
+  const hiddenFromTaker = (): boolean => !arcade && m.phase === 'penalty' && m.turn !== cpu;
   const seenKeepers = (): Keepers => {
     const k = keepersOf(m);
     if (!hiddenFromTaker()) return k;
@@ -166,7 +175,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     if (placing) tell(`${lead}${kick} for ${name(m.turn)}.${away} ${name(defender())}: ${where}, then tap Pronto.`, defender(), ...(busy ? [] : [prontoBtn]));
     else {
       chipBtn.setAttribute('aria-pressed', String(chipArmed));
-      const how = chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : 'the goleiro is hidden: guess where he stands, and take your penalty! One flick.';
+      const how = chipArmed ? 'Cobertura! Pull back, hold still while the ring fills to lift it, and let go.' : arcade ? `take your penalty! One flick.${cpu ? '' : ` ${name(defender())}: once it is struck, drag your goleiro to save it!`}` : 'the goleiro is hidden: guess where he stands, and take your penalty! One flick.';
       tell(`${lead}${name(m.turn)}: ${how}`, m.turn, ...(m.turn !== cpu && !busy ? [chipBtn] : []));
       if (!busy && m.turn !== cpu) startClock();
     }
@@ -242,16 +251,25 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     actions.replaceChildren();
     const taker = m.turn;
     const who = takerOf(teams[taker], shootoutTaken(s, taker));
-    const play = flick(m, index, vx, vy, lift);
     chipArmed = false;
+    /* arcade: the kick comes on slowly while the goleiro is moved, then is
+       worked out again with him where he ended up */
+    const dove = arcade ? await diveFor(index, vx, vy, lift) : null;
+    const play = dove?.play ?? flick(m, index, vx, vy, lift);
     const scored = scoredFrom(play, taker);
     /* a chip over the bar is a miss of its own */
     const miss = scored ? null : play.event.kind === 'over' ? 'over' : missed(play, taker);
     /* a goal or a near miss is slowed right down as the ball gets there */
     /* the kick seen from the TV camera, back to above once it is over */
-    board.tv(true, taker === 'a' ? 'top' : 'bottom');
-    await board.play(play.frames, play.bumps, keepersOf(m), [], 1, scored || miss ? moment(play) : null);
-    life.later(() => board.tv(false), PACE.tvHold);
+    if (dove) {
+      /* the rest of it, from where the slow part stopped */
+      const from = dove.shown;
+      await board.play(play.frames.slice(from), play.bumps.filter((b) => b.frame >= from).map((b) => ({ ...b, frame: b.frame - from })), keepersOf(m));
+    } else {
+      board.tv(true, taker === 'a' ? 'top' : 'bottom');
+      await board.play(play.frames, play.bumps, keepersOf(m), [], 1, scored || miss ? moment(play) : null);
+      life.later(() => board.tv(false), PACE.tvHold);
+    }
     if (scored) celebrate(stage, teams[taker], life);
     const saved = !scored && play.bumps.some((b) => b.what === 'keeper');
     s = kicked(s, scored);
@@ -274,6 +292,52 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     setUpKick();
     busy = false;
     render(said);
+  }
+
+  /* ── arcade: the dive ───────────────────────────────────────────────── */
+
+  /** how long the slow part of an arcade kick lasts, in ms */
+  const DIVE_MS = 900;
+  /** how soon the computer reacts, in ms, and how far off its dive is, each way, by level */
+  const CPU_DIVE = { easy: { wait: 520, off: 6 }, medium: { wait: 380, off: 3.5 }, hard: { wait: 240, off: 1.5 } } as const;
+
+  /**
+   * The kick struck: shown slowly up to just before the goleiro, while the
+   * one defending drags him (or the computer dives); then worked out again
+   * with him where he ended up. Before that frame the two are the same kick,
+   * so the rest follows on; if they are not, it is played again from the start.
+   */
+  async function diveFor(index: number, vx: number, vy: number, lift: number): Promise<{ play: ReturnType<typeof flick>; shown: number }> {
+    const keeper = defender();
+    const start = m.keepers[keeper];
+    const first = flick(m, index, vx, vy, lift);
+    const cut = diveFrame(first, keeper, goleiro, m.keepersOut[keeper]);
+    /* where he is as it comes: what the board draws, frame by frame */
+    const seen: Keepers = { ...keepersOf(m) };
+    const put = (x: number): void => {
+      m = dived(m, start, x);
+      if (keeper === 'a') seen.bottom = m.keepers.a; else seen.top = m.keepers.b;
+    };
+    node.dataset.dive = '';
+    if (keeper === cpu) {
+      /* where the ball is going, at the goal line, off by a little */
+      const end = first.frames[first.frames.length - 1].ball;
+      const { wait, off } = CPU_DIVE[level];
+      const aim = end.x + (Math.random() * 2 - 1) * off;
+      life.later(() => { for (let i = 1; i <= 5; i += 1) life.later(() => put(start + (aim - start) * i / 5), i * 30); }, wait);
+    } else {
+      board.placing(keeperLine(keeper), (x) => put(x));
+    }
+    const speed = Math.max(0.05, Math.min(1, (cut * 1000) / 60 / DIVE_MS));
+    await board.play(first.frames.slice(0, cut + 1), first.bumps.filter((b) => b.frame <= cut), seen, [], speed);
+    board.placing(null);
+    delete node.dataset.dive;
+    const play = flick(m, index, vx, vy, lift);
+    const same = (i: number): boolean => {
+      const [p, q] = [first.frames[i]?.ball, play.frames[i]?.ball];
+      return Boolean(p && q && Math.abs(p.x - q.x) < 1e-9 && Math.abs(p.y - q.y) < 1e-9);
+    };
+    return { play, shown: same(cut) ? cut : 0 };
   }
 
   /* ── the computer ───────────────────────────────────────────────────── */

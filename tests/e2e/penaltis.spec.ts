@@ -168,6 +168,57 @@ test.describe('Pênaltis', () => {
     noProblems(watch);
   });
 
+  test('arcade, chosen on the picker: the goleiro seen, and as the ball comes the one defending drags him (no further than a dive)', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.goto('/#/pen-teams-2');
+    await expect(page.getByRole('button', { name: '🎯 Classic' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: '🕹️ Arcade' }).click();
+    await expect(page.getByRole('button', { name: '🕹️ Arcade' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => localStorage.getItem('fdb:pen-arcade'))).toBe('true');
+    await page.evaluate((setup) => localStorage.setItem('fdb:shootout-setup', JSON.stringify(setup)), partWay('a', []));
+    await page.goto('/#/penaltis-2');
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await expect(game(page)).toHaveAttribute('data-phase', 'penalty');
+    /* seen, not hidden, and the defender told to save it */
+    const keeper = page.locator('.bt-keeper.away');
+    await expect(keeper).not.toHaveAttribute('hidden');
+    await expect(page.locator('.say-words')).toContainText('drag your goleiro to save it');
+    const from = Number(await keeper.getAttribute('data-x'));
+    /* the kick, and while it comes, a long drag to the right */
+    await kick(page, 'a', 8, -70);
+    await expect(game(page)).toHaveAttribute('data-dive', '', { timeout: 3000 });
+    const at = await screen(page, { x: from, y: (G3.y[0] + G3.y[1]) / 2 });
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down();
+    await page.mouse.move(at.x + 30 * at.scale, at.y, { steps: 4 });
+    await page.mouse.up();
+    await expect(game(page)).toHaveAttribute('data-kick', /goal|saved|missed/, { timeout: 10000 });
+    const to = Number(await keeper.getAttribute('data-x'));
+    expect(to).toBeGreaterThan(from + 4);
+    expect(to).toBeLessThanOrEqual(from + 8 + 0.01);
+    noProblems(watch);
+  });
+
+  test('arcade against the computer: its goleiro dives as the ball comes', async ({ page }) => {
+    const watch = watchPage(page);
+    await page.addInitScript(() => { Math.random = () => 0.5; });
+    await seed(page, { 'pen-arcade': true, 'shootout-setup': partWay('a', []) });
+    await page.goto('/#/penaltis-1');
+    await expect(game(page)).toHaveAttribute('data-phase', 'penalty', { timeout: 8000 });
+    const keeper = page.locator('.bt-keeper.away');
+    /* seen before the kick, as in every arcade kick */
+    await expect(keeper).not.toHaveAttribute('hidden');
+    const from = Number(await keeper.getAttribute('data-x'));
+    expect(from).toBeGreaterThan(0);
+    await kick(page, 'a', 12, -70);
+    await expect(game(page)).toHaveAttribute('data-dive', '', { timeout: 3000 });
+    await expect(game(page)).toHaveAttribute('data-kick', /goal|saved|missed/, { timeout: 10000 });
+    const to = Number(await keeper.getAttribute('data-x'));
+    expect(Math.abs(to - from)).toBeGreaterThan(0.5);
+    expect(Math.abs(to - from)).toBeLessThanOrEqual(8 + 0.01);
+    noProblems(watch);
+  });
+
   test('a miss is marked, and the turn passes', async ({ page }) => {
     const watch = watchPage(page);
     await seed(page, { 'shootout-setup': partWay('a', []) });

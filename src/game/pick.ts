@@ -9,6 +9,8 @@
  * it. */
 
 import { el } from '../lib/dom';
+import { write } from '../lib/storage';
+import { penArcade } from './choices';
 import { go } from '../lib/router';
 import { sfx } from '../lib/sfx';
 import { ROUNDS, cupNow, newCup, roundOf, stageOf } from './cup';
@@ -25,6 +27,28 @@ const PURPOSES: Record<For, { title: (players: Players) => string; start: string
   penalties: { title: () => 'Pênaltis', start: '▶ Start', back: { to: 'home', label: 'Back to the start' } },
   cup: { title: () => '🏆 Copa', start: '▶ Start the Copa', back: { to: 'copa', label: 'Back to the Copa' } },
 };
+
+/** the shootout's way: classic (the goleiro set before the kick, hidden from
+    the taker) or arcade (seen, and moved as the ball comes), kept for next time */
+function modeChoice(): HTMLElement {
+  const said = el('p', { class: 'tag pen-mode-said' });
+  const options = [
+    { arcade: false, text: '🎯 Classic', words: 'The goleiro is set before the kick and hidden from the taker: guess where he stands.' },
+    { arcade: true, text: '🕹️ Arcade', words: 'The goleiro is seen, and as the ball comes the one defending drags him to save it.' },
+  ];
+  const buttons = options.map((o) => {
+    const b = el('button', { class: 'chip', type: 'button', text: o.text, 'aria-pressed': String(o.arcade === penArcade()) });
+    b.addEventListener('click', () => {
+      sfx.tap();
+      write('pen-arcade', o.arcade);
+      for (const [i, x] of buttons.entries()) x.setAttribute('aria-pressed', String(options[i].arcade === o.arcade));
+      said.textContent = o.words;
+    });
+    return b;
+  });
+  said.textContent = options.find((o) => o.arcade === penArcade())!.words;
+  return el('section', { class: 'panel' }, el('h2', { class: 'lbl', text: 'How it plays' }), el('div', { class: 'chips', role: 'group', 'aria-label': 'How it plays' }, ...buttons), said);
+}
 
 /** the shootout's picker starts with how many play: 1 player or 2, a switch like Treino's */
 function playersSwitch(players: Players): HTMLElement {
@@ -118,6 +142,7 @@ function picker(players: Players, purpose: For = 'match'): (root: HTMLElement) =
         ...(purpose === 'penalties' ? [playersSwitch(players)] : []))),
       el('section', { class: 'panel' }, el('h2', { class: 'lbl', text: sides.a }), el('div', { class: 'teams', role: 'group', 'aria-label': sides.a }, ...shirts.a), crests.a.node),
       ...(purpose === 'cup' ? [] : [el('section', { class: 'panel' }, el('h2', { class: 'lbl', text: sides.b }), el('div', { class: 'teams', role: 'group', 'aria-label': sides.b }, ...shirts.b), crests.b.node)]),
+      ...(purpose === 'penalties' ? [modeChoice()] : []),
       ...(ending ? [ending] : []), warn, said,
       el('div', { class: 'kick-row' }, kick));
     root.append(page);
