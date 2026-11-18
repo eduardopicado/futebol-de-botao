@@ -696,6 +696,33 @@ export function penaltyFor(taker: Side, rule: Rule = RULES[0]): Match {
   };
 }
 
+/* ── Pênaltis, arcade: the goleiro moved as the ball comes ─────────────── */
+
+/** how far a goleiro can dive, each way from where he stood, in table units */
+export const DIVE = 8;
+
+/**
+ * The frame of a kick just before the ball reaches the goleiro's line (the
+ * front of him, where he stands): until then, where he dives makes no
+ * difference to anything, so the kick can be shown up to there while the
+ * goleiro is moved, and then worked out again with him where he ended up.
+ */
+export function diveFrame(play: Play, keeperSide: Side, g: Goleiro, out = 0): number {
+  const { line } = ownGoal(keeperSide);
+  const reach = g.y[1] + out + BALL + 1;
+  const i = play.frames.findIndex((f) => Math.abs(f.ball.y - line) <= reach);
+  return i < 0 ? play.frames.length - 1 : Math.max(0, i - 1);
+}
+
+/** the goleiro where the dive took him: no further than DIVE from where he
+    stood, and inside the goal as the rule keeps him */
+export function dived(m: Match, from: number, x: number): Match {
+  const keeper = other(m.turn);
+  const to = Math.min(from + DIVE, Math.max(from - DIVE, x));
+  const at = placeGoleiro(m.rule, to, m.keepersOut[keeper], true);
+  return { ...m, keepers: { ...m.keepers, [keeper]: at.x } };
+}
+
 /** did this flick at a shootout kick score? */
 export const scoredFrom = (play: Play, taker: Side): boolean =>
   (play.event.kind === 'goal' || play.event.kind === 'champion') && play.event.side === taker && !play.event.own;
