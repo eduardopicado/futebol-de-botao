@@ -94,6 +94,10 @@ export interface Board {
       bottom, or back to straight above; it turns over half a second, and
       never under Reduce Motion */
   tv: (on: boolean, attack?: Attack) => void;
+  /** the camera close in on one end, for a penalty, or back to the whole
+      table (null): eased over half a second, at once under Reduce Motion.
+      A finger still works on it, the table only scaled */
+  zoom: (end: Attack | null) => void;
   /** the finger's rules, from now on */
   listen: (f: Finger) => void;
   /** any drag in progress is dropped (a shot or Show me is starting) */
@@ -255,19 +259,67 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     tvEl.replaceChildren(...pieces.flatMap((p) => p.shapes.map(shapeEl)));
   };
   /** the table tilted as far as the camera has turned, and what stands on it drawn to match */
+  /* the close-up on one end (a penalty): how far in it is, 0 to 1, and which end */
+  const ZOOM = 1.9;
+  const ZOOM_MS = 500;
+  let zoomAt = 0;
+  let zoomEnd: Attack = 'top';
+  let zoomFrom = 0;
+  let zoomTo = 0;
+  let zoomStart = 0;
+  let zooming = false;
+  /** the close-up as CSS, about the middle of the end it looks at, with the
+      transform-origin at the table's corner */
+  const zoomCss = (u: number): string => {
+    if (zoomAt <= 0) return '';
+    const e = zoomAt * zoomAt * (3 - 2 * zoomAt);
+    const z = 1 + (ZOOM - 1) * e;
+    const [px, py] = [(W / 2 - VIEW.x) * u, zoomEnd === 'top' ? 0 : VIEW.h * u];
+    return `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px) scale(${z.toFixed(4)}) translate(${(-px).toFixed(1)}px, ${(-py).toFixed(1)}px)`;
+  };
   const applyCam = (): void => {
     node.classList.toggle('tv', cam > 0);
     board.classList.toggle('tv', cam > 0);
+    node.classList.toggle('zoomed', zoomAt > 0);
+    const u = board.clientWidth / VIEW.w;
+    const close = zoomCss(u);
+    tvEl.style.transformOrigin = close ? '0 0' : '';
+    tvEl.style.transform = close;
     if (cam <= 0) {
-      board.style.transform = '';
-      board.style.transformOrigin = '';
+      board.style.transform = close;
+      board.style.transformOrigin = close ? '0 0' : '';
       tvEl.replaceChildren();
       return;
     }
-    const { transform, origin } = cssOf(camAt(cam, camAttack), board.clientWidth / VIEW.w);
-    board.style.transformOrigin = origin;
-    board.style.transform = transform;
+    const { transform, origin } = cssOf(camAt(cam, camAttack), u);
+    /* the camera turns about its own point: written out about the corner, after the close-up */
+    const [ox, oy] = origin.split(' ').map((v) => parseFloat(v));
+    board.style.transformOrigin = '0 0';
+    board.style.transform = `${close} translate(${ox}px, ${oy}px) ${transform} translate(${-ox}px, ${-oy}px)`;
     drawTV();
+  };
+  const turnZoom = (): void => {
+    if (!life.alive()) return;
+    const t = Math.min(1, (performance.now() - zoomStart) / ZOOM_MS);
+    zoomAt = zoomFrom + (zoomTo - zoomFrom) * t;
+    applyCam();
+    if (t < 1) life.later(turnZoom, 16);
+    else zooming = false;
+  };
+  const zoom = (end: Attack | null): void => {
+    const to = end ? 1 : 0;
+    if (end && end !== zoomEnd && zoomAt > 0) {
+      /* the other end: straight there, without passing through the whole table */
+      zoomEnd = end;
+      applyCam();
+    }
+    if (end) zoomEnd = end;
+    if (to === zoomTo && (zoomAt === to || zooming)) return;
+    zoomTo = to;
+    if (stillMotion()) { zoomAt = to; applyCam(); return; }
+    zoomFrom = zoomAt;
+    zoomStart = performance.now();
+    if (!zooming) { zooming = true; turnZoom(); }
   };
   const turnCam = (): void => {
     if (!life.alive()) return;
@@ -597,6 +649,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     clearAim,
     bulge,
     tv,
+    zoom,
     listen: (f) => { finger = f; },
     drop: () => { drag = null; sliding = null; clearAim(); },
   };

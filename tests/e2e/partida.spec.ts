@@ -124,6 +124,19 @@ test.describe('Partida', () => {
     noProblems(watch);
   });
 
+  test('a penalty in a match: the camera closes in on its goal, and not in ordinary play', async ({ page }) => {
+    const watch = watchPage(page);
+    await open(page, chance({ phase: 'placing', penalty: true, ball: { x: 32, y: 12 } }));
+    await expect(page.locator('.bt-wrap')).toHaveClass(/zoomed/);
+    noProblems(watch);
+  });
+
+  test('ordinary play: the whole table, no close-up', async ({ page }) => {
+    await open(page, chance());
+    await expect(game(page)).toHaveAttribute('data-phase', 'play');
+    await expect(page.locator('.bt-wrap')).not.toHaveClass(/zoomed/);
+  });
+
   test('"Pro gol!": called, the goleiro slid along the line and Pronto, and the shot past him scores', async ({ page }) => {
     const watch = watchPage(page);
     await open(page, chance());

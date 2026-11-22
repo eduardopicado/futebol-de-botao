@@ -34,6 +34,9 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
   own buttons ("Pro gol!", Pronto, Cobertura, at its own end and only when
   it has one to tap) sit in the table's corners beside the nets.
 - A goal or a near miss is slowed only under the TV camera.
+- A penalty (a shootout's kicks, or one in a match) is played with the camera
+  closed in on its goal (`board.zoom`): the table only scaled, so a finger
+  still lands where things are drawn.
 - The TV camera (`src/game/camera.ts`) is presentation only: it tilts the
   table for a called shot or a penalty while nothing can be flicked, draws
   what stands up (goals, goleiros, the ball) on a flat layer from the same

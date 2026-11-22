@@ -662,3 +662,5 @@ label.btn input[type="file"] { position: absolute; top: 0; left: 0; width: 1px; 
    beside the net, where nothing is played */
 .pen-clock { position: absolute; top: 1%; left: 3%; z-index: 3; pointer-events: none; font: 800 clamp(20px, 4vw, 34px) var(--display); color: #fff; background: #C7361A; border-radius: 12px; padding: 2px 10px; box-shadow: 0 3px 0 #8E2410; }
 .pen-clock:empty { display: none; }
+/* the close-up on one end, for a penalty: the table scaled inside its own frame */
+.bt-wrap.zoomed { overflow: hidden; }
