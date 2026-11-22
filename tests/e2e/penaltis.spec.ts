@@ -219,6 +219,38 @@ test.describe('Pênaltis', () => {
     noProblems(watch);
   });
 
+  test('the camera closes in on the goal each kick is at, at either end, and a finger still lands where it is drawn', async ({ page }) => {
+    const watch = watchPage(page);
+    await seed(page, { 'shootout-setup': partWay('a', []) });
+    await page.goto('/#/penaltis-2');
+    const wrap = page.locator('.bt-wrap');
+    await expect(wrap).toHaveClass(/zoomed/);
+    /* closed in on the top goal: the table drawn bigger than its frame, its top edge kept */
+    await expect.poll(async () => {
+      const [t, w] = [(await page.locator('.bt-table').boundingBox())!, (await wrap.boundingBox())!];
+      return t.height / w.height;
+    }).toBeGreaterThan(1.8);
+    const [t, w] = [(await page.locator('.bt-table').boundingBox())!, (await wrap.boundingBox())!];
+    expect(Math.abs(t.y - w.y)).toBeLessThan(2);
+    /* the goleiro slid with a finger where he is drawn */
+    const line = (G3.y[0] + G3.y[1]) / 2;
+    const from = await screen(page, { x: 32, y: line });
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x - 6 * from.scale, from.y, { steps: 6 });
+    await page.mouse.up();
+    expect(Number(await page.locator('.bt-keeper.away').getAttribute('data-x'))).toBeCloseTo(26, 0);
+    await page.getByRole('button', { name: '✋ Pronto' }).click();
+    await kick(page, 'a', 0, 30);
+    /* the next kick, at the bottom goal: closed in on that end */
+    await expect(game(page)).toHaveAttribute('data-turn', 'b', { timeout: 8000 });
+    await expect.poll(async () => {
+      const [t2, w2] = [(await page.locator('.bt-table').boundingBox())!, (await wrap.boundingBox())!];
+      return Math.abs(t2.y + t2.height - (w2.y + w2.height));
+    }).toBeLessThan(2);
+    noProblems(watch);
+  });
+
   test('a miss is marked, and the turn passes', async ({ page }) => {
     const watch = watchPage(page);
     await seed(page, { 'shootout-setup': partWay('a', []) });

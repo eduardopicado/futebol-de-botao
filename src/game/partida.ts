@@ -183,6 +183,8 @@ function match(root: HTMLElement, computer: boolean, forCup = false): () => void
     pips.setAttribute('aria-label', `${used} of ${most} touches used`);
     whose.textContent = m.phase === 'placing' ? `${name(defender())}: goleiro` : name(m.turn);
     const placing = m.phase === 'placing';
+    /* a penalty: the camera close in on the goal it is at; back to the whole table after */
+    board.zoom(m.penalty && (placing || m.phase === 'penalty') ? (m.turn === 'a' ? 'top' : 'bottom') : null);
     /* at a kick-off, the button that made the first flick may not make the second: it does not glow */
     board.glow(busy || placing || m.phase === 'over' ? null : m.turn, m.phase === 'kickoff' ? m.used : []);
     /* the defender placing their goleiro; or at 1 Toque, the side to play

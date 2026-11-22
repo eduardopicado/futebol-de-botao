@@ -157,6 +157,8 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
     /* where the hidden goleiro stands, for the tests: nowhere on the screen */
     if (m.phase === 'penalty') node.dataset.keeper = m.keepers[defender()].toFixed(2); else delete node.dataset.keeper;
     const placing = m.phase === 'placing';
+    /* the camera close in on the goal the kick is at, as football games do */
+    board.zoom(m.turn === 'a' ? 'top' : 'bottom');
     board.glow(busy || placing ? null : m.turn);
     board.placing(placing && defender() !== cpu && !busy ? keeperLine(defender()) : null, (x, out) => {
       sliding = placeGoleiro(rule, x, out, true);
@@ -411,6 +413,7 @@ function shootout(root: HTMLElement, computer: boolean, forCup = false): () => v
   }
 
   function champion(side: Side): void {
+    board.zoom(null);
     sfx.cheer();
     narrate('champion', teams[side], () => undefined, life.later);
     node.dataset.phase = 'over';
