@@ -11,24 +11,33 @@ import { BUTTONS, DEAD, type PadButton } from '../../src/lib/pad';
 /** a controller paired, nothing pressed */
 async function plugIn(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    const w = window as unknown as { __pad: { axes: number[]; buttons: boolean[] } };
+    const w = window as unknown as { __pad: { axes: number[]; buttons: boolean[] }; __reads: number };
     w.__pad = { axes: [0, 0, 0, 0], buttons: new Array(17).fill(false) };
+    /* how many times the app has read it: a press is held until it has been seen */
+    w.__reads = 0;
     Object.defineProperty(navigator, 'getGamepads', {
       configurable: true,
-      value: () => [{
+      value: () => (w.__reads++, [{
         id: 'Test controller', index: 0, connected: true, mapping: 'standard', timestamp: performance.now(),
         axes: w.__pad.axes.slice(), buttons: w.__pad.buttons.map((p) => ({ pressed: p, touched: p, value: p ? 1 : 0 })),
-      }],
+      }]),
     });
   });
 }
 
+/** wait until the app has read the controller this many more times (however busy the device) */
+const reads = (page: Page, n: number): Promise<void> => page.evaluate(async (k) => {
+  const w = window as unknown as { __reads: number };
+  const until = w.__reads + k;
+  while (w.__reads < until) await new Promise((r) => setTimeout(r, 4));
+}, n);
+
 async function press(page: Page, b: PadButton): Promise<void> {
   const i = BUTTONS[b];
   await page.evaluate((n) => { (window as unknown as { __pad: { buttons: boolean[] } }).__pad.buttons[n] = true; }, i);
-  await page.waitForTimeout(90);
+  await reads(page, 3);
   await page.evaluate((n) => { (window as unknown as { __pad: { buttons: boolean[] } }).__pad.buttons[n] = false; }, i);
-  await page.waitForTimeout(60);
+  await reads(page, 2);
 }
 
 /** the left stick (or the right) where it reads this, after the dead zone: 0 to 1 each way */
@@ -40,19 +49,23 @@ async function push(page: Page, x: number, y: number, right = false): Promise<vo
     pad.axes[off] = ax!; pad.axes[off + 1] = ay!;
   }, [x * raw, y * raw, right ? 2 : 0]);
   await page.waitForTimeout(120);
+  await reads(page, 3);
 }
 
 /** the stick let go: it springs home in three frames */
 async function letGo(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    const pad = (window as unknown as { __pad: { axes: number[] } }).__pad;
+    const w = window as unknown as { __pad: { axes: number[] }; __reads: number };
+    const pad = w.__pad;
     const [x, y] = [pad.axes[0]!, pad.axes[1]!];
+    /* each step read once by the app, as a real stick's spring is */
     for (const k of [0.6, 0.25, 0]) {
       pad.axes[0] = x * k; pad.axes[1] = y * k;
-      await new Promise((r) => setTimeout(r, 17));
+      const until = w.__reads + 1;
+      while (w.__reads < until) await new Promise((r) => setTimeout(r, 2));
     }
   });
-  await page.waitForTimeout(60);
+  await reads(page, 3);
 }
 
 /** this flick, aimed with the stick (where it goes, how hard) and south
