@@ -20,13 +20,14 @@ import { el, svg } from '../lib/dom';
 import type { Life } from '../lib/life';
 import { sfx, watching, type Watching } from '../lib/sfx';
 import { supportersOn } from './choices';
-import { BALL, GOLEIROS, KEEPER_RX, L, MOUTH, R, TRAY_AT, VIEW, W, flickFor, nearGoal, type Bump, type Flick, type Goleiro, type Point } from '../content/botao';
+import { BALL, GOLEIROS, KEEPER_RX, L, MAX_SPEED, MOUTH, PULL, R, TRAY_AT, VIEW, W, flickFor, nearGoal, type Bump, type Flick, type Goleiro, type Point } from '../content/botao';
 import type { Scene, Side } from '../content/match';
 import { FAR, SHADOW, at, button, goalFrame, pitch, shading } from './table';
 import { playerLabel, type Player } from './squads';
 import type { Team } from './teams';
 import { BAND, ballPiece, camAt, cssOf, goalPieces, goleiroPiece, type Attack, type Mark, type Piece, type Shape } from './camera';
 import { crestOf } from '../lib/crests';
+import { cycleFocus, latch, padInUse, pressFocused, pressShown, towards, usePad, type Sample } from '../lib/pad';
 
 /** a goleiro's place across its line, or null for none */
 export interface Keepers {
@@ -544,6 +545,37 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
   const keeperAt = (which: 'top' | 'bottom'): number => Number((which === 'top' ? top.g : bottom.g).dataset.x);
   const keeperOutAt = (which: 'top' | 'bottom'): number => Number((which === 'top' ? top.g : bottom.g).dataset.out ?? 0);
 
+  /** the held button pulled back this far: the band, the arrow, the way, and a chip's lift started again if it moved */
+  const showAim = (pull: Point): void => {
+    if (!drag) return;
+    const from = scene[drag.side][drag.index]!;
+    /* a chip: moving the finger (aiming again) starts its lift again */
+    if (chip && Math.sqrt((pull.x - chip.at.x) ** 2 + (pull.y - chip.at.y) ** 2) > CHIP_MOVE) {
+      chip = { since: performance.now(), at: pull, lift: 0 };
+      showLift();
+    }
+    /* the band from the button, as far back as it has been pulled */
+    band.setAttribute('x1', from.x.toFixed(2)); band.setAttribute('y1', from.y.toFixed(2));
+    band.setAttribute('x2', (from.x + pull.x).toFixed(2)); band.setAttribute('y2', (from.y + pull.y).toFixed(2));
+    if (tiny(pull)) { for (const n of [path, trail, arrowEl]) n.setAttribute('points', ''); return; }
+    const f = flickFor(drag.index, pull.x, pull.y);
+    arrow(from, f);
+    const shown = finger.guide?.(drag.side, drag.index, f);
+    way(shown?.ball ?? [], shown?.mine ?? []);
+  };
+  /** let go, pulled back this far: a flick, unless it is too small to see */
+  const fire = (pull: Point): void => {
+    if (!drag) return;
+    const { side, index } = drag;
+    const lift = chip?.lift ?? 0;
+    drag = null;
+    chip = null;
+    clearAim();
+    /* a tap, or a pull too small to see, is not a flick */
+    if (tiny(pull)) return;
+    finger.flick(side, index, { ...flickFor(index, pull.x, pull.y), ...(lift > 0 ? { lift } : {}) });
+  };
+
   board.addEventListener('pointerdown', (e) => {
     supporters();
     /* the table tilted: nothing to pick up until it is back */
@@ -593,34 +625,12 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
       return;
     }
     if (!drag || e.pointerId !== drag.pointer) return;
-    const pull = pullOf(e, drag.from);
-    const from = scene[drag.side][drag.index]!;
-    /* a chip: moving the finger (aiming again) starts its lift again */
-    if (chip && Math.sqrt((pull.x - chip.at.x) ** 2 + (pull.y - chip.at.y) ** 2) > CHIP_MOVE) {
-      chip = { since: performance.now(), at: pull, lift: 0 };
-      showLift();
-    }
-    /* the band from the button, as far back as it has been pulled */
-    band.setAttribute('x1', from.x.toFixed(2)); band.setAttribute('y1', from.y.toFixed(2));
-    band.setAttribute('x2', (from.x + pull.x).toFixed(2)); band.setAttribute('y2', (from.y + pull.y).toFixed(2));
-    if (tiny(pull)) { for (const n of [path, trail, arrowEl]) n.setAttribute('points', ''); return; }
-    const f = flickFor(drag.index, pull.x, pull.y);
-    arrow(from, f);
-    const shown = finger.guide?.(drag.side, drag.index, f);
-    way(shown?.ball ?? [], shown?.mine ?? []);
+    showAim(pullOf(e, drag.from));
   });
   const up = (e: PointerEvent): void => {
     if (sliding && e.pointerId === sliding.pointer) { sliding = null; return; }
     if (!drag || e.pointerId !== drag.pointer) return;
-    const pull = pullOf(e, drag.from);
-    const { side, index } = drag;
-    const lift = chip?.lift ?? 0;
-    drag = null;
-    chip = null;
-    clearAim();
-    /* a tap, or a pull too small to see, is not a flick */
-    if (tiny(pull)) return;
-    finger.flick(side, index, { ...flickFor(index, pull.x, pull.y), ...(lift > 0 ? { lift } : {}) });
+    fire(pullOf(e, drag.from));
   };
   board.addEventListener('pointerup', up);
   /* the system took the finger (a swipe from the edge, a call): no flick */
@@ -628,6 +638,174 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     if (sliding && e.pointerId === sliding.pointer) sliding = null;
     if (drag && e.pointerId === drag.pointer) { drag = null; chip = null; clearAim(); }
   });
+
+  /* ── a controller (src/lib/pad.ts) ──────────────────────────────────── */
+
+  /* the controller's drag is the finger's, with a pointer no finger has: the
+     same band, arrow, way and lift, let go with south. The left stick points
+     where the button goes and how hard; let go of it and the aim stays, as it
+     was before the stick sprang back, for the right stick to nudge and south
+     to flick. The d-pad picks another button; east drops the aim */
+  const PAD = -7;
+  const MAX_PULL = MAX_SPEED / PULL;
+  const pickRing = svg('circle', { r: R + 1.2, class: 'bt-pad-pick', 'aria-hidden': 'true' });
+  pickRing.style.display = 'none';
+  board.insertBefore(pickRing, arrowEl);
+  let pick: { side: Side; index: number } | null = null;
+  let aim: Point | null = null;
+  let samples: Sample[] = [];
+  let pushing = false;
+  let listened = false;
+  /* which controllers' sticks are waited out (frame), and what the table last wanted them for */
+  let held: boolean[] = [];
+  let wasMode: 'slide' | 'aim' | null = null;
+  /** the buttons the side may flick now, where they are (null for one it
+      may not: out, or not glowing at a kick-off). Not finger.may, which says
+      why not out loud: that is asked only of the one flicked */
+  const flickable = (side: Side): (Point | null)[] => scene[side].map((b, i) => (b && !buttons[side][i]?.classList.contains('spent') ? b : null));
+  const unpick = (): void => {
+    pick = null; aim = null; samples = []; pushing = false;
+    pickRing.style.display = 'none';
+    delete board.dataset.pick;
+    if (drag?.pointer === PAD) { drag = null; chip = null; clearAim(); }
+  };
+  const showPick = (): void => {
+    if (!pick) return;
+    const p = scene[pick.side][pick.index]!;
+    pickRing.setAttribute('cx', p.x.toFixed(2));
+    pickRing.setAttribute('cy', p.y.toFixed(2));
+    pickRing.style.display = '';
+    board.dataset.pick = `${pick.side}${pick.index}`;
+    showTag(pick.side, pick.index);
+  };
+  /** the aim dropped, the button still picked */
+  const unaim = (): void => {
+    aim = null; samples = []; pushing = false;
+    if (drag?.pointer === PAD) { drag = null; chip = null; clearAim(); }
+    showPick();
+  };
+  const aimPad = (pull: Point): void => {
+    if (!pick) return;
+    if (drag?.pointer !== PAD) {
+      drag = { side: pick.side, index: pick.index, pointer: PAD, from: { x: 0, y: 0 } };
+      chip = null;
+    }
+    /* Cobertura armed or put away while aiming */
+    const wants = !!finger.chip?.();
+    if (wants && !chip) { chip = { since: performance.now(), at: pull, lift: 0 }; buildLift(); }
+    if (!wants && chip) { chip = null; lifter.style.display = 'none'; dots.replaceChildren(); }
+    aim = pull;
+    showAim(pull);
+  };
+  const slideBy = (dx: number, dOut: number): void => {
+    if (!slide) return;
+    const out = slide.area ? keeperOutAt(slide.which) + dOut * (slide.which === 'top' ? 1 : -1) : 0;
+    slide.onMove?.(keeperAt(slide.which) + dx, out);
+  };
+  usePad({
+    claims: () => padInUse() && cam <= 0 && !sliding && !(drag && drag.pointer !== PAD) && (slide !== null || finger.side() !== null),
+    keepsBack: () => listened,
+    release: unpick,
+    frame: ({ fine, sticks, dt }) => {
+      /* a stick still held as the table changes from aiming to a goleiro, or
+         back (the kicker's, as the ball comes), is not for the new thing: it
+         is waited out until it is let go */
+      const mode = slide ? 'slide' : 'aim';
+      if (mode !== wasMode) { held = sticks.map((p) => wasMode !== null && !!(p.x || p.y)); wasMode = mode; }
+      sticks.forEach((p, n) => { if (!p.x && !p.y) held[n] = false; });
+      const free = sticks.filter((_, n) => !held[n]);
+      const stick = free.reduce((a, p) => (p.x * p.x + p.y * p.y > a.x * a.x + a.y * a.y ? p : a), { x: 0, y: 0 });
+      /* a goleiro to slide: the stick moves him, across and (1 Toque) off his line */
+      if (slide) {
+        if (pick) unpick();
+        if (stick.x || stick.y) slideBy(stick.x * 34 * dt, stick.y * 22 * dt);
+        return;
+      }
+      const side = finger.side();
+      if (!side) return;
+      const can = flickable(side);
+      if (!pick || pick.side !== side || !can[pick.index]) {
+        unpick();
+        /* the one nearest the ball, to start with */
+        let best = -1;
+        let near = Infinity;
+        can.forEach((b, i) => {
+          if (!b) return;
+          const d = (b.x - scene.ball.x) ** 2 + (b.y - scene.ball.y) ** 2;
+          if (d < near) { near = d; best = i; }
+        });
+        if (best < 0) return;
+        pick = { side, index: best };
+        clearAim();
+        showPick();
+      }
+      const now = performance.now();
+      if (stick.x || stick.y) {
+        pushing = true;
+        samples.push({ t: now, x: stick.x, y: stick.y });
+        samples = samples.filter((x) => now - x.t < 400);
+        aimPad({ x: -stick.x * MAX_PULL, y: -stick.y * MAX_PULL });
+        return;
+      }
+      if (pushing) {
+        /* let go: the aim as it was before the stick sprang back */
+        pushing = false;
+        const kept = latch(samples);
+        samples = [];
+        const pull = kept && { x: -kept.x * MAX_PULL, y: -kept.y * MAX_PULL };
+        if (pull && !tiny(pull)) aimPad(pull); else unaim();
+        return;
+      }
+      /* the right stick nudges the aim kept: across turns it, up and down makes it harder and softer */
+      if (aim && (fine.x || fine.y)) {
+        const size = Math.sqrt(aim.x * aim.x + aim.y * aim.y) || 1;
+        const [ux, uy] = [aim.x / size, aim.y / size];
+        const turn = fine.x * 0.9 * dt;
+        const [tx, ty] = [ux - uy * turn, uy + ux * turn];
+        const t = Math.sqrt(tx * tx + ty * ty) || 1;
+        const grown = Math.min(MAX_PULL, Math.max(1.6, size - fine.y * 9 * dt));
+        aimPad({ x: (tx / t) * grown, y: (ty / t) * grown });
+      }
+      /* held still, a chip's lift builds (buildLift); the ring follows its button */
+      if (!aim) showPick();
+    },
+    press: (b) => {
+      if (slide) {
+        if (b === 'left' || b === 'right') { slideBy(b === 'left' ? -1 : 1, 0); return true; }
+        if (b === 'up' || b === 'down') { slideBy(0, b === 'down' ? 1 : -1); return true; }
+        if (b === 'south' || b === 'west') return pressShown('button.pronto');
+        if (b === 'east') return true;
+        return false;
+      }
+      if (b === 'south') {
+        if (aim && drag?.pointer === PAD && pick) {
+          if (finger.may && !finger.may(pick.side, pick.index)) { unaim(); return true; }
+          const a = aim;
+          aim = null; samples = [];
+          pickRing.style.display = 'none';
+          pick = null;
+          delete board.dataset.pick;
+          fire(a);
+          return true;
+        }
+        return pressFocused() || true;
+      }
+      if (b === 'east') { if (aim) unaim(); return true; }
+      if (b === 'north') return pressShown('button.call') || true;
+      if (b === 'west') return pressShown('button.pronto') || true;
+      if (b === 'r1') return pressShown('button.chip') || true;
+      if (b === 'l1') { cycleFocus(); return true; }
+      if ((b === 'up' || b === 'down' || b === 'left' || b === 'right') && pick) {
+        const dir = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } }[b];
+        const can = flickable(pick.side);
+        const from = can[pick.index]!;
+        const i = towards(from, dir, can.map((p, j) => (j === pick!.index ? null : p)));
+        if (i >= 0) { unaim(); pick = { side: pick.side, index: i }; clearAim(); showPick(); }
+        return true;
+      }
+      return false;
+    },
+  }, life.alive);
 
   return {
     node,
@@ -650,7 +828,7 @@ export function makeBoard(life: Life, label: string, goleiro: Goleiro = GOLEIROS
     bulge,
     tv,
     zoom,
-    listen: (f) => { finger = f; },
-    drop: () => { drag = null; sliding = null; clearAim(); },
+    listen: (f) => { finger = f; listened = true; },
+    drop: () => { drag = null; sliding = null; aim = null; samples = []; pushing = false; pick = null; pickRing.style.display = 'none'; delete board.dataset.pick; clearAim(); },
   };
 }

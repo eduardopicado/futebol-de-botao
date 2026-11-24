@@ -664,3 +664,8 @@ label.btn input[type="file"] { position: absolute; top: 0; left: 0; width: 1px; 
 .pen-clock:empty { display: none; }
 /* the close-up on one end, for a penalty: the table scaled inside its own frame */
 .bt-wrap.zoomed { overflow: hidden; }
+
+/* a controller (src/lib/pad.ts): the button it has picked on the table, and
+   the screen's button it is on */
+.bt-pad-pick { fill: none; stroke: #fff; stroke-width: .7; stroke-dasharray: 1.6 1.1; pointer-events: none; }
+body.pad-on :focus { outline: 3px solid var(--mustard); outline-offset: 2px; }
