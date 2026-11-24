@@ -5,6 +5,7 @@ import { unlockSpeech, watchVoices } from './lib/speech';
 import { loadClips, unlockClips } from './lib/audio';
 import { loadSfx, setSfxEnabled, staleSfx, unlockSfx, wakeSfx } from './lib/sfx';
 import { watchForUpdates } from './lib/update';
+import { startPads } from './lib/pad';
 import { soundsOn } from './game/choices';
 import * as home from './game/home';
 import { mountScene } from './game/scene';
@@ -62,6 +63,8 @@ void loadClips();
 void loadSfx();
 unlockOnFirstTap();
 watchForUpdates();
+/* a game controller, if one is paired (src/lib/pad.ts) */
+startPads();
 
 mountScene();
 

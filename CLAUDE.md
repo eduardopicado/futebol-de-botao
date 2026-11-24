@@ -27,6 +27,12 @@ choice from its 1 Toque rulebook (`src/content/match.ts` lists them).
 - The pull counts from where the finger lands, not from the middle of the
   button; under 1.5 units of movement is no flick. A `pointercancel` drops the
   drag, and a finger still down when a shot starts is no flick.
+- A game controller (`src/lib/pad.ts`) flicks through the finger's own drag
+  in `board.ts`: the same band, arrow, lift and `flickFor`, so the physics
+  never knows which it was. The left stick points where the button goes,
+  south flicks; buttons are named by where they sit (south is ✕ on a
+  DualSense, B on an 8BitDo). Off the table the d-pad moves through the
+  screen's buttons. A touch takes over at once.
 - Nothing guide-like stays on the table when no button is held. Say what
   happened in words, above the table, or animate it and then clear it.
 - A match's screen is one row (←, the note, the score) and the table. The
@@ -178,13 +184,16 @@ src/game/camera.ts        the TV camera for a called shot: the tilt, and the goa
 src/game/pace.ts          how long the game waits between things, in one place
 src/lib/                  speech, sfx, audio (the commentator's recorded lines),
                           storage, crests, life, router, dom, update (the
-                          "new version, tap to update" button)
+                          "new version, tap to update" button), pad (game
+                          controllers: the sticks, the d-pad through a
+                          screen's buttons, the aim kept when a stick is let go)
 src/assets/tray.webp      the wooden tray, cut from the design handoff, its rim
                           as deep at the bottom as at the top
 tests/unit/               physics, planner, the match's rules, the computer, set-ups, teams,
                           squads, the Copa, the guide's demos, storage, sfx, speech, crests,
-                          the recordings
-tests/e2e/                Playwright, real finger drags through the table's viewBox;
+                          the recordings, the controller's sticks
+tests/e2e/                Playwright, real finger drags through the table's viewBox
+                          (and a pretend controller, pad.spec.ts);
                           a screen that will not open (router), and a new version
                           found and swapped in by the real offline worker (update)
 tools/launch.ts           the launch images: each iPad's and iPhone's screen, and
