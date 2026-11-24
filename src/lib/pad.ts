@@ -222,7 +222,14 @@ function readPads(): Gamepad[] {
   }
 }
 
-function tick(now: number): void {
+/** read this often, in ms: the table's own frames (board.ts plays a flick
+    on a 16 ms timer too). Not requestAnimationFrame, which a browser may run
+    far less often than it draws: headless WebKit ran one frame in half a
+    second, and a press came and went between two */
+const EVERY = 16;
+
+function tick(): void {
+  const now = performance.now();
   const pads = readPads();
   if (!pads.length) { running = false; return; }
   const dt = last ? Math.min(0.1, (now - last) / 1000) : 1 / 60;
@@ -255,14 +262,14 @@ function tick(now: number): void {
     if (way && way !== stickWas) press(way);
     stickWas = way;
   }
-  requestAnimationFrame(tick);
+  window.setTimeout(tick, EVERY);
 }
 
 function run(): void {
   if (running) return;
   running = true;
   last = 0;
-  requestAnimationFrame(tick);
+  window.setTimeout(tick, 0);
 }
 
 /** start listening for controllers (once, as the app starts) */

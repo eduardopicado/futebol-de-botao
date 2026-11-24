@@ -1,6 +1,6 @@
 /* A game controller: a pretend one, standing in for navigator.getGamepads,
    pressed and pushed as a DualSense or an 8BitDo would be (the standard
-   mapping), sixty times a second as the app reads it. */
+   mapping), read every 16 ms as the app reads it. */
 
 import { expect, test, type Page } from '@playwright/test';
 import { noProblems, seed, watchPage } from './helpers';
@@ -171,7 +171,7 @@ test.describe('A game controller', () => {
       let low = 1;
       pad.axes[3] = -1;
       for (let i = 0; i < 6; i++) {
-        await new Promise((r) => requestAnimationFrame(r));
+        await new Promise((r) => setTimeout(r, 20));
         low = Math.min(low, Number(document.querySelector('.bt-lift')!.getAttribute('data-lift')));
       }
       pad.axes[3] = 0;
@@ -246,6 +246,7 @@ test.describe('A game controller', () => {
     await seed(page, { 'pen-arcade': true, 'shootout-setup': { first: 'a', turn: 'a', kicks: [], winner: null } });
     await plugIn(page);
     await page.goto('/#/penaltis-2');
+    await expect(page.getByRole('button', { name: '✋ Pronto' })).toBeVisible();
     await press(page, 'west');
     await expect(page.locator('.game')).toHaveAttribute('data-phase', 'penalty');
     const keeper = page.locator('.bt-keeper.away');
@@ -268,6 +269,7 @@ test.describe('A game controller', () => {
     await seed(page, { 'pen-arcade': true, 'shootout-setup': { first: 'a', turn: 'a', kicks: [], winner: null } });
     await plugIn(page);
     await page.goto('/#/penaltis-2');
+    await expect(page.getByRole('button', { name: '✋ Pronto' })).toBeVisible();
     await press(page, 'west');
     await expect(page.locator('.game')).toHaveAttribute('data-phase', 'penalty');
     const keeper = page.locator('.bt-keeper.away');
@@ -283,7 +285,7 @@ test.describe('A game controller', () => {
     await page.evaluate(async () => {
       const pad = (window as unknown as { __pad: { axes: number[] } }).__pad;
       pad.axes[0] = 0; pad.axes[1] = 0;
-      for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
+      for (let i = 0; i < 2; i++) await new Promise((r) => setTimeout(r, 20));
       pad.axes[0] = 1;
     });
     await expect(page.locator('.game')).toHaveAttribute('data-kick', /goal|saved|missed/, { timeout: 10000 });
